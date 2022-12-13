@@ -1,76 +1,29 @@
-# Blink Example
+# Watchdog ESP32 Version
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+# *** IMPORTANT - READ BEFORE USING THIS CODE - ***
+The camera and SD card take a fair amount of power and the the system brownouts (looses too much power) if running whilst powered by a computer through USB. The system needs to be connected to a 5V power supply to operate correctly.
 
-This example demonstrates how to blink a LED using GPIO or RMT for the addressable LED, i.e. [WS2812](http://www.world-semi.com/Certifications/WS2812B.html).
+# Application Operation
+When uploaded to the ESP32 cam, this project will initialise the SD card and the camera and take a photo (jpeg) every 5 seconds and then save that photo to the SD card. The red LED on the underside of the esp32 turns off when the ESP32 is taking a photo and saving the photo to the SD card. Do not turn off the power to the ESP32 whilst this is happening as you will most likely damage the SD card. Wait for the LED to turn back on as this will give you 5 seconds to turn off the power.
 
-See the RMT examples in the [RMT Peripheral](../../peripherals/rmt) for more information about how to use it.
+# Hardware Features to be Implemented in Order
+- Determine which pins can be used in conjunction with the camera and the SD card. Map out how these pins will connect to the required peripherals. These peripherals include:
+   - Temperature Sensor
+   - Real Time Clock
+   - User Interface to show any errors that have occured and potnetially when the ESP32 is in the process of taking a photo or writing to the SD card
+   - Button to make the system take a photo
+   - Button to turn the system on and off
+   - Hardware to protect the camera/ensure the camera has a clear view of the item it needs to take a photo of. Historically (using Raspberry Pi) this has been done with a servo
+   - Plan what hardware may be required to setup something like LoRa in the future. Plan what pins may be useable for any additonal sensors that may be required in the future
+- Determine how the ESP32 will be powered
+- Determine the structure of the casing and how the casing will keep all the electronics water proof
 
-## How to Use Example
-
-Before project configuration and build, be sure to set the correct chip target using `idf.py set-target <chip_name>`.
-
-### Hardware Required
-
-* A development board with ESP32/ESP32-S2/ESP32-S3/ESP32-C3 SoC (e.g., ESP32-DevKitC, ESP-WROVER-KIT, etc.)
-* A USB cable for Power supply and programming
-
-Some development boards use an addressable LED instead of a regular one. These development boards include:
-
-| Board                | LED type             | Pin                  |
-| -------------------- | -------------------- | -------------------- |
-| ESP32-C3-DevKitC-1   | Addressable          | GPIO8                |
-| ESP32-C3-DevKitM-1   | Addressable          | GPIO8                |
-| ESP32-S2-DevKitM-1   | Addressable          | GPIO18               |
-| ESP32-S2-Saola-1     | Addressable          | GPIO18               |
-| ESP32-S3-DevKitC-1   | Addressable          | GPIO48               |
-
-See [Development Boards](https://www.espressif.com/en/products/devkits) for more information about it.
-
-### Configure the Project
-
-Open the project configuration menu (`idf.py menuconfig`). 
-
-In the `Example Configuration` menu:
-
-* Select the LED type in the `Blink LED type` option.
-    * Use `GPIO` for regular LED blink.
-    * Use `RMT` for addressable LED blink.
-        * Use `RMT Channel` to select the RMT peripheral channel.
-* Set the GPIO number used for the signal in the `Blink GPIO number` option.
-* Set the blinking period in the `Blink period in ms` option.
-
-### Build and Flash
-
-Run `idf.py -p PORT flash monitor` to build, flash and monitor the project.
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
-As you run the example, you will see the LED blinking, according to the previously defined period. For the addressable LED, you can also change the LED color by setting the `pStrip_a->set_pixel(pStrip_a, 0, 16, 16, 16);` (LED Strip, Pixel Number, Red, Green, Blue) with values from 0 to 255 in the `blink.c` file.
-
-```
-I (315) example: Example configured to blink addressable LED!
-I (325) example: Turning the LED OFF!
-I (1325) example: Turning the LED ON!
-I (2325) example: Turning the LED OFF!
-I (3325) example: Turning the LED ON!
-I (4325) example: Turning the LED OFF!
-I (5325) example: Turning the LED ON!
-I (6325) example: Turning the LED OFF!
-I (7325) example: Turning the LED ON!
-I (8325) example: Turning the LED OFF!
-```
-
-Note: The color order could be different according to the LED model.
-
-The pixel number indicates the pixel position in the LED strip. For a single LED, use 0.
-
-## Troubleshooting
-
-* If the LED isn't blinking, check the GPIO or the LED type selection in the `Example Configuration` menu.
-
-For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
+# Software Features to be Implemented in Order
+- Code to create aa proper file structure on the SD card
+- Code to log operations and errors to the SD card
+- Code to get the user interface working i.e showing errors/modes of operation 
+- Code to get the on/off power button working
+- Code to get the real time clock working
+- Code to get the temperature sensor working
+- Code to get the hardware to protect the camera working
+- Code to get the ESP32 to take a photo and record data manually

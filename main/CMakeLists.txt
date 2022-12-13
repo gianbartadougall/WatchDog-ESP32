@@ -1,4 +1,7 @@
-idf_component_register(SRCS "blink_example_main.c"
+idf_component_register(SRCS "Src/main.c"
+                            "Src/camera.c"
+                            "Src/sd_card.c"
+							"Src/rtc.c"
                             "../esp32-camera/driver/esp_camera.c"
                             "../esp32-camera/driver/sccb.c"
                             "../esp32-camera/driver/cam_hal.c"
@@ -24,4 +27,5 @@ idf_component_register(SRCS "blink_example_main.c"
                     "../esp32-camera/conversions/include" 
                     "../esp32-camera/driver/private_include"
                     "../esp32-camera/sensors/private_include"
-                    "../esp32-camera/target/private_include")
+                    "../esp32-camera/target/private_include"
+					"Inc/")

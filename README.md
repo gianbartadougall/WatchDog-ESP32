@@ -20,6 +20,8 @@ If you see the red LED blinking once per second then an error has occured. You c
 - Determine the structure of the casing and how the casing will keep all the electronics water proof
 
 # Software Features to be Implemented in Order
+- Code to get the camera working (DONE)
+- Code to get the SD card working (DONE)
 - Code to create a file structure on the SD card to save data and logs (DONE)
 - Code to log operations and errors to the SD card (DONE)
 - Code to get the user interface working i.e showing errors/modes of operation 

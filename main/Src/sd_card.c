@@ -2,6 +2,8 @@
 /* Public Includes */
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <sys/types.h>
 
 /* Private Includes */
 #include "sd_card.h"
@@ -16,10 +18,16 @@
 
 #define LOG_MSG_MAX_CHARACTERS 200
 #define NULL_CHAR_LENGTH       1
+#define DATE_TIME_DELIMITER    '_'
+#define IMG_NUM_START_INDEX    3
+#define IMG_NUM_END_CHARACTER  '-'
+
 static const char* SD_CARD_TAG = "SD CARD:";
 
 /* Private Variables */
 int mounted = FALSE;
+
+int imageNumber = 0;
 
 // Options for mounting the SD Card are given in the following
 // configuration
@@ -31,7 +39,70 @@ static esp_vfs_fat_sdmmc_mount_config_t sdCardConfiguration = {
 
 sdmmc_card_t* card;
 
-uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int number) {
+/* Private Function Declarations */
+uint8_t sd_card_check_file_path_exists(char* filePath);
+uint8_t sd_card_check_directory_exists(char* directory);
+
+uint8_t sd_card_init(void) {
+
+    // Update the image number
+    if (sd_card_update_image_number() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
+
+    return WD_SUCCESS;
+}
+
+uint8_t sd_card_update_image_number(void) {
+
+    // Ensure the SD card is mounted before attempting to save the image
+    if (sd_card_open() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
+
+    // If there is no data on the SD card, return an image number of 0. The
+    // function will log this error internally
+    if (sd_card_check_file_path_exists(DATA_FOLDER_PATH) != WD_SUCCESS) {
+        imageNumber = 0;
+        return WD_ERROR;
+    }
+
+    // Loop through images in the data folder path and find the last image
+    // number saved
+    DIR* dataDir = opendir(DATA_FOLDER_PATH);
+
+    char msg[50];
+    if (dataDir == NULL) {
+        sprintf(msg, "Could not open directory '%s'", DATA_FOLDER_PATH);
+        sd_card_log(SYSTEM_LOG_FILE, msg);
+        imageNumber = 0;
+        return WD_ERROR;
+    }
+
+    // Loop through all the files in the folder and set the image number to the
+    // highest number found
+    struct dirent* file;
+    while ((file = readdir(dataDir)) != NULL) {
+
+        // File name is stored in file->d_name
+        int number = wd_utils_extract_image_number(file->d_name, IMG_NUM_START_INDEX, IMG_NUM_END_CHARACTER);
+
+        if (number > imageNumber) {
+            imageNumber = number;
+        }
+    }
+
+    closedir(dataDir);
+
+    // Increment image number by 1
+    sprintf(msg, "Highest image number found was %i", imageNumber);
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+
+    imageNumber += 1;
+    return WD_SUCCESS;
+}
+
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength) {
 
     // Ensure the SD card is mounted before attempting to save the image
     int returnCode = sd_card_open();
@@ -41,23 +112,13 @@ uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int num
 
     char msg[120];
 
-    // Create required directories if they do not exist. The stat() function checks
-    // whether the directory exists already and the mkdir() function creates the
-    // directory if the stat() could not find the directory. Note mkdir can only
-    // create one directory at a time which is why each folder is checked and made
-    // seperatley
-    struct stat st = {0};
-    if ((stat(WATCHDOG_FOLDER_PATH, &st) == -1) && (mkdir(WATCHDOG_FOLDER_PATH, 0700) == -1)) {
-        sprintf(msg, "System could not create watchdog folder");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        return SD_CARD_ERROR_IO_ERROR;
+    if (sd_card_check_file_path_exists(DATA_FOLDER_PATH) != WD_SUCCESS) {
+        return WD_ERROR;
     }
 
-    if ((stat(DATA_FOLDER_PATH, &st) == -1) && (mkdir(DATA_FOLDER_PATH, 0700) == -1)) {
-        sprintf(msg, "System could not create data folder");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        return SD_CARD_ERROR_IO_ERROR;
-    }
+    // Create name for image
+    char imageName[30];
+    sprintf(imageName, "img%d%c.jpg", imageNumber, IMG_NUM_END_CHARACTER);
 
     // Create path for image
     char filePath[70];
@@ -85,6 +146,9 @@ uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int num
     sd_card_log(SYSTEM_LOG_FILE, msg);
 
     fclose(imageFile);
+
+    // Increment the image number
+    imageNumber++;
 
     return WD_SUCCESS;
 }
@@ -157,24 +221,61 @@ void sd_card_close(void) {
     mounted = FALSE;
 }
 
+uint8_t sd_card_check_file_path_exists(char* filePath) {
+
+    // Get the length of the string
+    int length = 0;
+    char c;
+    while ((c = filePath[length]) && (c != '\0')) {
+        length++;
+    }
+
+    // Loop through file path and build new string one directory at a
+    // time. Each new directory added, confirm the existence of that
+    // directory
+    char copyFilePath[length + 1];
+    for (int i = 0; i < length; i++) {
+
+        // Copy character from file path
+        copyFilePath[i] = filePath[i];
+
+        if (filePath[i + 1] == '/' || i == (length - 1)) {
+            copyFilePath[i + 1] = '\0'; // Add null terminator to string
+            if (sd_card_check_directory_exists(copyFilePath) != WD_SUCCESS) {
+                return WD_ERROR;
+            }
+        }
+    }
+
+    return WD_SUCCESS;
+}
+
+uint8_t sd_card_check_directory_exists(char* directory) {
+
+    // Structure to store infromation about directory. We do not need the information
+    // but this struct is required for the function call
+    struct stat st = {0};
+
+    // if stat returns 0 then the directory was able to be found
+    if (stat(directory, &st) == 0) {
+        return WD_SUCCESS;
+    }
+
+    // Try to create the directory. mkdir() returning 0 => direcotry was created
+    if (mkdir(directory, 0700) == 0) {
+        return WD_SUCCESS;
+    }
+
+    ESP_LOGE(SD_CARD_TAG, "Error trying to create directory %s. Error: '%s'", directory, strerror(errno));
+    return WD_ERROR;
+}
+
 uint8_t sd_card_log(char* fileName, char* message) {
 
     // Print log to console
-    ESP_LOGE("LOG", "%s", message);
+    ESP_LOGI("LOG", "%s", message);
 
-    // Create required directories if they do not exist. The stat() function checks
-    // whether the directory exists already and the mkdir() function creates the
-    // directory if the stat() could not find the directory. Note mkdir can only
-    // create one directory at a time which is why each folder is checked and made
-    // seperatley
-    struct stat st = {0};
-    if ((stat(WATCHDOG_FOLDER_PATH, &st) == -1) && (mkdir(WATCHDOG_FOLDER_PATH, 0700) == -1)) {
-        ESP_LOGE(SD_CARD_TAG, "Could not create %s", WATCHDOG_FOLDER_PATH);
-        return SD_CARD_ERROR_IO_ERROR;
-    }
-
-    if ((stat(LOG_FOLDER_PATH, &st) == -1) && (mkdir(LOG_FOLDER_PATH, 0700) == -1)) {
-        ESP_LOGE(SD_CARD_TAG, "Could not create %s", LOG_FOLDER_PATH);
+    if (sd_card_check_file_path_exists(LOG_FOLDER_PATH) != WD_SUCCESS) {
         return SD_CARD_ERROR_IO_ERROR;
     }
 

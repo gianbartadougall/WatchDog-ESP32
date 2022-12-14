@@ -22,7 +22,9 @@
 
 #define SYSTEM_LOG_FILE ("logs.txt")
 
-uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int number);
+uint8_t sd_card_init(void);
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength);
+uint8_t sd_card_update_image_number(void);
 
 /**
  * @brief Mounts the SD Card for reading and writing

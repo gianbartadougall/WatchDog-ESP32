@@ -1,5 +1,6 @@
 
 #include "camera.h"
+#include "wd_utils.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -74,7 +75,7 @@ esp_err_t init_camera() {
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK) {
         ESP_LOGE(CAMERA_TAG, "Camera Init Failed");
-        return err;
+        return WD_ERROR;
     }
 
     return ESP_OK;

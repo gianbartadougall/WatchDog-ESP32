@@ -38,19 +38,32 @@ static void blink_led(void) {
 static void configure_led(void) {
     ESP_LOGI(TAG, "Example configured to blink GPIO LED!");
     gpio_reset_pin(BLINK_GPIO);
+
     /* Set the GPIO as a push/pull output */
     gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+
+    vTaskDelay(1000 / portTICK_RATE_MS);
+    gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
 }
 
 void watchdog_test() {
 
     char msg[100];
+    if (sd_card_open() != WD_SUCCESS) {
+        return;
+    }
 
     /* Configure the camera */
     if (ESP_OK != init_camera()) {
-        sprintf(msg, "Camera initialisation failed");
+        sprintf(msg, "Camera failed to initialise");
         sd_card_log(SYSTEM_LOG_FILE, msg);
+        sd_card_close();
+
+        gpio_set_direction(RED_LED, GPIO_MODE_OUTPUT);
         return;
+    } else {
+        sprintf(msg, "Camera initialised");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
     }
 
     int count = 0;
@@ -71,7 +84,7 @@ void watchdog_test() {
             sd_card_log(SYSTEM_LOG_FILE, msg);
 
             char imageName[30];
-            sprintf(imageName, "img%d-01_01_2023.jpg", count);
+            sprintf(imageName, "img%d.jpg", count);
 
             sprintf(msg, "Name '%s' created for image %d", imageName, count);
             sd_card_log(SYSTEM_LOG_FILE, msg);
@@ -91,6 +104,7 @@ void watchdog_test() {
         esp_camera_fb_return(pic);
 
         sprintf(msg, "Unmounting SD card");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
         sd_card_close();
 
         gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
@@ -99,12 +113,48 @@ void watchdog_test() {
     }
 }
 
+uint8_t hardware_config(void) {
+
+    /* Configure all the required hardware */
+
+    // Configure the SD card and ensure it can be used. This is done before
+    // any other hardware so that everything else can be logged
+
+    char msg[100];
+    if (sd_card_open() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
+
+    sprintf(msg, "Configuring RTC");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+    // TODO: Configure RTC
+
+    sprintf(msg, "Configuring Temperature Sensor");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+    // TODO: Configure Temperature sensor
+
+    // Unmount the SD card
+    sd_card_close();
+
+    return WD_SUCCESS;
+}
+
 void app_main(void) {
 
     /* Configure the peripheral according to the LED type */
     configure_led();
 
-    watchdog_test();
+    /* Initialise all the hardware used */
+    if (hardware_config() == WD_SUCCESS) {
+        watchdog_test();
+    }
+
+    char msg[100];
+    if (sd_card_open() == WD_SUCCESS) {
+        sprintf(msg, "Exited Watchdog System. Waiting for shutdown");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
+        sd_card_close();
+    }
 
     while (1) {
 
@@ -112,34 +162,5 @@ void app_main(void) {
         gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
-    }
-
-    // while (1) {
-
-    //     int returnCode = sd_card_open();
-    //     if (returnCode != WD_SUCCESS) {
-    //         if (returnCode == SD_CARD_ERROR_UNREADABLE_CARD) {
-    //             ESP_LOGE(TAG, "Please reformat SD card");
-    //         }
-
-    //         if (returnCode == SD_CARD_ERROR_CONNECTION_FAILURE) {
-    //             ESP_LOGE(TAG, "SD card could not be connected");
-    //         }
-    //     } else {
-    //         ESP_LOGI(TAG, "Mounted SD CARD");
-    //         sd_card_close();
-    //         ESP_LOGI(TAG, "Unmounted SD CARD");
-    //     }
-
-    //     vTaskDelay(3000 / portTICK_PERIOD_MS);
-    //     blink_led();
-    // }
-
-    while (1) {
-        ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
-        blink_led();
-        /* Toggle the LED state */
-        s_led_state = !s_led_state;
-        vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS);
     }
 }

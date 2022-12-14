@@ -32,95 +32,14 @@ static esp_vfs_fat_sdmmc_mount_config_t sdCardConfiguration = {
 sdmmc_card_t* card;
 
 uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int number) {
-    //     esp_err_t ret;
 
-    //     // Options for mounting the filesystem.
-    //     // If format_if_mount_failed is set to true, SD card will be partitioned and
-    //     // formatted in case when mounting fails.
-    //     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-    // #ifdef CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED
-    //         .format_if_mount_failed = true,
-    // #else
-    //         .format_if_mount_failed = false,
-    // #endif // EXAMPLE_FORMAT_IF_MOUNT_FAILED
-    //         .max_files            = 5,
-    //         .allocation_unit_size = 16 * 1024};
-    //     // sdmmc_card_t* card;
-    //     const char mount_point[] = MOUNT_POINT_PATH;
-    //     ESP_LOGI(SD_CARD_TAG, "Initializing SD card");
-
-    //     // Use settings defined above to initialize SD card and mount FAT filesystem.
-    //     // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-    //     // Please check its source code and implement error recovery when developing
-    //     // production applications.
-
-    //     ESP_LOGI(SD_CARD_TAG, "Using SDMMC peripheral");
-    //     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-
-    //     // This initializes the slot without card detect (CD) and write protect (WP) signals.
-    //     // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-    //     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-
-    //     // Set bus width to use:
-    // #ifdef CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
-    //     slot_config.width = 4;
-    // #else
-    //     slot_config.width = 1;
-    // #endif
-
-    //     // On chips where the GPIOs used for SD card can be configured, set them in
-    //     // the slot_config structure:
-    // #ifdef CONFIG_SOC_SDMMC_USE_GPIO_MATRIX
-    //     slot_config.clk = CONFIG_EXAMPLE_PIN_CLK;
-    //     slot_config.cmd = CONFIG_EXAMPLE_PIN_CMD;
-    //     slot_config.d0  = CONFIG_EXAMPLE_PIN_D0;
-    //     #ifdef CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
-    //     slot_config.d1 = CONFIG_EXAMPLE_PIN_D1;
-    //     slot_config.d2 = CONFIG_EXAMPLE_PIN_D2;
-    //     slot_config.d3 = CONFIG_EXAMPLE_PIN_D3;
-    //     #endif // CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
-    // #endif // CONFIG_SOC_SDMMC_USE_GPIO_MATRIX
-
-    //     // Enable internal pullups on enabled pins. The internal pullups
-    //     // are insufficient however, please make sure 10k external pullups are
-    //     // connected on the bus. This is for debug / example purpose only.
-    //     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-
-    //     ESP_LOGI(SD_CARD_TAG, "Mounting filesystem");
-    //     ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
-
-    //     if (ret != ESP_OK) {
-    //         if (ret == ESP_FAIL) {
-    //             ESP_LOGE(SD_CARD_TAG,
-    //                      "Failed to mount filesystem. "
-    //                      "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig
-    //                      option.");
-    //         } else {
-    //             ESP_LOGE(SD_CARD_TAG,
-    //                      "Failed to initialize the card (%s). "
-    //                      "Make sure SD card lines have pull-up resistors in place.",
-    //                      esp_err_to_name(ret));
-    //         }
-    //         return SD_CARD_ERROR_CONNECTION_FAILURE;
-    //     }
-    //     ESP_LOGI(SD_CARD_TAG, "Filesystem mounted");
-
-    //     // Card has been initialized, print its properties
-    //     sdmmc_card_print_info(stdout, card);
-
-    // Use POSIX and C standard library functions to work with files:
-
-    /****** START CODE BLOCK ******/
-    // Description: Test code for saving an image to the SD card
-
-    // Open the destination location
-
-    if (mounted != TRUE) {
-        return SD_CARD_NOT_MOUNTED;
+    // Ensure the SD card is mounted before attempting to save the image
+    int returnCode = sd_card_open();
+    if (returnCode != WD_SUCCESS) {
+        return returnCode;
     }
 
-    // char imageName[20];
-    // sprintf(imageName, "%s/img%d.jpg", MOUNT_POINT_PATH, number);
+    char msg[120];
 
     // Create required directories if they do not exist. The stat() function checks
     // whether the directory exists already and the mkdir() function creates the
@@ -129,86 +48,43 @@ uint8_t save_image(uint8_t* imageData, int imageLength, char* imageName, int num
     // seperatley
     struct stat st = {0};
     if ((stat(WATCHDOG_FOLDER_PATH, &st) == -1) && (mkdir(WATCHDOG_FOLDER_PATH, 0700) == -1)) {
-        ESP_LOGE(SD_CARD_TAG, "Could not create %s", WATCHDOG_FOLDER_PATH);
+        sprintf(msg, "System could not create watchdog folder");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
         return SD_CARD_ERROR_IO_ERROR;
     }
 
     if ((stat(DATA_FOLDER_PATH, &st) == -1) && (mkdir(DATA_FOLDER_PATH, 0700) == -1)) {
-        ESP_LOGE(SD_CARD_TAG, "Could not create %s", DATA_FOLDER_PATH);
+        sprintf(msg, "System could not create data folder");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
         return SD_CARD_ERROR_IO_ERROR;
     }
 
     // Create path for image
-    char filePath[100];
+    char filePath[70];
     sprintf(filePath, "%s/%s", DATA_FOLDER_PATH, imageName);
+
+    sprintf(msg, "File path '%s' created to save image", filePath);
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+
     FILE* imageFile = fopen(filePath, "wb");
 
     if (imageFile == NULL) {
-        ESP_LOGE(SD_CARD_TAG, "Failed to open destination folder for writing error: %s", strerror(errno));
+        sprintf(msg, "File path '%s' could not be opened", filePath);
+        sd_card_log(SYSTEM_LOG_FILE, msg);
+        return SD_CARD_ERROR_IO_ERROR;
     }
+
+    sprintf(msg, "File path '%s' validated", filePath);
+    sd_card_log(SYSTEM_LOG_FILE, msg);
 
     for (int i = 0; i < imageLength; i++) {
         fputc(imageData[i], imageFile);
     }
 
+    sprintf(msg, "Image saved succesfully to '%s'", filePath);
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+
     fclose(imageFile);
-
-    /****** END CODE BLOCK ******/
-
-    /*
-        // First create a file.
-        const char *file_hello = MOUNT_POINT_PATH"/hello.txt";
-
-        ESP_LOGI(SD_CARD_TAG, "Opening file %s", file_hello);
-        FILE *f = fopen(file_hello, "w");
-        if (f == NULL) {
-            ESP_LOGE(SD_CARD_TAG, "Failed to open file for writing");
-            return;
-        }
-        fprintf(f, "Hello %s!\n", card->cid.name);
-        fclose(f);
-        ESP_LOGI(SD_CARD_TAG, "File written");
-
-        const char *file_foo = MOUNT_POINT_PATH"/foo.txt";
-
-        // Check if destination file exists before renaming
-        struct stat st;
-        if (stat(file_foo, &st) == 0) {
-            // Delete it if it exists
-            unlink(file_foo);
-        }
-
-        // Rename original file
-        ESP_LOGI(SD_CARD_TAG, "Renaming file %s to %s", file_hello, file_foo);
-        if (rename(file_hello, file_foo) != 0) {
-            ESP_LOGE(SD_CARD_TAG, "Rename failed");
-            return;
-        }
-
-        // Open renamed file for reading
-        ESP_LOGI(SD_CARD_TAG, "Reading file %s", file_foo);
-        f = fopen(file_foo, "r");
-        if (f == NULL) {
-            ESP_LOGE(SD_CARD_TAG, "Failed to open file for reading");
-            return;
-        }
-
-        // Read a line from file
-        char line[64];
-        fgets(line, sizeof(line), f);
-        fclose(f);
-
-        // Strip newline
-        char *pos = strchr(line, '\n');
-        if (pos) {
-            *pos = '\0';
-        }
-        ESP_LOGI(SD_CARD_TAG, "Read from file: '%s'", line);
-
-    */
-    // All done, unmount partition and disable SDMMC peripheral
-    // esp_vfs_fat_sdcard_unmount(mount_point, card);
-    // ESP_LOGI(SD_CARD_TAG, "Card unmounted");
 
     return WD_SUCCESS;
 }
@@ -325,6 +201,7 @@ uint8_t sd_card_log(char* fileName, char* message) {
     int length = 0;
     while (message[length++] != '\0') {
         if (length > LOG_MSG_MAX_CHARACTERS) {
+            ESP_LOGE(SD_CARD_TAG, "Message '%s' is too long", message);
             return LOG_ERR_MSG_TOO_LONG;
         }
     }

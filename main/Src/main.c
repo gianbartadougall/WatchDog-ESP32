@@ -11,80 +11,62 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-// #include "led_strip.h"
 #include "sdkconfig.h"
 
-static const char* TAG = "example";
+/* TEST CODE FOR UART */
+#include "esp_system.h"
+#include "driver/uart.h"
+/* TEST CODE FOR UART */
 
+static const char* TAG = "example";
 #include "camera.h"
 #include "sd_card.h"
 #include "wd_utils.h"
+#include "rtc.h"
+#include "hardware_config.h"
+#include "uart_comms.h"
+#include "led.h"
 
-/* Use project configuration menu (idf.py menuconfig) to choose the GPIO to blink,
-   or you can edit the following line and set a number here.
-*/
-#define BLINK_GPIO 33
+#define COB_LED HC_COB_LED
+#define RED_LED HC_RED_LED
 
 #define BLINK_PERIOD 100
-#define GPIO_4       4 // This is the COB LED
 
-#define GPIO_0  0
-#define GPIO_16 16
-#define GPIO_2  2
-#define GPIO_14 14
-#define GPIO_15 15
-#define GPIO_13 13
-#define GPIO_12 12
+// static const int RX_BUF_SIZE = 1024;
+// #define TXD_PIN  (GPIO_NUM_1)
+// #define RXD_PIN  (GPIO_NUM_3)
+// #define UART_NUM UART_NUM_0
 
-static void configure_led(void) {
-    ESP_LOGI(TAG, "Example configured to blink GPIO LED!");
-    gpio_reset_pin(BLINK_GPIO);
+void watchdog_v1_test(void) {
 
-    /* Set the GPIO as a push/pull output */
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+    int action;
+    char message[100];
 
-    vTaskDelay(1000 / portTICK_RATE_MS);
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
+    while (1) {
+
+        // Read UART and wait for command.
+        uart_comms_receive_command(&action, message);
+
+        if (action == UC_ACTION_NONE) {
+            continue;
+        }
+
+        if (action == UC_ACTION_BLINK_LED) {
+            led_board_toggle();
+        }
+
+        // if (action == UC_ACTION_CAPTURE_IMAGE) {
+        //     if (camera_take_image() != WD_SUCCESS) {
+        //         break;
+        //     }
+        // }
+
+        // Reset the action back to NONE
+        action = UC_ACTION_NONE;
+    }
 }
 
-void gpio_test(void) {
-
-    gpio_reset_pin(GPIO_0);
-    gpio_reset_pin(GPIO_16);
-    gpio_reset_pin(GPIO_2);
-    gpio_reset_pin(GPIO_14);
-    gpio_reset_pin(GPIO_15);
-    gpio_reset_pin(GPIO_13);
-    gpio_reset_pin(GPIO_12);
-
-    gpio_set_direction(GPIO_0, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_2, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_16, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_14, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_15, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_13, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_12, GPIO_MODE_OUTPUT);
-
-    vTaskDelay(5000 / portTICK_RATE_MS);
-
-    gpio_set_direction(GPIO_0, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_2, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_16, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_14, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_15, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_13, GPIO_MODE_INPUT);
-    gpio_set_direction(GPIO_12, GPIO_MODE_INPUT);
-
-    gpio_reset_pin(GPIO_0);
-    gpio_reset_pin(GPIO_16);
-    gpio_reset_pin(GPIO_2);
-    gpio_reset_pin(GPIO_14);
-    gpio_reset_pin(GPIO_15);
-    gpio_reset_pin(GPIO_13);
-    gpio_reset_pin(GPIO_12);
-}
-
-void watchdog_test() {
+void watchdog_test(void) {
 
     char msg[100];
     if (sd_card_open() != WD_SUCCESS) {
@@ -93,75 +75,36 @@ void watchdog_test() {
 
     while (1) {
 
-        if (sd_card_open() != WD_SUCCESS) {
-            return;
-        }
+        // if (sd_card_open() != WD_SUCCESS) {
+        //     return;
+        // }
 
-        sprintf(msg, "Taking image");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
+        // sprintf(msg, "Taking image");
+        // sd_card_log(SYSTEM_LOG_FILE, msg);
 
-        camera_fb_t* pic = esp_camera_fb_get();
+        // camera_fb_t* pic = esp_camera_fb_get();
 
-        if (pic != NULL) {
+        // if (pic != NULL) {
 
-            sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
-            sd_card_log(SYSTEM_LOG_FILE, msg);
+        //     sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
+        //     sd_card_log(SYSTEM_LOG_FILE, msg);
 
-            // Save the image
-            sd_card_save_image(pic->buf, pic->len);
-        } else {
-            sprintf(msg, "Camera failed to take image");
-            sd_card_log(SYSTEM_LOG_FILE, msg);
-        }
+        //     // Save the image
+        //     sd_card_save_image(pic->buf, pic->len);
+        // } else {
+        //     sprintf(msg, "Camera failed to take image");
+        //     sd_card_log(SYSTEM_LOG_FILE, msg);
+        // }
 
-        esp_camera_fb_return(pic);
+        // esp_camera_fb_return(pic);
 
-        sprintf(msg, "Unmounting SD card");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        sd_card_close();
+        // sd_card_close();
+        camera_capture_and_save_photo();
 
-        // Test the use of other GPIO pins
-        // ESP_LOGI(TAG, "GPIO TEST COMMENCING");
-        // gpio_test();
-
-        ESP_LOGI(TAG, "TAKING PHOTO");
         gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
         vTaskDelay(5000 / portTICK_RATE_MS);
         gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
     }
-}
-
-uint8_t hardware_config(void) {
-
-    /* Configure all the required hardware */
-
-    // Configure the SD card and ensure it can be used. This is done before
-    // any other hardware so that everything else can be logged
-
-    char msg[100];
-    if (sd_card_open() != WD_SUCCESS) {
-        return WD_ERROR;
-    }
-
-    // Configure Camera
-    sprintf(msg, "Configuring Camera");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
-    if (init_camera() != ESP_OK) {
-        return WD_ERROR;
-    }
-
-    sprintf(msg, "Configuring RTC");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
-    // TODO: Configure RTC
-
-    sprintf(msg, "Configuring Temperature Sensor");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
-    // TODO: Configure Temperature sensor
-
-    // Unmount the SD card
-    sd_card_close();
-
-    return WD_SUCCESS;
 }
 
 uint8_t software_config(void) {
@@ -175,12 +118,9 @@ uint8_t software_config(void) {
 
 void app_main(void) {
 
-    /* Configure the peripheral according to the LED type */
-    configure_led();
-
     /* Initialise all the hardware used */
     if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
-        watchdog_test();
+        watchdog_v1_test();
     }
 
     char msg[100];
@@ -192,9 +132,9 @@ void app_main(void) {
 
     while (1) {
         ESP_LOGE(TAG, "Blink");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+        gpio_set_level(RED_LED, 1);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+        gpio_set_level(RED_LED, 0);
     }
 }

@@ -1,4 +1,3 @@
-
 /* Public Includes */
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -214,6 +213,11 @@ void sd_card_close(void) {
     if (mounted != TRUE) {
         return;
     }
+
+    // Log the SD card being disabled
+    char msg[40];
+    sprintf(msg, "Unmounting SD card");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
 
     // All done, unmount partition and disable SDMMC peripheral
     esp_vfs_fat_sdcard_unmount(MOUNT_POINT_PATH, card);

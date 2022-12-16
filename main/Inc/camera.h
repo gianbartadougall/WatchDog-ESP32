@@ -12,6 +12,8 @@
 
 #include "esp_camera.h"
 
-esp_err_t init_camera();
+esp_err_t camera_init(void);
+
+void camera_capture_and_save_image(void);
 
 #endif // CAMERA_H

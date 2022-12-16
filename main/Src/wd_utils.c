@@ -5,7 +5,7 @@
 /* Private Macros */
 #include "wd_utils.h"
 
-int wd_utils_extract_image_number(char* imageName, int startIndex, char endCharacter) {
+int wd_utils_extract_number(char* imageName, int startIndex, char endCharacter) {
 
     // Create string to store number with enough room for number up to 999,999
     int length = 6;

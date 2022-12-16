@@ -35,6 +35,8 @@ static const char* CAMERA_TAG = "CAMERA:";
 
 #endif
 
+/* Private Variable Declarations */
+
 static camera_config_t camera_config = {
     .pin_pwdn     = CAM_PIN_PWDN,
     .pin_reset    = CAM_PIN_RESET,
@@ -69,14 +71,51 @@ static camera_config_t camera_config = {
     .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
 };
 
-esp_err_t init_camera() {
+int cameraInitalised = 0;
+
+esp_err_t camera_init(void) {
 
     // initialize the camera
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK) {
+        cameraInitalised = FALSE;
         ESP_LOGE(CAMERA_TAG, "Camera Init Failed");
         return WD_ERROR;
     }
 
+    cameraInitalised = TRUE;
     return ESP_OK;
+}
+
+void camera_capture_and_save_image(void) {
+
+    // Confirm camera has been initialised
+    if (cameraInitalised == FALSE) {
+        return;
+    }
+
+    // Confirm the SD card can be mounted
+    if (sd_card_open() != WD_SUCCESS) {
+        return;
+    }
+
+    // Take a photo
+    sprintf(msg, "Taking image");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+    camera_fb_t* pic = esp_camera_fb_get();
+
+    // Return error if picture could not be taken
+    if (pic == NULL) {
+        sprintf(msg, "Camera failed to take image");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
+        return WD_ERROR;
+    }
+
+    sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+
+    // Save the image
+    sd_card_save_image(pic->buf, pic->len);
+
+    sd_card_close();
 }

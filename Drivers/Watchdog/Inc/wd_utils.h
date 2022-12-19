@@ -6,6 +6,6 @@
 #define WD_ERROR   0
 #define WD_SUCCESS 1
 
-int wd_utils_extract_image_number(char* imageName, int startIndex, char endCharacter);
+int wd_utils_extract_number(char* imageName, int startIndex, char endCharacter);
 
 #endif // WD_UTILS_H

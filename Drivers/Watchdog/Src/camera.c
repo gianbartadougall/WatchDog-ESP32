@@ -1,6 +1,16 @@
-
+/**
+ * @file camera.c
+ * @author Gian Barta-Dougall
+ * @brief
+ * @version 0.1
+ * @date 2022-12-19
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
 #include "camera.h"
 #include "wd_utils.h"
+#include "sd_card.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -100,17 +110,16 @@ void camera_capture_and_save_image(void) {
     }
 
     // Take a photo
-    sprintf(msg, "Taking image");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
+    sd_card_log(SYSTEM_LOG_FILE, "Taking image");
     camera_fb_t* pic = esp_camera_fb_get();
 
     // Return error if picture could not be taken
     if (pic == NULL) {
-        sprintf(msg, "Camera failed to take image");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        return WD_ERROR;
+        sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
+        return;
     }
 
+    char msg[100];
     sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
     sd_card_log(SYSTEM_LOG_FILE, msg);
 

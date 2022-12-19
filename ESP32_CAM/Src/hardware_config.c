@@ -1,24 +1,11 @@
-/**
- * @file hardware_config.c
- * @author Gian Barta-Dougall
- * @brief Hardware configuration for ESP32
- * @version 0.1
- * @date 2022-12-19
- *
- * @copyright Copyright (c) 2022
- *
- */
+
 /* Public Includes */
 #include <driver/uart.h>
-#include <esp_log.h>
-#include <driver/gpio.h>
 
 /* Private Includes */
 #include "wd_utils.h"
 #include "hardware_config.h"
-
-/* Private Variable Declarations */
-const static char* TAG = "Hardware config";
+#include "sd_card.h"
 
 /* Private Function Definitions */
 void hardware_config_leds(void);
@@ -27,30 +14,40 @@ void hardware_config_uart_comms(void);
 uint8_t hardware_config(void) {
 
     /* Configure all the required hardware */
-    ESP_LOGI(TAG, "Configuring UART");
+
+    // Configure the SD card and ensure it can be used. This is done before
+    // any other hardware so that everything else can be logged
+    char msg[100];
+    if (sd_card_open() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
+
+    // Configure Camera
+    sprintf(msg, "Configuring Camera");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
+    if (init_camera() != ESP_OK) {
+        return WD_ERROR;
+    }
+
+    sprintf(msg, "Configuring UART");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
     hardware_config_uart_comms();
 
-    ESP_LOGI(TAG, "Configuring RTC");
-    // TODO: Configure RTC
-
-    ESP_LOGI(TAG, "Configuring Temperature Sensor");
-    // TODO: Configure Temperature sensor
-
-    ESP_LOGI(TAG, "Configuring LEDs");
+    sprintf(msg, "Configuring LEDs");
+    sd_card_log(SYSTEM_LOG_FILE, msg);
     hardware_config_leds();
+
+    // Unmount the SD card
+    sd_card_close();
 
     return WD_SUCCESS;
 }
 
 void hardware_config_leds(void) {
 
-    // Set the onboard red LED to be an input/output. input/output is required
-    // for gpio_get_level function to work
+    // Set the onboard red LED to be an output
     gpio_reset_pin(HC_RED_LED);
-    gpio_set_direction(HC_RED_LED, GPIO_MODE_INPUT_OUTPUT);
-
-    gpio_reset_pin(HC_LED_2);
-    gpio_set_direction(HC_LED_2, GPIO_MODE_INPUT_OUTPUT);
+    gpio_set_direction(HC_RED_LED, GPIO_MODE_OUTPUT);
 }
 
 void hardware_config_uart_comms(void) {

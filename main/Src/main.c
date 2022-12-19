@@ -13,14 +13,7 @@
 #include "esp_log.h"
 #include "sdkconfig.h"
 
-/* TEST CODE FOR UART */
-#include "esp_system.h"
-#include "driver/uart.h"
-/* TEST CODE FOR UART */
-
 static const char* TAG = "example";
-#include "camera.h"
-#include "sd_card.h"
 #include "wd_utils.h"
 #include "rtc.h"
 #include "hardware_config.h"
@@ -37,22 +30,25 @@ static const char* TAG = "example";
 // #define RXD_PIN  (GPIO_NUM_3)
 // #define UART_NUM UART_NUM_0
 
-void watchdog_v1_test(void) {
+void watchdog_esp_cam(void* arg) {
 
-    int action;
+    int action = UC_COMMAND_NONE;
     char message[100];
 
     while (1) {
+        // Delay for second
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        // Transmit message
 
         // Read UART and wait for command.
+        led_toggle(HC_LED_2);
         uart_comms_receive_command(&action, message);
 
-        if (action == UC_ACTION_NONE) {
-            continue;
-        }
+        ESP_LOGI(TAG, "Command recieved: %d. Message: '%s'", action, message);
 
-        if (action == UC_ACTION_BLINK_LED) {
-            led_board_toggle();
+        if (action == UC_COMMAND_BLINK_LED) {
+            led_toggle(RED_LED);
         }
 
         // if (action == UC_ACTION_CAPTURE_IMAGE) {
@@ -62,56 +58,30 @@ void watchdog_v1_test(void) {
         // }
 
         // Reset the action back to NONE
-        action = UC_ACTION_NONE;
+        action = UC_COMMAND_NONE;
     }
 }
 
-void watchdog_test(void) {
+void watchdog_esp(void* arg) {
 
-    char msg[100];
-    if (sd_card_open() != WD_SUCCESS) {
-        return;
-    }
+    int action = UC_COMMAND_BLINK_LED;
+    char message[100];
+    sprintf(message, "Blink the LED!");
 
     while (1) {
 
-        // if (sd_card_open() != WD_SUCCESS) {
-        //     return;
-        // }
-
-        // sprintf(msg, "Taking image");
-        // sd_card_log(SYSTEM_LOG_FILE, msg);
-
-        // camera_fb_t* pic = esp_camera_fb_get();
-
-        // if (pic != NULL) {
-
-        //     sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
-        //     sd_card_log(SYSTEM_LOG_FILE, msg);
-
-        //     // Save the image
-        //     sd_card_save_image(pic->buf, pic->len);
-        // } else {
-        //     sprintf(msg, "Camera failed to take image");
-        //     sd_card_log(SYSTEM_LOG_FILE, msg);
-        // }
-
-        // esp_camera_fb_return(pic);
-
-        // sd_card_close();
-        camera_capture_and_save_photo();
-
-        gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-        vTaskDelay(5000 / portTICK_RATE_MS);
-        gpio_set_direction(BLINK_GPIO, GPIO_MODE_INPUT);
+        // Delay for second
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        led_toggle(HC_LED_2);
+        uart_comms_transmit_message(action, message, "");
     }
 }
 
 uint8_t software_config(void) {
 
-    if (sd_card_init() != WD_SUCCESS) {
-        return WD_ERROR;
-    }
+    // TODO: Configure RTC
+
+    // TODO: Configure Temperature Sensor
 
     return WD_SUCCESS;
 }
@@ -120,21 +90,13 @@ void app_main(void) {
 
     /* Initialise all the hardware used */
     if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
-        watchdog_v1_test();
+        // xTaskCreate(watchdog_esp, "Watchdog", 4096, (void*)1, tskIDLE_PRIORITY, NULL);
+        xTaskCreate(watchdog_esp_cam, "Watchdog", 4096, (void*)1, tskIDLE_PRIORITY, NULL);
     }
 
-    char msg[100];
-    if (sd_card_open() == WD_SUCCESS) {
-        sprintf(msg, "Exited Watchdog System. Waiting for shutdown");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        sd_card_close();
-    }
-
-    while (1) {
-        ESP_LOGE(TAG, "Blink");
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        gpio_set_level(RED_LED, 1);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        gpio_set_level(RED_LED, 0);
-    }
+    // while (1) {
+    //     ESP_LOGI(TAG, "Blink");
+    //     led_toggle(RED_LED);
+    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // }
 }

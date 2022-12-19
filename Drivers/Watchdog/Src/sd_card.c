@@ -84,7 +84,7 @@ uint8_t sd_card_update_image_number(void) {
     while ((file = readdir(dataDir)) != NULL) {
 
         // File name is stored in file->d_name
-        int number = wd_utils_extract_image_number(file->d_name, IMG_NUM_START_INDEX, IMG_NUM_END_CHARACTER);
+        int number = wd_utils_extract_number(file->d_name, IMG_NUM_START_INDEX, IMG_NUM_END_CHARACTER);
 
         if (number > imageNumber) {
             imageNumber = number;

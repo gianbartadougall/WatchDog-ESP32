@@ -20,5 +20,5 @@ void rtc_get_formatted_date_time(char *str) {
     // sprintf(str, "%d/%d/%d %d:%d%s", day, month, year, hour12hrTime, minute, am == 1 ? "am" :
     // "pm");
 
-    sprintf(str, "%d/%d/%d %lld", day, month, year, time(NULL));
+    sprintf(str, "%d/%d/%d %ld", day, month, year, time(NULL));
 }

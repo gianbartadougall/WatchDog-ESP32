@@ -6,6 +6,7 @@
 #include "wd_utils.h"
 #include "hardware_config.h"
 #include "sd_card.h"
+#include "camera.h"
 
 /* Private Function Definitions */
 void hardware_config_leds(void);
@@ -25,7 +26,7 @@ uint8_t hardware_config(void) {
     // Configure Camera
     sprintf(msg, "Configuring Camera");
     sd_card_log(SYSTEM_LOG_FILE, msg);
-    if (init_camera() != ESP_OK) {
+    if (camera_init() != ESP_OK) {
         return WD_ERROR;
     }
 

@@ -1,33 +1,6 @@
-idf_component_register(SRCS "Src/main.c"
-                            "Src/camera.c"
-                            "Src/sd_card.c"
-							"Src/rtc.c"
-                            "Src/wd_utils.c"
-                            "Src/uart_comms.c"
-                            "../esp32-camera/driver/esp_camera.c"
-                            "../esp32-camera/driver/sccb.c"
-                            "../esp32-camera/driver/cam_hal.c"
-                            "../esp32-camera/driver/sensor.c"
-                            "../esp32-camera/sensors/ov2640.c"
-                            "../esp32-camera/sensors/ov7725.c"
-                            "../esp32-camera/sensors/ov7670.c"
-                            "../esp32-camera/sensors/ov3660.c"
-                            "../esp32-camera/sensors/ov5640.c"
-                            "../esp32-camera/sensors/bf20a6.c"
-                            "../esp32-camera/sensors/bf3005.c"
-                            "../esp32-camera/sensors/gc032a.c"
-                            "../esp32-camera/sensors/gc0308.c"
-                            "../esp32-camera/sensors/gc2145.c"
-                            "../esp32-camera/sensors/nt99141.c"
-                            "../esp32-camera/sensors/sc030iot.c"
-                            "../esp32-camera/sensors/sc031gs.c"
-                            "../esp32-camera/sensors/sc101iot.c"
-                            "../esp32-camera/target/esp32/ll_cam.c"
-                            "../esp32-camera/target/xclk.c"
-                    INCLUDE_DIRS "." 
-                    "../esp32-camera/driver/include" 
-                    "../esp32-camera/conversions/include" 
-                    "../esp32-camera/driver/private_include"
-                    "../esp32-camera/sensors/private_include"
-                    "../esp32-camera/target/private_include"
-					"Inc/")
+# The following five lines of boilerplate have to be in your project's
+# CMakeLists in this exact order for cmake to work correctly
+cmake_minimum_required(VERSION 3.5)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(blink)

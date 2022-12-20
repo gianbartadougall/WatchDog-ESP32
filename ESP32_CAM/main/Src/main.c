@@ -1,11 +1,13 @@
-/* Blink Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+/**
+ * @file main.c
+ * @author Gian Barta-Dougall, Yash Pandey
+ * @brief
+ * @version 0.1
+ * @date 2022-12-19
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -14,11 +16,15 @@
 #include "sdkconfig.h"
 
 static const char* TAG = "example";
+#include "camera.h"
+#include "sd_card.h"
 #include "wd_utils.h"
 #include "rtc.h"
 #include "hardware_config.h"
 #include "uart_comms.h"
 #include "led.h"
+
+#include "hardware_config.h"
 
 #define COB_LED HC_COB_LED
 #define RED_LED HC_RED_LED
@@ -30,7 +36,7 @@ static const char* TAG = "example";
 // #define RXD_PIN  (GPIO_NUM_3)
 // #define UART_NUM UART_NUM_0
 
-void watchdog_esp_cam(void* arg) {
+void watchdog_system_start(void) {
 
     int action = UC_COMMAND_NONE;
     char message[100];
@@ -48,7 +54,7 @@ void watchdog_esp_cam(void* arg) {
         ESP_LOGI(TAG, "Command recieved: %d. Message: '%s'", action, message);
 
         if (action == UC_COMMAND_BLINK_LED) {
-            led_toggle(RED_LED);
+            led_toggle(RED_LED_TEST);
         }
 
         // if (action == UC_ACTION_CAPTURE_IMAGE) {
@@ -62,26 +68,12 @@ void watchdog_esp_cam(void* arg) {
     }
 }
 
-void watchdog_esp(void* arg) {
-
-    int action = UC_COMMAND_BLINK_LED;
-    char message[100];
-    sprintf(message, "Blink the LED!");
-
-    while (1) {
-
-        // Delay for second
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        led_toggle(HC_LED_2);
-        uart_comms_transmit_message(action, message, "");
-    }
-}
 
 uint8_t software_config(void) {
 
-    // TODO: Configure RTC
-
-    // TODO: Configure Temperature Sensor
+    if (sd_card_init() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
 
     return WD_SUCCESS;
 }
@@ -90,13 +82,21 @@ void app_main(void) {
 
     /* Initialise all the hardware used */
     if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
-        // xTaskCreate(watchdog_esp, "Watchdog", 4096, (void*)1, tskIDLE_PRIORITY, NULL);
-        xTaskCreate(watchdog_esp_cam, "Watchdog", 4096, (void*)1, tskIDLE_PRIORITY, NULL);
+        watchdog_system_start();
     }
 
-    // while (1) {
-    //     ESP_LOGI(TAG, "Blink");
-    //     led_toggle(RED_LED);
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // }
+    char msg[100];
+    if (sd_card_open() == WD_SUCCESS) {
+        sprintf(msg, "Exited Watchdog System. Waiting for shutdown");
+        sd_card_log(SYSTEM_LOG_FILE, msg);
+        sd_card_close();
+    }
+
+    while (1) {
+        ESP_LOGE(TAG, "Blink");
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+        gpio_set_level(RED_LED, 1);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+        gpio_set_level(RED_LED, 0);
+    }
 }

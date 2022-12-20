@@ -14,8 +14,8 @@
 #include <string.h>
 
 /* Private Includes */
-#include "uart_comms.h"
 #include "hardware_config.h"
+#include "uart_comms.h"
 #include "wd_utils.h"
 
 /* Private Macros */
@@ -24,9 +24,9 @@
 /* Private Variable Declarations */
 
 /* Function Declarations */
-int uart_comms_read(char* data, int timeout);
+int uart_comms_read(char *data, int timeout);
 
-void uart_comms_transmit_message(int commandCode, char* data, char* formattedDateTime) {
+void uart_comms_transmit_message(int commandCode, char *data, char *formattedDateTime) {
 
     int attemptsLeft = 3;
     char msg[100];
@@ -34,7 +34,8 @@ void uart_comms_transmit_message(int commandCode, char* data, char* formattedDat
     // while (1) {
 
     // Create message to transmit over UART
-    sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, data, UC_DELIMETER, formattedDateTime);
+    sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, data, UC_DELIMETER,
+            formattedDateTime);
     const int txBytes = uart_write_bytes(UART_NUM, msg, strlen(msg));
 
     // Wait for a response from slave to ensure the message was recieved correctly
@@ -47,7 +48,7 @@ void uart_comms_transmit_message(int commandCode, char* data, char* formattedDat
     // }
 }
 
-void uart_comms_receive_command(int* action, char* message) {
+void uart_comms_receive_command(int *action, char *message) {
 
     char data[100];
     uart_comms_read(data, 200);
@@ -57,13 +58,13 @@ void uart_comms_receive_command(int* action, char* message) {
 
     // Ensure the command is valid
     switch (command) {
-        case UC_COMMAND_BLINK_LED:
-        case UC_COMMAND_CAPTURE_IMAGE:
-            break;
-        default:
-            command  = UC_COMMAND_NONE;
-            *message = '\0';
-            return;
+    case UC_COMMAND_BLINK_LED:
+    case UC_COMMAND_CAPTURE_IMAGE:
+        break;
+    default:
+        command = UC_COMMAND_NONE;
+        *message = '\0';
+        return;
     }
 
     *action = command;
@@ -79,9 +80,9 @@ void uart_comms_receive_command(int* action, char* message) {
     message[i] = '\0';
 }
 
-int uart_comms_read(char* data, int timeout) {
+int uart_comms_read(char *data, int timeout) {
 
-    const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, timeout / portTICK_RATE_MS);
+    const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, timeout);
 
     if (rxBytes > 0) {
         data[rxBytes] = 0;

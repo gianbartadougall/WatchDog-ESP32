@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 /* Public Marcos for UART */
-static const int RX_BUF_SIZE = 1024;
 #define HC_UART_COMMS_TX_PIN   GPIO_NUM_1
 #define HC_UART_COMMS_RX_PIN   GPIO_NUM_3
 #define HC_UART_COMMS_UART_NUM UART_NUM_0
@@ -15,9 +14,8 @@ static const int RX_BUF_SIZE = 1024;
 /* Public Marcros for SD Card */
 
 /* Public Marcos for LEDs */
-#define HC_RED_LED 2
-#define HC_LED_2   23
-#define RED_LED_TEST   42
+#define HC_RED_LED 33
+#define HC_COB_LED 4
 
 /**
  * @brief Configures all the hardware for the system

@@ -10,8 +10,9 @@
  */
 
 /* Public Includes */
-#include <driver/uart.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Private Includes */
 #include "hardware_config.h"
@@ -24,70 +25,111 @@
 /* Private Variable Declarations */
 
 /* Function Declarations */
-int uart_comms_read(char *data, int timeout);
+int uart_comms_read(char* data, int timeout);
 
-void uart_comms_transmit_message(int commandCode, char *data, char *formattedDateTime) {
+int packet_to_string(packet_t* packet, char data[RX_BUF_SIZE]) {
+    sprintf(data, "%d,%s,%s", packet->request, packet->instruction, packet->data);
 
-    int attemptsLeft = 3;
-    char msg[100];
-
-    // while (1) {
-
-    // Create message to transmit over UART
-    sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, data, UC_DELIMETER,
-            formattedDateTime);
-    const int txBytes = uart_write_bytes(UART_NUM, msg, strlen(msg));
-
-    // Wait for a response from slave to ensure the message was recieved correctly
-    // char response[50];
-    // if ((uart_comms_read(response, 5000) > 0) || (attemptsLeft == 0)) {
-    //     break;
-    // }
-
-    // attemptsLeft -= 1;
-    // }
+    return WD_SUCCESS;
 }
 
-void uart_comms_receive_command(int *action, char *message) {
+// Packet is of the form request,instruction,data
+int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
 
-    char data[100];
-    uart_comms_read(data, 200);
+    char info[3][RX_BUF_SIZE];
+    wd_utils_split_string(data, info, 0, ',');
 
-    // Extract the command
-    int command = wd_utils_extract_number(message, 0, '_');
+    // Validate the command
+    int request;
+    if (wd_utils_extract_number(info[0], &request, 0, '\0') != WD_SUCCESS) {
+        return WD_ERROR;
+    }
 
-    // Ensure the command is valid
-    switch (command) {
-    case UC_COMMAND_BLINK_LED:
-    case UC_COMMAND_CAPTURE_IMAGE:
+    // Validate request
+    switch (request) {
+        case UC_REQUEST_ACKNOWLEDGED:
+        case UC_REQUEST_BLINK_LED:
         break;
-    default:
-        command = UC_COMMAND_NONE;
-        *message = '\0';
-        return;
+        default:
+            return request;
     }
 
-    *action = command;
+    packet->request = request;
 
-    // Copy the message from the data string
-    int i = 0;
-    char c;
-    while (data[i] != '\0') {
-        message[i] = data[i];
-        i++;
+    int i;
+    for (i = 0; info[1][i] != '\0'; i++) {
+        packet->instruction[i] = info[1][i];
     }
 
-    message[i] = '\0';
+    packet->instruction[i] = '\0';
+
+    for (i = 0; info[2][i] != '\0'; i++) {
+        packet->data[i] = info[2][i];
+    }
+
+    packet->data[i] = '\0';
+
+    return WD_SUCCESS;
 }
 
-int uart_comms_read(char *data, int timeout) {
+// int uart_comms_transmit_message(int commandCode, char* instruction, char* message) {
 
-    const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, timeout);
+//     // Create message to transmit over UART
+//     char msg[100];
+//     sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, instruction, UC_DELIMETER, message);
+//     const int txBytes = uart_write_bytes(UART_NUM, msg, strlen(msg));
 
-    if (rxBytes > 0) {
-        data[rxBytes] = 0;
-        return rxBytes;
-    }
+//     return txBytes;
+// }
 
-    return rxBytes;
-}
+// void uart_comms_receive_command(int* action, char instruction[100], char message[100]) {
+
+//     char data[200];
+//     uart_comms_read(data, 200);
+
+//     // Extract data from message read
+//     char list[3][100];
+//     wd_utils_split_string(data, list, 0, UC_DELIMETER);
+
+//     // Extract the command
+//     int command = wd_utils_extract_number(list[0], 0, UC_DELIMETER);
+
+//     // Ensure the command is valid
+//     switch (command) {
+//         case 1:
+//         case 2:
+//             break;
+//         default:
+//             *action        = 0;
+//             instruction[0] = '\0';
+//             message[0]     = '\0';
+//             return;
+//     }
+
+//     *action = command;
+
+//     int i;
+//     for (i = 0; list[1][i] != '\0'; i++) {
+//         instruction[i] = list[1][i];
+//     }
+
+//     instruction[i] = '\0';
+
+//     for (i = 0; list[2][i] != '\0'; i++) {
+//         message[i] = list[2][i];
+//     }
+
+//     message[i] = '\0';
+// }
+
+// int uart_comms_read(char* data, int timeout) {
+
+//     const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, timeout / portTICK_RATE_MS);
+
+//     if (rxBytes > 0) {
+//         data[rxBytes] = 0;
+//         return rxBytes;
+//     }
+
+//     return rxBytes;
+// }

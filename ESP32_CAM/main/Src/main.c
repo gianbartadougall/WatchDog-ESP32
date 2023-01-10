@@ -8,38 +8,50 @@
  * @copyright Copyright (c) 2022
  *
  */
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "sdkconfig.h"
+#include "driver/uart.h"
+#include <stdio.h>
 
 static const char* TAG = "example";
 #include "camera.h"
-#include "sd_card.h"
-#include "wd_utils.h"
-#include "rtc.h"
 #include "hardware_config.h"
-#include "uart_comms.h"
 #include "led.h"
+#include "rtc.h"
+#include "sd_card.h"
+#include "uart_comms.h"
+#include "wd_utils.h"
 
 #include "hardware_config.h"
 
-#define COB_LED HC_COB_LED
-#define RED_LED HC_RED_LED
+#define COB_LED  HC_COB_LED
+#define RED_LED  HC_RED_LED
+#define UART_NUM HC_UART_COMMS_UART_NUM
 
-#define BLINK_PERIOD 100
+int sendData(const char* logName, const char* data) {
+    const int len     = strlen(data);
+    const int txBytes = uart_write_bytes(UART_NUM, data, len);
+    // ESP_LOGI(logName, "Wrote %d bytes", txBytes);
+    return txBytes;
+}
 
-// static const int RX_BUF_SIZE = 1024;
-// #define TXD_PIN  (GPIO_NUM_1)
-// #define RXD_PIN  (GPIO_NUM_3)
-// #define UART_NUM UART_NUM_0
+static void tx_task(void* arg) {
+    static const char* TX_TASK_TAG = "TX_TASK";
+    esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
+    while (1) {
+        sendData(TX_TASK_TAG, "Hello world");
+        // gpio_set_level(LED, 0);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+    }
+}
 
 void watchdog_system_start(void) {
 
-    int action = UC_COMMAND_NONE;
-    char message[100];
+    // char instruction[100];
+    char data[RX_BUF_SIZE];
 
     while (1) {
         // Delay for second
@@ -48,14 +60,51 @@ void watchdog_system_start(void) {
         // Transmit message
 
         // Read UART and wait for command.
-        led_toggle(HC_LED_2);
-        uart_comms_receive_command(&action, message);
+        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
 
-        ESP_LOGI(TAG, "Command recieved: %d. Message: '%s'", action, message);
-
-        if (action == UC_COMMAND_BLINK_LED) {
-            led_toggle(RED_LED_TEST);
+        if (rxBytes == 0) {
+            continue;
         }
+
+        // Validate incoming data
+        packet_t packet;
+        if (string_to_packet(&packet, data) != WD_SUCCESS) {
+
+            // Create new packet to reply
+            packet_t responsePacket;
+            responsePacket.request        = UC_REQUEST_PARSE_ERROR;
+            responsePacket.instruction[0] = '\0';
+            responsePacket.data[0]        = '\0';
+
+            char response[RX_BUF_SIZE];
+            packet_to_string(&responsePacket, response);
+
+            uart_write_bytes(UART_NUM, response, strlen(response));
+            continue;
+        }
+
+        // Send return message
+        packet_t response;
+        response.request = UC_REQUEST_ACKNOWLEDGED;
+        sprintf(response.instruction, packet.instruction);
+        sprintf(response.data, "%s", packet.data);
+
+        char responseData[RX_BUF_SIZE];
+        packet_to_string(responseData, &response);
+
+        uart_write_bytes(UART_NUM, responseData, strlen(responseData));
+
+        // if (action == UC_SAVE_DATA) {
+
+        //     // Extract the file path
+        //     char data[2][100]; // data[0] = filePath, data[1] = fileName
+        //     wd_utils_split_string(instruction, data, 0, UC_DATA_DELIMETER);
+
+        //     // Save data to SD card
+        //     sd_card_open();
+        //     sd_card_write(data[0], data[1], message);
+        //     sd_card_close();
+        // }
 
         // if (action == UC_ACTION_CAPTURE_IMAGE) {
         //     if (camera_take_image() != WD_SUCCESS) {
@@ -64,16 +113,15 @@ void watchdog_system_start(void) {
         // }
 
         // Reset the action back to NONE
-        action = UC_COMMAND_NONE;
+        // action = UC_COMMAND_NONE;
     }
 }
 
-
 uint8_t software_config(void) {
 
-    if (sd_card_init() != WD_SUCCESS) {
-        return WD_ERROR;
-    }
+    // if (sd_card_init() != WD_SUCCESS) {
+    //     return WD_ERROR;
+    // }
 
     return WD_SUCCESS;
 }
@@ -82,21 +130,18 @@ void app_main(void) {
 
     /* Initialise all the hardware used */
     if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
+        xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
         watchdog_system_start();
     }
 
-    char msg[100];
-    if (sd_card_open() == WD_SUCCESS) {
-        sprintf(msg, "Exited Watchdog System. Waiting for shutdown");
-        sd_card_log(SYSTEM_LOG_FILE, msg);
-        sd_card_close();
-    }
+    // if (sd_card_open() == WD_SUCCESS) {
+    //     sd_card_log(SYSTEM_LOG_FILE, "Exited Watchdog System. Waiting for shutdown");
+    //     sd_card_close();
+    // }
 
     while (1) {
         ESP_LOGE(TAG, "Blink");
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        gpio_set_level(RED_LED, 1);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        gpio_set_level(RED_LED, 0);
+        vTaskDelay(300 / portTICK_PERIOD_MS);
+        led_toggle(RED_LED);
     }
 }

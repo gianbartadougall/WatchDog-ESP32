@@ -7,6 +7,7 @@
 #include "hardware_config.h"
 #include "sd_card.h"
 #include "camera.h"
+#include "uart_comms.h"
 
 /* Private Function Definitions */
 void hardware_config_leds(void);
@@ -18,28 +19,25 @@ uint8_t hardware_config(void) {
 
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
-    char msg[100];
-    if (sd_card_open() != WD_SUCCESS) {
-        return WD_ERROR;
-    }
+    // char msg[100];
+    // if (sd_card_open() != WD_SUCCESS) {
+    //     return WD_ERROR;
+    // }
 
-    // Configure Camera
-    sprintf(msg, "Configuring Camera");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
-    if (camera_init() != ESP_OK) {
-        return WD_ERROR;
-    }
+    // // Configure Camera
+    // sd_card_log(SYSTEM_LOG_FILE, "Configuring Camera\0");
+    // if (camera_init() != ESP_OK) {
+    //     return WD_ERROR;
+    // }
 
-    sprintf(msg, "Configuring UART");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
+    // sd_card_log(SYSTEM_LOG_FILE, "Configuring UART\0");
     hardware_config_uart_comms();
 
-    sprintf(msg, "Configuring LEDs");
-    sd_card_log(SYSTEM_LOG_FILE, msg);
+    // sd_card_log(SYSTEM_LOG_FILE, "Configuring LEDs\0");
     hardware_config_leds();
 
     // Unmount the SD card
-    sd_card_close();
+    // sd_card_close();
 
     return WD_SUCCESS;
 }
@@ -48,7 +46,7 @@ void hardware_config_leds(void) {
 
     // Set the onboard red LED to be an output
     gpio_reset_pin(HC_RED_LED);
-    gpio_set_direction(HC_RED_LED, GPIO_MODE_OUTPUT);
+    gpio_set_direction(HC_RED_LED, GPIO_MODE_INPUT_OUTPUT);
 }
 
 void hardware_config_uart_comms(void) {

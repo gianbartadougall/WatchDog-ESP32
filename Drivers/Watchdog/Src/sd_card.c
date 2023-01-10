@@ -234,9 +234,9 @@ uint8_t sd_card_check_file_path_exists(char* filePath) {
         length++;
     }
 
-    // Loop through file path and build new string one directory at a
-    // time. Each new directory added, confirm the existence of that
-    // directory
+    // Loop through file path string. Confirming each directory exists
+    // as the file path string is being looped through. If a directory
+    // doesn't exist, it is created immediatley
     char copyFilePath[length + 1];
     for (int i = 0; i < length; i++) {
 
@@ -274,25 +274,25 @@ uint8_t sd_card_check_directory_exists(char* directory) {
     return WD_ERROR;
 }
 
-uint8_t sd_card_log(char* fileName, char* message) {
+uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
 
-    // Print log to console
-    ESP_LOGI("LOG", "%s", message);
+    // Log to console that data is being written to this file name
+    ESP_LOGI(SD_CARD_TAG, "Writing data to %s", filePath);
 
-    if (sd_card_check_file_path_exists(LOG_FOLDER_PATH) != WD_SUCCESS) {
+    if (sd_card_check_file_path_exists(filePath) != WD_SUCCESS) {
         return SD_CARD_ERROR_IO_ERROR;
     }
 
     // Open the given file path for appending (a+). If the file does not exist
     // fopen will create a new file with the given file path. Note fopen() can
     // not make new directories!
-    char filePath[100];
-    sprintf(filePath, "%s/%s", LOG_FOLDER_PATH, fileName);
-    FILE* file = fopen(filePath, "a+");
+    char filePathName[100];
+    sprintf(filePathName, "%s/%s", filePath, fileName);
+    FILE* file = fopen(filePathName, "a+");
 
     // Confirm the file was opened/created correctly
     if (file == NULL) {
-        ESP_LOGE(SD_CARD_TAG, "Could not open/create %s", filePath);
+        ESP_LOGE(SD_CARD_TAG, "Could not open/create %s", filePathName);
         return SD_CARD_ERROR_IO_ERROR;
     }
 
@@ -322,4 +322,57 @@ uint8_t sd_card_log(char* fileName, char* message) {
     fclose(file);
 
     return WD_SUCCESS;
+}
+
+uint8_t sd_card_log(char* fileName, char* message) {
+    char name[30];
+    sprintf(name, "%s", fileName); // Doing this so \0 is added to the end
+    return sd_card_write(LOG_FOLDER_PATH, name, message);
+
+    // // Print log to console
+    // ESP_LOGI("LOG", "%s", message);
+
+    // if (sd_card_check_file_path_exists(LOG_FOLDER_PATH) != WD_SUCCESS) {
+    //     return SD_CARD_ERROR_IO_ERROR;
+    // }
+
+    // // Open the given file path for appending (a+). If the file does not exist
+    // // fopen will create a new file with the given file path. Note fopen() can
+    // // not make new directories!
+    // char filePath[100];
+    // sprintf(filePath, "%s/%s", LOG_FOLDER_PATH, fileName);
+    // FILE* file = fopen(filePath, "a+");
+
+    // // Confirm the file was opened/created correctly
+    // if (file == NULL) {
+    //     ESP_LOGE(SD_CARD_TAG, "Could not open/create %s", filePath);
+    //     return SD_CARD_ERROR_IO_ERROR;
+    // }
+
+    // // Get the time from the real time clock
+    // char formattedDateTime[20];
+    // rtc_get_formatted_date_time(formattedDateTime);
+
+    // // Confirm the message is within character limit. The character
+    // // limit can be increased if necessary. To do so, change the
+    // // maximum character limit macro
+    // int length = 0;
+    // while (message[length++] != '\0') {
+    //     if (length > LOG_MSG_MAX_CHARACTERS) {
+    //         ESP_LOGE(SD_CARD_TAG, "Message '%s' is too long", message);
+    //         return LOG_ERR_MSG_TOO_LONG;
+    //     }
+    // }
+
+    // // Append the time to the message to create log that will be written to file
+    // int msgLength = RTC_DATE_TIME_CHAR_LENGTH + LOG_MSG_MAX_CHARACTERS + NULL_CHAR_LENGTH + 5;
+    // char log[msgLength];
+    // sprintf(log, "%s\t%s\n", formattedDateTime, message);
+
+    // // Write log to file
+    // fprintf(file, log);
+
+    // fclose(file);
+
+    // return WD_SUCCESS;
 }

@@ -23,6 +23,8 @@ const static char* TAG = "Hardware config";
 /* Private Function Definitions */
 void hardware_config_leds(void);
 void hardware_config_uart_comms(void);
+void hardware_config_timers(void);
+void hardware_config_gpio(void);
 
 uint8_t hardware_config(void) {
 
@@ -30,22 +32,22 @@ uint8_t hardware_config(void) {
     ESP_LOGI(TAG, "Configuring UART");
     hardware_config_uart_comms();
 
+    hardware_config_gpio();
+
     ESP_LOGI(TAG, "Configuring RTC");
     // TODO: Configure RTC
 
     ESP_LOGI(TAG, "Configuring Temperature Sensor");
-    // TODO: Configure Temperature sensor
-
-    ESP_LOGI(TAG, "Configuring LEDs");
-    hardware_config_leds();
+    hardware_config_timers();
 
     return WD_SUCCESS;
 }
 
-void hardware_config_leds(void) {
+void hardware_config_gpio(void) {
 
-    // Set the onboard red LED to be an input/output. input/output is required
-    // for gpio_get_level function to work
+    /* Configure GPIO for LEDs */
+
+    // Input/output is required for gpio_get_level() function to work
     gpio_reset_pin(HC_RED_LED);
     gpio_set_direction(HC_RED_LED, GPIO_MODE_INPUT_OUTPUT);
 
@@ -55,7 +57,6 @@ void hardware_config_leds(void) {
 
 void hardware_config_uart_comms(void) {
 
-    // Configure UART for communications
     const uart_config_t uart_config = {
         .baud_rate  = 115200,
         .data_bits  = UART_DATA_8_BITS,
@@ -64,11 +65,31 @@ void hardware_config_uart_comms(void) {
         .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_APB,
     };
+
     // We won't use a buffer for sending data.
-    uart_driver_install(HC_UART_COMMS_UART_NUM, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
-    uart_param_config(HC_UART_COMMS_UART_NUM, &uart_config);
-    uart_set_pin(HC_UART_COMMS_UART_NUM, HC_UART_COMMS_TX_PIN, HC_UART_COMMS_RX_PIN, UART_PIN_NO_CHANGE,
-                 UART_PIN_NO_CHANGE);
+    ESP_ERROR_CHECK(uart_driver_install(HC_UART_COMMS_UART_NUM, RX_BUF_SIZE * 2, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(HC_UART_COMMS_UART_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(HC_UART_COMMS_UART_NUM, HC_UART_COMMS_TX_PIN, HC_UART_COMMS_RX_PIN, UART_PIN_NO_CHANGE,
+                                 UART_PIN_NO_CHANGE));
 
     // TODO: Come up with way to check if UART was configured correctly!
+}
+
+void hardware_config_timers(void) {
+
+    /****** START CODE BLOCK ******/
+    // Description: Configure a microsecond timer for the temperature sensor
+    // ds18b20TimerConfig.divider     = 40;
+    // ds18b20TimerConfig.counter_dir = TIMER_COUNT_UP;
+    // ds18b20TimerConfig.counter_en  = TIMER_START;
+    // ds18b20TimerConfig.alarm_en    = TIMER_ALARM_DIS;
+    // ds18b20TimerConfig.intr_type   = TIMER_INTR_LEVEL;
+    // ds18b20TimerConfig.auto_reload = TIMER_AUTORELOAD_DIS;
+
+    // timer_init(DS18B20_TIMER_GROUP, DS18B20_TIMER, &ds18b20TimerConfig);
+
+    // // Set the timer period
+    // timer_set_counter_value(DS18B20_TIMER_GROUP, DS18B20_TIMER, 0x00000000ULL);
+
+    /****** END CODE BLOCK ******/
 }

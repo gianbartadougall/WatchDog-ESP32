@@ -1,6 +1,7 @@
 idf_component_register(SRCS "Src/main.c"
                             "Src/hardware_config.c"
                             "../../Drivers/Watchdog/Src/camera.c"
+                            "../../Drivers/Watchdog/Src/ds18b20.c"
                             "../../Drivers/Watchdog/Src/sd_card.c"
 							"../../Drivers/Watchdog/Src/rtc.c"
                             "../../Drivers/Watchdog/Src/wd_utils.c"
@@ -33,4 +34,5 @@ idf_component_register(SRCS "Src/main.c"
                     "../../Drivers/ESP32_Camera/sensors/private_include"
                     "../../Drivers/ESP32_Camera/target/private_include"
 					"../../Drivers/Watchdog/Inc"
+                    "C:/Users/Gian/esp/esp-idf/components/driver/include/driver"
                     "Inc")

@@ -62,9 +62,9 @@
 #define UART_ESP32_CLK_ENABLE()         __HAL_RCC_USART1_CLK_ENABLE()
 
 #define UART_ESP32           USART1
-#define UART_ESP32_RX_PORT   GPIOA
+#define UART_ESP32_RX_PORT   GPIOB
 #define UART_ESP32_TX_PORT   GPIOA
-#define UART_ESP32_RX_PIN    10
+#define UART_ESP32_RX_PIN    7
 #define UART_ESP32_TX_PIN    9
 #define UART_ESP32_BUAD_RATE 115200
 /*******************************************************************/

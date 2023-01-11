@@ -6,7 +6,7 @@
 #include "uart_comms.h"
 #include "wd_utils.h"
 
-int wd_utils_extract_number(char *string, int *number, int startIndex, char endCharacter) {
+int wd_utils_extract_number(char* string, int* number, int startIndex, char endCharacter) {
 
     // Create string to store number with enough room for number up to 999,999
     int strNumLength = 6;
@@ -24,21 +24,21 @@ int wd_utils_extract_number(char *string, int *number, int startIndex, char endC
 
         // Return lowest possible image number if the given string was invalid
         if ((strNum[i] < '0' || strNum[i] > '9')) {
-            return 20;
+            return UART_ERROR_INVALID_REQUEST;
         }
     }
 
     strNum[strNumLength + 1] = '\0';
-    *number = atoi(strNum);
+    *number                  = atoi(strNum);
 
     return WD_SUCCESS;
 }
 
-void wd_utils_split_string(char *string, char list[][RX_BUF_SIZE], int startIndex, char delimeter) {
+void wd_utils_split_string(char* string, char list[][RX_BUF_SIZE], int startIndex, char delimeter) {
 
     int listIndex = 0;
     int charIndex = 0;
-    int si = startIndex;
+    int si        = startIndex;
 
     while (string[si] != '\0') {
 

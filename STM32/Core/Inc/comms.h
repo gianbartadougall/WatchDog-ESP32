@@ -37,6 +37,6 @@ void comms_send_data(USART_TypeDef *uart, char *msg);
  *
  * @return char the character it read
  */
-void comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout);
+int comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout);
 
 #endif // COMMS_H

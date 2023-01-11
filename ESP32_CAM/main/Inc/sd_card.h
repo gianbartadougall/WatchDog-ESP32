@@ -1,15 +1,18 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
+/* Public Includes */
 #include <string.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
-
 #include <stdlib.h>
 #include <errno.h>
+
+/* Personal Includes */
+#include "uart_comms.h"
 
 /* Public Macros */
 
@@ -60,5 +63,7 @@ uint8_t sd_card_log(char* fileName, char* message);
  * characters in this message must be within the set limit
  */
 uint8_t sd_card_write(char* filePath, char* fileName, char* message);
+
+void sd_card_data_copy(packet_t* packet);
 
 #endif // SD_CARD_H

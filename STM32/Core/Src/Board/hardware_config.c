@@ -105,6 +105,9 @@ void hardware_config_gpio_init(void) {
     UART_ESP32_RX_PORT->OTYPER &= ~(0x03 << UART_ESP32_RX_PIN);
     UART_ESP32_TX_PORT->OTYPER &= ~(0x03 << UART_ESP32_TX_PIN);
 
+    UART_ESP32_RX_PORT->PUPDR &= ~(0x03 << (UART_ESP32_RX_PIN * 2));
+    UART_ESP32_TX_PORT->PUPDR &= ~(0x03 << (UART_ESP32_TX_PIN * 2));
+
     // Set the RX TX pin speeds to high
     UART_ESP32_RX_PORT->OSPEEDR &= ~(0x03 << (UART_ESP32_RX_PIN * 2));
     UART_ESP32_TX_PORT->OSPEEDR &= ~(0x03 << (UART_ESP32_TX_PIN * 2));
@@ -112,10 +115,10 @@ void hardware_config_gpio_init(void) {
     UART_ESP32_TX_PORT->OSPEEDR |= (0x02 << (UART_ESP32_TX_PIN * 2));
 
     // Connect pin to alternate function
-    UART_ESP32_RX_PORT->AFR[1] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
-    UART_ESP32_TX_PORT->AFR[1] &= ~(0x0F << ((UART_ESP32_TX_PIN % 8) * 4));
-    UART_ESP32_RX_PORT->AFR[1] |= (7 << (4 * (UART_ESP32_RX_PIN % 8)));
-    UART_ESP32_TX_PORT->AFR[1] |= (7 << (4 * (UART_ESP32_TX_PIN % 8)));
+    UART_ESP32_RX_PORT->AFR[UART_ESP32_RX_PIN > 7 ? 1 : 0] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_TX_PORT->AFR[UART_ESP32_TX_PIN > 7 ? 1 : 0] &= ~(0x0F << ((UART_ESP32_TX_PIN % 8) * 4));
+    UART_ESP32_RX_PORT->AFR[UART_ESP32_RX_PIN > 7 ? 1 : 0] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_TX_PORT->AFR[UART_ESP32_TX_PIN > 7 ? 1 : 0] |= (0x07 << ((UART_ESP32_TX_PIN % 8) * 4));
 
     /****** END CODE BLOCK ******/
 
@@ -132,13 +135,13 @@ void hardware_config_gpio_init(void) {
     UART_LOG_RX_PORT->OTYPER &= ~(0x01 << UART_LOG_RX_PIN);
     UART_LOG_TX_PORT->OTYPER &= ~(0x01 << UART_LOG_TX_PIN);
 
-    // // Set the RX TX pin speeds to high
+    // Set the RX TX pin speeds to high
     UART_LOG_RX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
     UART_LOG_TX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
     UART_LOG_RX_PORT->OSPEEDR |= (0x02 << (UART_LOG_RX_PIN * 2));
     UART_LOG_TX_PORT->OSPEEDR |= (0x02 << (UART_LOG_TX_PIN * 2));
 
-    // // Set the RX TX to have no pull up or pull down resistors
+    // Set the RX TX to have no pull up or pull down resistors
     UART_LOG_RX_PORT->PUPDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
     UART_LOG_TX_PORT->PUPDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
 
@@ -188,23 +191,21 @@ void hardware_config_uart_init(void) {
     /* Configure UART for Commuincating with ESP32 Cam */
     // Enable UART clock
     // __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-    UART_ESP32_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
 
-    // Set baud rate
-    UART_ESP32->BRR = SystemCoreClock / UART_ESP32_BUAD_RATE;
-
     // Enable the USART to let comms occur
+
+    // Set baud rate
+    UART_ESP32_CLK_ENABLE();
+    UART_ESP32->BRR = SystemCoreClock / UART_ESP32_BUAD_RATE;
     UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
 
+    // Set baud rate
     UART_LOG_CLK_ENABLE();
-
-    // // Set baud rate
     UART_LOG->BRR = SystemCoreClock / UART_LOG_BUAD_RATE;
-
-    // // Enable the USART to let comms occur
     UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
+
+    // Enable the USART to let comms occur
 
     // Enable peripheral clocks: GPIOA, USART2.
     // RCC->APB1ENR1 |= (RCC_APB1ENR1_USART2EN);

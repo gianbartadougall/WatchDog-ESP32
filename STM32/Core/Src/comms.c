@@ -11,28 +11,28 @@
 
 /* Private Includes */
 #include "comms.h"
+#include "wd_utils.h"
+#include "log.h"
 
-void comms_send_data(USART_TypeDef *uart, char *msg) {
+void comms_send_data(USART_TypeDef* uart, char* msg) {
     uint16_t i = 0;
 
     // Transmit until end of message reached
     while (msg[i] != '\0') {
-        while ((uart->ISR & USART_ISR_TXE) == 0) {
-        };
+        while ((uart->ISR & USART_ISR_TXE) == 0) {};
 
         uart->TDR = msg[i];
         i++;
     }
 }
 
-char comms_getc(USART_TypeDef *uart) {
+char comms_getc(USART_TypeDef* uart) {
 
-    while (!(uart->ISR & USART_ISR_RXNE)) {
-    };
+    while (!(uart->ISR & USART_ISR_RXNE)) {};
     return uart->RDR;
 }
 
-int comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout) {
+int comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE], uint32_t timeout) {
 
     uint32_t endTime = ((HAL_GetTick() + timeout) % HAL_MAX_DELAY);
 
@@ -40,25 +40,32 @@ int comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout
     while (1) {
 
         // Wait for character to be recieved on Rx line
-        while (!(uart->ISR & USART_ISR_RXNE)) {
+        if (!(uart->ISR & USART_ISR_RXNE)) {
             if (HAL_GetTick() == endTime) {
-                return WD_ERROR;
+                msg[i] = '\0';
+                return i;
             }
+
+            continue;
         };
 
         char c = uart->RDR;
 
-        if (c == 0x0D) {
-            msg[i++] = '\r';
-            msg[i++] = '\n';
-            msg[i++] = '\0';
-            break;
-            i = 0;
-        } else {
-            msg[i] = c;
-            i++;
+        // UART sometimes stuffs up and sends this character, you need to make sure it's
+        // not written in the msg otherwise it'll stuff up
+        if (c == 0xFF) {
+            continue;
         }
+
+        if (c == '\0') {
+            break;
+        }
+
+        msg[i] = c;
+        i++;
     }
 
-    return WD_SUCCESS;
+    debug_prints(msg);
+
+    return i;
 }

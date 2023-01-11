@@ -25,50 +25,39 @@
 /* Private Variable Declarations */
 
 /* Function Declarations */
-int uart_comms_read(char *data, int timeout);
+int uart_comms_read(char* data, int timeout);
 
-int packet_to_string(packet_t *packet, char data[RX_BUF_SIZE]) {
-    sprintf(data, "%d,%s,%s", packet->request, packet->instruction, packet->data);
+int packet_to_string(packet_t* packet, char data[RX_BUF_SIZE]) {
+    sprintf(data, "%i,%s,%s", packet->request, packet->instruction, packet->data);
 
     return WD_SUCCESS;
 }
 
 // Packet is of the form request,instruction,data
-int string_to_packet(packet_t *packet, char data[RX_BUF_SIZE]) {
+int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
 
     char info[3][RX_BUF_SIZE];
     wd_utils_split_string(data, info, 0, ',');
 
     // Validate the command
     int request;
-    if (wd_utils_extract_number(info[0], &request, 0, '\0') != WD_SUCCESS) {
-        return WD_ERROR;
+    if (wd_utils_extract_number(data, &request, 0, ',') != WD_SUCCESS) {
+        return UART_ERROR_INVALID_REQUEST;
     }
 
     // Validate request
     switch (request) {
-    case UART_REQUEST_ACKNOWLEDGED:
-    case UART_REQUEST_LED_ON:
-    case UART_REQUEST_LED_OFF:
-        break;
-    default:
-        return WD_ERROR;
+        case UART_REQUEST_LED_ON:
+        case UART_REQUEST_LED_OFF:
+        case UART_REQUEST_DATA_READ:
+            break;
+        default:
+            return UART_ERROR_INVALID_REQUEST;
     }
 
     packet->request = request;
-
-    int i;
-    for (i = 0; info[1][i] != '\0'; i++) {
-        packet->instruction[i] = info[1][i];
-    }
-
-    packet->instruction[i] = '\0';
-
-    for (i = 0; info[2][i] != '\0'; i++) {
-        packet->data[i] = info[2][i];
-    }
-
-    packet->data[i] = '\0';
+    sprintf(packet->instruction, info[1]);
+    sprintf(packet->data, info[2]);
 
     return WD_SUCCESS;
 }

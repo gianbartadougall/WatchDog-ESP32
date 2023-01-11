@@ -10,9 +10,9 @@
  */
 
 /* Public Includes */
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* Private Includes */
 #include "hardware_config.h"
@@ -25,16 +25,16 @@
 /* Private Variable Declarations */
 
 /* Function Declarations */
-int uart_comms_read(char* data, int timeout);
+int uart_comms_read(char *data, int timeout);
 
-int packet_to_string(packet_t* packet, char data[RX_BUF_SIZE]) {
+int packet_to_string(packet_t *packet, char data[RX_BUF_SIZE]) {
     sprintf(data, "%d,%s,%s", packet->request, packet->instruction, packet->data);
 
     return WD_SUCCESS;
 }
 
 // Packet is of the form request,instruction,data
-int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
+int string_to_packet(packet_t *packet, char data[RX_BUF_SIZE]) {
 
     char info[3][RX_BUF_SIZE];
     wd_utils_split_string(data, info, 0, ',');
@@ -47,11 +47,12 @@ int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
 
     // Validate request
     switch (request) {
-        case UC_REQUEST_ACKNOWLEDGED:
-        case UC_REQUEST_BLINK_LED:
+    case UART_REQUEST_ACKNOWLEDGED:
+    case UART_REQUEST_LED_ON:
+    case UART_REQUEST_LED_OFF:
         break;
-        default:
-            return request;
+    default:
+        return WD_ERROR;
     }
 
     packet->request = request;
@@ -76,8 +77,8 @@ int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
 
 //     // Create message to transmit over UART
 //     char msg[100];
-//     sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, instruction, UC_DELIMETER, message);
-//     const int txBytes = uart_write_bytes(UART_NUM, msg, strlen(msg));
+//     sprintf(msg, "%d%c%s%c%s\r\n", commandCode, UC_DELIMETER, instruction, UC_DELIMETER,
+//     message); const int txBytes = uart_write_bytes(UART_NUM, msg, strlen(msg));
 
 //     return txBytes;
 // }

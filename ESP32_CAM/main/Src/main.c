@@ -9,44 +9,47 @@
  *
  */
 #include "driver/gpio.h"
+#include "driver/uart.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
-#include "driver/uart.h"
 #include <stdio.h>
 
-static const char* TAG = "example";
+static const char *TAG = "example";
 #include "camera.h"
 #include "hardware_config.h"
 #include "led.h"
-#include "rtc.h"
 #include "sd_card.h"
 #include "uart_comms.h"
 #include "wd_utils.h"
 
 #include "hardware_config.h"
 
-#define COB_LED  HC_COB_LED
-#define RED_LED  HC_RED_LED
+#define COB_LED HC_COB_LED
+#define RED_LED HC_RED_LED
 #define UART_NUM HC_UART_COMMS_UART_NUM
 
-int sendData(const char* logName, const char* data) {
-    const int len     = strlen(data);
+/* Private Function Declarations */
+void esp32_led_on(void);
+void esp32_led_off(void);
+
+int sendData(const char *logName, const char *data) {
+    const int len = strlen(data);
     const int txBytes = uart_write_bytes(UART_NUM, data, len);
     // ESP_LOGI(logName, "Wrote %d bytes", txBytes);
     return txBytes;
 }
 
-static void tx_task(void* arg) {
-    static const char* TX_TASK_TAG = "TX_TASK";
-    esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
-    while (1) {
-        sendData(TX_TASK_TAG, "Hello world");
-        // gpio_set_level(LED, 0);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
-}
+// static void tx_task(void *arg) {
+//     static const char *TX_TASK_TAG = "TX_TASK";
+//     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
+//     while (1) {
+//         sendData(TX_TASK_TAG, "Hello world");
+//         // gpio_set_level(LED, 0);
+//         vTaskDelay(2000 / portTICK_PERIOD_MS);
+//     }
+// }
 
 void watchdog_system_start(void) {
 
@@ -60,7 +63,7 @@ void watchdog_system_start(void) {
         // Transmit message
 
         // Read UART and wait for command.
-        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
+        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
 
         if (rxBytes == 0) {
             continue;
@@ -72,12 +75,14 @@ void watchdog_system_start(void) {
 
             // Create new packet to reply
             packet_t responsePacket;
-            responsePacket.request        = UC_REQUEST_PARSE_ERROR;
+            responsePacket.request = UART_REQUEST_PARSE_ERROR;
             responsePacket.instruction[0] = '\0';
-            responsePacket.data[0]        = '\0';
+            responsePacket.data[0] = '\0';
 
             char response[RX_BUF_SIZE];
-            packet_to_string(&responsePacket, response);
+            if (packet_to_string(&responsePacket, response) != WD_SUCCESS) {
+                continue;
+            }
 
             uart_write_bytes(UART_NUM, response, strlen(response));
             continue;
@@ -85,15 +90,29 @@ void watchdog_system_start(void) {
 
         // Send return message
         packet_t response;
-        response.request = UC_REQUEST_ACKNOWLEDGED;
-        sprintf(response.instruction, packet.instruction);
-        sprintf(response.data, "%s", packet.data);
+        response.request = UART_REQUEST_ACKNOWLEDGED;
+
+        // Carry out instruction
+        switch (packet.request) {
+        case UART_REQUEST_LED_ON:
+            led_on(RED_LED);
+            sprintf(response.instruction, "turning the LED on");
+            response.data[0] = '\0';
+            break;
+        case UART_REQUEST_LED_OFF:
+            led_off(RED_LED);
+            sprintf(response.instruction, "turning the LED off");
+            response.data[0] = '\0';
+            break;
+        default:
+            // Should never enter here because this is checked when converting string to packet
+            sprintf(response.instruction, "Request was not recognised");
+            response.data[0] = '\0';
+        }
 
         char responseData[RX_BUF_SIZE];
-        packet_to_string(responseData, &response);
-
+        packet_to_string(&response, responseData);
         uart_write_bytes(UART_NUM, responseData, strlen(responseData));
-
         // if (action == UC_SAVE_DATA) {
 
         //     // Extract the file path
@@ -130,7 +149,7 @@ void app_main(void) {
 
     /* Initialise all the hardware used */
     if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
-        xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
+        // xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
         watchdog_system_start();
     }
 

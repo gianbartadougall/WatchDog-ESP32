@@ -12,30 +12,41 @@
 /* Private Includes */
 #include "comms.h"
 
-void comms_send_data(USART_TypeDef* uart, char* msg) {
+void comms_send_data(USART_TypeDef *uart, char *msg) {
     uint16_t i = 0;
 
     // Transmit until end of message reached
     while (msg[i] != '\0') {
-        while ((uart->ISR & USART_ISR_TXE) == 0) {};
+        while ((uart->ISR & USART_ISR_TXE) == 0) {
+        };
 
         uart->TDR = msg[i];
         i++;
     }
 }
 
-char comms_getc(USART_TypeDef* uart) {
+char comms_getc(USART_TypeDef *uart) {
 
-    while (!(uart->ISR & USART_ISR_RXNE)) {};
+    while (!(uart->ISR & USART_ISR_RXNE)) {
+    };
     return uart->RDR;
 }
 
-void comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE]) {
+int comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout) {
+
+    uint32_t endTime = ((HAL_GetTick() + timeout) % HAL_MAX_DELAY);
 
     uint8_t i = 0;
     while (1) {
 
-        char c = comms_getc(uart);
+        // Wait for character to be recieved on Rx line
+        while (!(uart->ISR & USART_ISR_RXNE)) {
+            if (HAL_GetTick() == endTime) {
+                return WD_ERROR;
+            }
+        };
+
+        char c = uart->RDR;
 
         if (c == 0x0D) {
             msg[i++] = '\r';
@@ -48,4 +59,6 @@ void comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE]) {
             i++;
         }
     }
+
+    return WD_SUCCESS;
 }

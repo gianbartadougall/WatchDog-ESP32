@@ -30,13 +30,13 @@
  *
  * @param msg Pointer to the data to be transmitted
  */
-void comms_send_data(USART_TypeDef* uart, char* msg);
+void comms_send_data(USART_TypeDef *uart, char *msg);
 
 /**
  * @brief Reads a single character from UART line
- * 
+ *
  * @return char the character it read
  */
-void comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE]);
+void comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout);
 
 #endif // COMMS_H

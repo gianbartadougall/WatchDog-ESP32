@@ -3,10 +3,10 @@
 #include <stdlib.h>
 
 /* Private Macros */
-#include "wd_utils.h"
 #include "uart_comms.h"
+#include "wd_utils.h"
 
-int wd_utils_extract_number(char str[RX_BUF_SIZE], int* number, int startIndex, char endCharacter) {
+int wd_utils_extract_number(char *string, int *number, int startIndex, char endCharacter) {
 
     // Create string to store number with enough room for number up to 999,999
     int strNumLength = 6;
@@ -14,8 +14,8 @@ int wd_utils_extract_number(char str[RX_BUF_SIZE], int* number, int startIndex, 
 
     for (int i = 0; i < strNumLength; i++) {
 
-        strNum[i] = str[i + startIndex];
- 
+        strNum[i] = string[i + startIndex];
+
         // Break out of loop if end character found
         if (strNum[i] == endCharacter || strNum[i] == '\0') {
             strNum[i] = '\0';
@@ -34,11 +34,11 @@ int wd_utils_extract_number(char str[RX_BUF_SIZE], int* number, int startIndex, 
     return WD_SUCCESS;
 }
 
-void wd_utils_split_string(char* string, char list[][RX_BUF_SIZE], int startIndex, char delimeter) {
+void wd_utils_split_string(char *string, char list[][RX_BUF_SIZE], int startIndex, char delimeter) {
 
     int listIndex = 0;
     int charIndex = 0;
-    int si        = startIndex;
+    int si = startIndex;
 
     while (string[si] != '\0') {
 

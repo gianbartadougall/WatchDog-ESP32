@@ -1,27 +1,26 @@
 /* Public Includes */
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 /* Private Includes */
-#include "sd_card.h"
 #include "rtc.h"
+#include "sd_card.h"
 #include "wd_utils.h"
 
 /* Private Macros */
-#define MOUNT_POINT_PATH     ("/sdcard")
+#define MOUNT_POINT_PATH ("/sdcard")
 #define WATCHDOG_FOLDER_PATH ("/sdcard/WATCHDOG")
-#define LOG_FOLDER_PATH      ("/sdcard/WATCHDOG/LOGS")
-#define DATA_FOLDER_PATH     ("/sdcard/WATCHDOG/DATA")
+#define LOG_FOLDER_PATH ("/sdcard/WATCHDOG/LOGS")
+#define DATA_FOLDER_PATH ("/sdcard/WATCHDOG/DATA")
 
 #define LOG_MSG_MAX_CHARACTERS 200
-#define NULL_CHAR_LENGTH       1
-#define DATE_TIME_DELIMITER    '_'
-#define IMG_NUM_START_INDEX    3
-#define IMG_NUM_END_CHARACTER  '-'
+#define NULL_CHAR_LENGTH 1
+#define DATE_TIME_DELIMITER '_'
+#define IMG_NUM_START_INDEX 3
+#define IMG_NUM_END_CHARACTER '-'
 
-static const char* SD_CARD_TAG = "SD CARD:";
+static const char *SD_CARD_TAG = "SD CARD:";
 
 /* Private Variables */
 int mounted = FALSE;
@@ -32,15 +31,15 @@ int imageNumber = 0;
 // configuration
 static esp_vfs_fat_sdmmc_mount_config_t sdCardConfiguration = {
     .format_if_mount_failed = false,
-    .max_files              = 5,
-    .allocation_unit_size   = 16 * 1024,
+    .max_files = 5,
+    .allocation_unit_size = 16 * 1024,
 };
 
-sdmmc_card_t* card;
+sdmmc_card_t *card;
 
 /* Private Function Declarations */
-uint8_t sd_card_check_file_path_exists(char* filePath);
-uint8_t sd_card_check_directory_exists(char* directory);
+uint8_t sd_card_check_file_path_exists(char *filePath);
+uint8_t sd_card_check_directory_exists(char *directory);
 
 uint8_t sd_card_init(void) {
 
@@ -68,7 +67,7 @@ uint8_t sd_card_update_image_number(void) {
 
     // Loop through images in the data folder path and find the last image
     // number saved
-    DIR* dataDir = opendir(DATA_FOLDER_PATH);
+    DIR *dataDir = opendir(DATA_FOLDER_PATH);
 
     char msg[50];
     if (dataDir == NULL) {
@@ -80,11 +79,15 @@ uint8_t sd_card_update_image_number(void) {
 
     // Loop through all the files in the folder and set the image number to the
     // highest number found
-    struct dirent* file;
+    struct dirent *file;
     while ((file = readdir(dataDir)) != NULL) {
 
         // File name is stored in file->d_name
-        int number = wd_utils_extract_number(file->d_name, IMG_NUM_START_INDEX, IMG_NUM_END_CHARACTER);
+        int number;
+        if (wd_utils_extract_number(file->d_name, &number, IMG_NUM_START_INDEX,
+                                    IMG_NUM_END_CHARACTER) != WD_SUCCESS) {
+            return WD_ERROR;
+        }
 
         if (number > imageNumber) {
             imageNumber = number;
@@ -101,7 +104,7 @@ uint8_t sd_card_update_image_number(void) {
     return WD_SUCCESS;
 }
 
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength) {
+uint8_t sd_card_save_image(uint8_t *imageData, int imageLength) {
 
     // Ensure the SD card is mounted before attempting to save the image
     int returnCode = sd_card_open();
@@ -126,7 +129,7 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength) {
     sprintf(msg, "File path '%s' created to save image", filePath);
     sd_card_log(SYSTEM_LOG_FILE, msg);
 
-    FILE* imageFile = fopen(filePath, "wb");
+    FILE *imageFile = fopen(filePath, "wb");
 
     if (imageFile == NULL) {
         sprintf(msg, "File path '%s' could not be opened", filePath);
@@ -164,7 +167,7 @@ uint8_t sd_card_open(void) {
     // This initializes the slot without card detect (CD) and write protect (WP) signals.
     // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot_config.width               = 1;
+    slot_config.width = 1;
 
     // Enable internal pullups on enabled pins. The internal pullups
     // are insufficient however, please make sure 10k external pullups are
@@ -172,7 +175,8 @@ uint8_t sd_card_open(void) {
     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
     // Mount the SD card
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount(MOUNT_POINT_PATH, &host, &slot_config, &sdCardConfiguration, &card);
+    esp_err_t ret =
+        esp_vfs_fat_sdmmc_mount(MOUNT_POINT_PATH, &host, &slot_config, &sdCardConfiguration, &card);
 
     if (ret != ESP_OK) {
 
@@ -225,7 +229,7 @@ void sd_card_close(void) {
     mounted = FALSE;
 }
 
-uint8_t sd_card_check_file_path_exists(char* filePath) {
+uint8_t sd_card_check_file_path_exists(char *filePath) {
 
     // Get the length of the string
     int length = 0;
@@ -254,7 +258,7 @@ uint8_t sd_card_check_file_path_exists(char* filePath) {
     return WD_SUCCESS;
 }
 
-uint8_t sd_card_check_directory_exists(char* directory) {
+uint8_t sd_card_check_directory_exists(char *directory) {
 
     // Structure to store infromation about directory. We do not need the information
     // but this struct is required for the function call
@@ -270,11 +274,12 @@ uint8_t sd_card_check_directory_exists(char* directory) {
         return WD_SUCCESS;
     }
 
-    ESP_LOGE(SD_CARD_TAG, "Error trying to create directory %s. Error: '%s'", directory, strerror(errno));
+    ESP_LOGE(SD_CARD_TAG, "Error trying to create directory %s. Error: '%s'", directory,
+             strerror(errno));
     return WD_ERROR;
 }
 
-uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
+uint8_t sd_card_write(char *filePath, char *fileName, char *message) {
 
     // Log to console that data is being written to this file name
     ESP_LOGI(SD_CARD_TAG, "Writing data to %s", filePath);
@@ -288,7 +293,7 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
     // not make new directories!
     char filePathName[100];
     sprintf(filePathName, "%s/%s", filePath, fileName);
-    FILE* file = fopen(filePathName, "a+");
+    FILE *file = fopen(filePathName, "a+");
 
     // Confirm the file was opened/created correctly
     if (file == NULL) {
@@ -324,7 +329,7 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
     return WD_SUCCESS;
 }
 
-uint8_t sd_card_log(char* fileName, char* message) {
+uint8_t sd_card_log(char *fileName, char *message) {
     char name[30];
     sprintf(name, "%s", fileName); // Doing this so \0 is added to the end
     return sd_card_write(LOG_FOLDER_PATH, name, message);

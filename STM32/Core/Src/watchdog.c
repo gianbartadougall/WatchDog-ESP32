@@ -1,19 +1,17 @@
 
 /* Private Includes */
 #include "watchdog.h"
-#include "log.h"
-#include <stdio.h>
-#include "ds18b20.h"
-#include "uart_comms.h"
 #include "comms.h"
-#include "wd_utils.h"
+#include "ds18b20.h"
 #include "hardware_config.h"
+#include "log.h"
+#include "uart_comms.h"
+#include "wd_utils.h"
+#include <stdio.h>
 
 void print_64_bit1(uint64_t number);
 
-void watchdog_init(void) {
-    debug_clear();
-}
+void watchdog_init(void) { debug_clear(); }
 
 void watchdog_update(void) {
 
@@ -31,8 +29,8 @@ void watchdog_update(void) {
             debug_prints("\r\n");
             break;
             i = 0;
-        } 
-        
+        }
+
         // Sometimes putty accidently sends FF on restart for some reason
         // this stops this from happening
         if (c != 0xFF) {
@@ -51,6 +49,7 @@ void watchdog_update(void) {
         char msg1[50];
         sprintf(msg1, "Failed to parse packet with error %d\r\n", num);
         log_error(msg1);
+        return;
     }
 
     // Validate instruction
@@ -64,15 +63,17 @@ void watchdog_update(void) {
     // Send packet to esp32
     comms_send_data(UART_ESP32, message);
 
-    // // Wait for response from ESP32
-    // char esp32Response[RX_BUF_SIZE];
-    // comms_read_data(UART_ESP32, esp32Response);
+    // Wait for response from ESP32
+    char esp32Response[RX_BUF_SIZE];
+    comms_read_data(UART_ESP32, esp32Response, 1000);
 
-    // // Turn response into packet
-    // packet_t esp32ResponsePacket;
-    // string_to_packet(&esp32ResponsePacket);
+    // Turn response into packet
+    packet_t esp32ResponsePacket;
+    string_to_packet(&esp32ResponsePacket, esp32Response);
 
-    // if (esp32ResponsePacket.request != UC_REQUEST_ACKNOWLEDGED) {
-    //     log_error("ESP32 did not acknowledge request\r\n");
-    // }
+    if (esp32ResponsePacket.request != UART_REQUEST_ACKNOWLEDGED) {
+        log_error("ESP32 did not acknowledge request\r\n");
+    } else {
+        log_success("ESP32 ackowledged request\r\n");
+    }
 }

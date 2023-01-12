@@ -16,45 +16,11 @@ void watchdog_init(void) {
 }
 
 void watchdog_update(void) {
-    // char msg1[100];
-
-    // while (1) {
-
-    //     comms_send_data(USART1, "1,this is a test,this\0");
-    //     // comms_read_data(USART1, msg1, 10000);
-
-    //     // log_prints(msg1);
-    //     HAL_Delay(2000);
-    // }
-
-    // Main loop: wait for a new byte, then echo it back.
-    // char rxb = '0';
-    // while (1) {
-    //     // Wait for a byte of data to arrive.
-
-    //     while (!(USART1->ISR & USART_ISR_RXNE)) {
-    //         log_prints("stuck\r\n");
-    //     };
-    //     // rxb = USART1->RDR;
-    //     sprintf(msg1, "%c\r\n", USART1->RDR);
-    //     log_prints(msg1);
-
-    //     while (!(USART1->ISR & USART_ISR_TXE)) {
-    //         log_prints("stuck 2\r\n");
-    //     };
-    //     USART1->TDR = rxb++;
-
-    //     HAL_Delay(1000);
-    // }
 
     // Get message from console
     // uint8_t i = 0;
     // log_prints("starting\r\n");
     while (1) {
-        HAL_Delay(2000);
-        log_message("printing: ");
-        comms_usart1_print_buffer();
-        log_prints("\r\n");
 
         // char c = log_getc();
 

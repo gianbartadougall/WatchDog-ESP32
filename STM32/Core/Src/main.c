@@ -51,9 +51,9 @@ int main(void) {
     log_message("Starting\r\n");
     while (1) {
         // watchdog_update();
-        comms_send_data(USART1, "I have sent some data to the ESP32!!!\0", TRUE);
+        // comms_send_data(USART1, "I have sent some data to the ESP32!!!\0", TRUE);
         comms_usart1_print_buffer();
-        HAL_Delay(2000);
+        HAL_Delay(500);
     }
 
     return 0;

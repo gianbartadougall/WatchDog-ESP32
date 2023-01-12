@@ -22,9 +22,24 @@ void led_toggle(int ledPin) {
 }
 
 void led_on(int ledPin) {
-    gpio_set_level(ledPin, ON);
+
+    if (ledPin == HC_RED_LED) {
+        gpio_set_level(ledPin, OFF); // The RED LED is inverted
+        return;
+    }
+
+    if (ledPin == HC_COB_LED) {
+        gpio_set_level(HC_COB_LED, ON); // The COB LED is not inverted
+    }
 }
 
 void led_off(int ledPin) {
-    gpio_set_level(ledPin, OFF);
+    if (ledPin == HC_RED_LED) {
+        gpio_set_level(ledPin, ON); // The RED LED is inverted
+        return;
+    }
+
+    if (ledPin == HC_COB_LED) {
+        gpio_set_level(HC_COB_LED, OFF); // The COB LED is not inverted
+    }
 }

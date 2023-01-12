@@ -47,6 +47,9 @@ void hardware_config_leds(void) {
     // Set the onboard red LED to be an output
     gpio_reset_pin(HC_RED_LED);
     gpio_set_direction(HC_RED_LED, GPIO_MODE_INPUT_OUTPUT);
+
+    gpio_reset_pin(HC_COB_LED);
+    gpio_set_direction(HC_COB_LED, GPIO_MODE_INPUT_OUTPUT);
 }
 
 void hardware_config_uart_comms(void) {

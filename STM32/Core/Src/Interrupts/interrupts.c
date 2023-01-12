@@ -57,6 +57,7 @@ void USART2_IRQHandler(void) {
 
         // Copy bit into buffer. Reading RDR automatically clears flag
         comms_add_to_buffer(USART2, c);
+        return;
     }
 
     if ((USART2->ISR & USART_ISR_PE) != 0) {
@@ -65,17 +66,9 @@ void USART2_IRQHandler(void) {
 
     if ((USART2->ISR & USART_ISR_EOBF) != 0) {
         USART2->ICR |= USART_ICR_EOBCF;
-        log_prints("USART 2 Full Block received\r\n");
+        // log_prints("USART 2 Full Block received\r\n");
         return;
     }
 
-    // if ((USART2->ISR & USART_ISR_EOBF) != 0) {
-    //     USART2->ICR |= USART_ICR_EOBCF;
-    //     log_prints("USART 2 Full Block received\r\n");
-    //     return;
-    // }
-
-    char msg[100];
-    sprintf(msg, "2 %lx\r\n", USART1->ISR);
-    log_message(msg);
+    log_message("stuck\r\n");
 }

@@ -34,6 +34,12 @@ static const char* TAG = "example";
 void esp32_led_on(void);
 void esp32_led_off(void);
 
+void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
+    packet->request = request;
+    sprintf(packet->instruction, "%s", instruction);
+    sprintf(packet->data, "%s", data);
+}
+
 int sendData(const char* data) {
 
     // Because this data is being sent to a master MCU, the NULL character
@@ -47,11 +53,11 @@ int sendData(const char* data) {
 }
 
 void send_packet(packet_t* packet) {
-
     char string[RX_BUF_SIZE];
     packet_to_string(packet, string);
     sendData(string);
 }
+
 // static void tx_task(void* arg) {
 //     static const char* TX_TASK_TAG = "TX_TASK";
 //     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
@@ -67,69 +73,61 @@ void watchdog_system_start(void) {
     // char instruction[100];
     char data[RX_BUF_SIZE];
 
-    // while (1) {
-    //     sendData("Sent some data to the STM32 to be recorded!!!\0");
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //     led_toggle(RED_LED);
-    // }
-
     while (1) {
+
         // Delay for second
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        led_toggle(RED_LED);
-        // Transmit message
 
         // Read UART and wait for command.
         const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
 
         if (rxBytes == 0) {
-            sendData("Received nothing\0");
             continue;
         }
 
-        char msg[300];
-        sprintf(msg, "ESP32 received: '%s'", data);
-        sendData(msg);
-
         // Validate incoming data
-        // packet_t packet;
-        // if (string_to_packet(&packet, data) != WD_SUCCESS) {
-        //     sendData(data);
-        //     continue;
-        // }
-
-        // // Send return message
-        // packet_t response;
-        // response.request = packet.request;
-        // sprintf(response.instruction, "%s", packet.instruction);
-        // sprintf(response.data, "%s", packet.data);
-        // send_packet(&response);
-
-        continue;
+        packet_t packet;
+        if (string_to_packet(&packet, data) != WD_SUCCESS) {
+            sendData("ESP32 failed to parse packet\0");
+            continue;
+        }
 
         // Carry out instruction
-        // switch (packet.request) {
-        //     case UART_REQUEST_LED_ON:
-        //         led_on(RED_LED);
-        //         sprintf(response.instruction, "turning the LED on");
-        //         response.data[0] = '\0';
-        //         break;
-        //     case UART_REQUEST_LED_OFF:
-        //         led_off(RED_LED);
-        //         sprintf(response.instruction, "turning the LED off");
-        //         response.data[0] = '\0';
-        //         break;
-        //     case UART_REQUEST_DATA_READ:
-        //         sprintf(response.instruction, "Data read requested");
-        //         sprintf(response.data, "%s", packet.instruction);
-        //         // sd_card_data_copy(&response);
-        //         break;
-        //     default:
-        //         // For some reason, sprintf didn't appear to be adding \0 on the end
-        //         // may be a bug somewhere else but for the moment, leaving it on
-        //         sprintf(response.instruction, "Request %i was not recognised", packet.request);
-        //         response.data[0] = '\0';
-        // }
+        packet_t response;
+        switch (packet.request) {
+            case UART_REQUEST_LED_RED_ON:
+                led_on(RED_LED);
+                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
+                send_packet(&response);
+                break;
+            case UART_REQUEST_LED_RED_OFF:
+                led_off(RED_LED);
+                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
+                send_packet(&response);
+                break;
+            case UART_REQUEST_LED_COB_ON:
+                led_on(COB_LED);
+                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
+                send_packet(&response);
+                break;
+            case UART_REQUEST_LED_COB_OFF:
+                led_off(COB_LED);
+                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
+                send_packet(&response);
+                break;
+            case UART_REQUEST_DATA_READ:
+                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "Data has been retrieved",
+                                    "Temperature: 35.6 degrees");
+                send_packet(&response);
+                // sd_card_data_copy(&response);
+                break;
+            default:; // comma here required because only statments can follow a label
+
+                char errMsg[50];
+                sprintf(errMsg, "Request %i is unkown", packet.request);
+                comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
+                send_packet(&response);
+        }
 
         // char responseData[RX_BUF_SIZE];
         // packet_to_string(&response, responseData);

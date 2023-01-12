@@ -43,6 +43,8 @@ char buffer2[1024];
 uint16_t buffer1Index = 0;
 uint16_t buffer2Index = 0;
 
+uint8_t buffer1Flag = 0;
+
 /* Private Function Declarations */
 void serial_comms_process_command(char* string);
 void comms_usart1_add_to_buffer(char c);
@@ -85,6 +87,7 @@ void comms_usart1_add_to_buffer(char c) {
         buffer1[buffer1Index++] = '\n';
         buffer1[buffer1Index]   = '\0';
         buffer1Index            = 0;
+        buffer1Flag             = 1;
         return;
     }
 
@@ -93,7 +96,11 @@ void comms_usart1_add_to_buffer(char c) {
 }
 
 void comms_usart1_print_buffer(void) {
-    log_message(buffer1);
+
+    if (buffer1Flag == 1) {
+        log_message(buffer1);
+        buffer1Flag = 0;
+    }
 }
 
 void comms_usart2_add_to_buffer(char c) {
@@ -120,6 +127,18 @@ void comms_usart2_add_to_buffer(char c) {
     }
 }
 
+void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
+    packet->request = request;
+    sprintf(packet->instruction, "%s", instruction);
+    sprintf(packet->data, "%s", data);
+}
+
+void comms_send_packet(packet_t* packet) {
+    char msg[400];
+    sprintf(msg, "%i,%s,%s", packet->request, packet->instruction, packet->data);
+    comms_send_data(USART1, msg, TRUE);
+}
+
 void serial_comms_process_command(char* string) {
 
     if (chars_same(string, "help") == TRUE) {
@@ -127,33 +146,33 @@ void serial_comms_process_command(char* string) {
         return;
     }
 
-    char esp32Message[100];
+    packet_t packet;
 
     if (chars_same(string, LED_RED_ON) == TRUE) {
-        log_message("Turning on the RED led\r\n");
-        sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_RED_ON, "", "");
-        comms_send_data(UART_ESP32, esp32Message, TRUE);
+        log_message("Turning the RED led on\r\n");
+        comms_create_packet(&packet, UART_REQUEST_LED_RED_ON, "\0", "\0");
+        comms_send_packet(&packet);
         return;
     }
 
     if (chars_same(string, LED_RED_OFF) == TRUE) {
-        log_message("Turning off the RED led\r\n");
-        sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_RED_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message, TRUE);
+        log_message("Turning the RED led off\r\n");
+        comms_create_packet(&packet, UART_REQUEST_LED_RED_OFF, "\0", "\0");
+        comms_send_packet(&packet);
         return;
     }
 
     if (chars_same(string, LED_COB_ON) == TRUE) {
-        log_message("Turning on the COB led\r\n");
-        sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_COB_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message, TRUE);
+        log_message("Turning the COB led on\r\n");
+        comms_create_packet(&packet, UART_REQUEST_LED_COB_ON, "\0", "\0");
+        comms_send_packet(&packet);
         return;
     }
 
     if (chars_same(string, LED_COB_OFF) == TRUE) {
-        log_message("Turning off the COB led\r\n");
-        sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_COB_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message, TRUE);
+        log_message("Turning the COB led off\r\n");
+        comms_create_packet(&packet, UART_REQUEST_LED_COB_OFF, "\0", "\0");
+        comms_send_packet(&packet);
         return;
     }
 

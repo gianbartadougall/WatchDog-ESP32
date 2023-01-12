@@ -30,7 +30,7 @@
  *
  * @param msg Pointer to the data to be transmitted
  */
-void comms_send_data(USART_TypeDef* uart, char* msg);
+void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull);
 
 /**
  * @brief Reads a single character from UART line

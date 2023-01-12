@@ -132,35 +132,35 @@ void serial_comms_process_command(char* string) {
     if (chars_same(string, LED_RED_ON) == TRUE) {
         log_message("Turning on the RED led\r\n");
         sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_RED_ON, "", "");
-        comms_send_data(UART_ESP32, esp32Message);
+        comms_send_data(UART_ESP32, esp32Message, TRUE);
         return;
     }
 
     if (chars_same(string, LED_RED_OFF) == TRUE) {
         log_message("Turning off the RED led\r\n");
         sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_RED_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message);
+        comms_send_data(UART_ESP32, esp32Message, TRUE);
         return;
     }
 
     if (chars_same(string, LED_COB_ON) == TRUE) {
         log_message("Turning on the COB led\r\n");
         sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_COB_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message);
+        comms_send_data(UART_ESP32, esp32Message, TRUE);
         return;
     }
 
     if (chars_same(string, LED_COB_OFF) == TRUE) {
         log_message("Turning off the COB led\r\n");
         sprintf(esp32Message, "%i,%s,%s", UART_REQUEST_LED_COB_OFF, "", "");
-        comms_send_data(UART_ESP32, esp32Message);
+        comms_send_data(UART_ESP32, esp32Message, TRUE);
         return;
     }
 
     log_error("Unknown command. Type 'help' to see the list of available commands\r\n");
 }
 
-void comms_send_data(USART_TypeDef* uart, char* msg) {
+void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull) {
     uint16_t i = 0;
 
     // Transmit until end of message reached
@@ -169,6 +169,12 @@ void comms_send_data(USART_TypeDef* uart, char* msg) {
 
         uart->TDR = msg[i];
         i++;
+    }
+
+    if (sendNull == TRUE) {
+        while ((uart->ISR & USART_ISR_TXE) == 0) {};
+
+        uart->TDR = '\0';
     }
 }
 

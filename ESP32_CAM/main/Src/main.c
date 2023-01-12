@@ -87,7 +87,7 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        char msg[200];
+        char msg[300];
         sprintf(msg, "ESP32 received: '%s'", data);
         sendData(msg);
 

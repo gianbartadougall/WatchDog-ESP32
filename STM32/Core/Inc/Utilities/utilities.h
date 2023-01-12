@@ -12,10 +12,6 @@
 #define UTILITIES_H
 
 /* Public Includes */
-#include "log.h"
-
-/* Public STM Includes */
-#include "stm32l4xx.h"
 
 /* Public #defines */
 #define PIN_LOW  0

@@ -33,12 +33,6 @@
 void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket);
 void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
 
-void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
-    packet->request = request;
-    sprintf(packet->instruction, "%s", instruction);
-    sprintf(packet->data, "%s", data);
-}
-
 int sendData(const char* data) {
 
     // Because this data is being sent to a master MCU, the NULL character
@@ -95,7 +89,9 @@ void get_command(char msg[200]) {
                 return;
             }
 
-            msg[i++] = data[0];
+            if (data[0] >= '!' || data[0] <= '~') {
+                msg[i++] = data[0];
+            }
         }
     }
 }
@@ -135,22 +131,22 @@ void watchdog_system_start(void) {
         switch (packet.request) {
             case UART_REQUEST_LED_RED_ON:
                 led_on(RED_LED);
-                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
+                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
                 send_packet(&response);
                 break;
             case UART_REQUEST_LED_RED_OFF:
                 led_off(RED_LED);
-                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
+                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
                 send_packet(&response);
                 break;
             case UART_REQUEST_LED_COB_ON:
                 led_on(COB_LED);
-                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
+                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
                 send_packet(&response);
                 break;
             case UART_REQUEST_LED_COB_OFF:
                 led_off(COB_LED);
-                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
+                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
                 send_packet(&response);
                 break;
             case UART_REQUEST_FOLDER_STRUCTURE:
@@ -161,9 +157,13 @@ void watchdog_system_start(void) {
                 sd_card_copy_file(&packet, &response);
                 send_packet(&response);
                 break;
+            case UART_REQUEST_TAKE_PHOTO:
+                camera_capture_and_save_image(&response);
+                send_packet(&response);
+                break;
             case UART_REQUEST_DATA_READ:
-                comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "Data has been retrieved",
-                                    "Temperature: 35.6 degrees");
+                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "Data has been retrieved",
+                                         "Temperature: 35.6 degrees");
                 send_packet(&response);
                 // sd_card_data_copy(&response);
                 break;
@@ -171,7 +171,7 @@ void watchdog_system_start(void) {
 
                 char errMsg[50];
                 sprintf(errMsg, "Request %i is unkown", packet.request);
-                comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
+                uart_comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
                 send_packet(&response);
         }
 
@@ -206,30 +206,31 @@ void watchdog_system_start(void) {
 
 uint8_t software_config(void) {
 
-    // if (sd_card_init() != WD_SUCCESS) {
-    //     return WD_ERROR;
-    // }
+    if (sd_card_init() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
 
     return WD_SUCCESS;
 }
 
 void app_main(void) {
 
+    packet_t status;
+
     /* Initialise all the hardware used */
-    if ((hardware_config() == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
+    if ((hardware_config(&status) == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
         // xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
         // xTaskCreate(watchdog_system_start, "watchdog_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
         watchdog_system_start();
     }
 
-    // if (sd_card_open() == WD_SUCCESS) {
-    //     sd_card_log(SYSTEM_LOG_FILE, "Exited Watchdog System. Waiting for shutdown");
-    //     sd_card_close();
-    // }
+    if (sd_card_open() == WD_SUCCESS) {
+        sd_card_log(SYSTEM_LOG_FILE, "Exited Watchdog System. Waiting for shutdown");
+        sd_card_close();
+    }
 
     while (1) {
-        ESP_LOGE("Main", "Blink");
-        vTaskDelay(300 / portTICK_PERIOD_MS);
-        led_toggle(RED_LED);
+        send_packet(&status);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }

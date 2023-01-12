@@ -18,6 +18,7 @@
 #include "sd_card.h"
 #include "wd_utils.h"
 #include "uart_comms.h"
+#include "chars.h"
 
 /* Private Macros */
 #define MOUNT_POINT_PATH     ("/sdcard")
@@ -62,64 +63,101 @@ uint8_t sd_card_init(void) {
     return WD_SUCCESS;
 }
 
+void sd_card_status(char* statusString) {
+
+    /**
+     * @brief The data that will be put into the status string includes
+     * Number of images on the SD Card:
+     * Amount of free space on the SD Card:
+     * If there have been any errors
+     *
+     */
+}
+
 void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
 
-    // Loop through and calculate the number of folders and files on the ESP32
+    // Return error message if the SD card cannot be opened
     if (sd_card_open() != WD_SUCCESS) {
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->instruction, "The SD card could not be opened");
-        responsePacket->data[0] = '\0';
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
         return;
     }
 
+    // Return an error if there was no specified file
     if (requestPacket->instruction[0] == '\0') {
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->instruction, "No file was specified");
-        responsePacket->data[0] = '\0';
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
         return;
     }
 
-    char filePath[200];
+    /**
+     * @brief Copying data from the ESP32
+     *
+     * The instruction string in the request packet should contain the file path
+     * The data string in the request packet should contain the start byte
+     *
+     * The start byte determines which byte in the file the esp32 will start reading from. This is
+     * important for when files being copied need to be done in chunks because they are too large.
+     * If I file is too large to be sent in one go, the ESP32 will send back the last byte that it
+     * read.
+     */
+    // ESP_LOGI("SD CARD", "Validating start byte");
+    int startByte;
+
+    if (chars_to_int(requestPacket->data, &startByte) == FALSE) {
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Invalid start byte", "\0");
+        return;
+    }
+
+    // ESP_LOGI("SD CARD", "Valid start byte");
+    char filePath[110];
     sprintf(filePath, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
     FILE* file = fopen(filePath, "r");
 
     if (file == NULL) {
-        ESP_LOGE("SD CARD", "fopen failed: %s", strerror(errno));
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->data, "%s", filePath);
-        sprintf(responsePacket->instruction, "The file specified could not be opened");
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The file could not be opened",
+                                 strerror(errno));
         return;
-    } else {
-        ESP_LOGI("SD CARD", "opened file");
     }
 
-    // Check the size of the file to see if it will need to be sent in chunks
-    // struct stat st;
-    // stat(filePath, &st);
-    // if ((int)st.st_size > PACKET_DATA_NUM_CHARS) {
-    //     return;
-    // }
+    // Confirm the start byte is less than the size of the file
+    struct stat st;
+    stat(filePath, &st);
+    if ((int)st.st_size < startByte) {
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Start byte > file size", "\0");
+        return;
+    }
 
+    // ESP_LOGI("SD CARD", "Opened file");
     responsePacket->request        = UART_REQUEST_SUCCEEDED;
     responsePacket->instruction[0] = '\0';
     responsePacket->data[0]        = '\0';
 
-    // Loop through every byte in the file and copy it into the packet data
+    // Skip any bytes before the start byte
     int c;
+    for (int i = startByte; i > 0; i--) {
+        c = fgetc(file);
+    }
+
     int i = 0;
     while ((c = fgetc(file)) != EOF) {
 
-        if (i < PACKET_DATA_NUM_CHARS) {
-            responsePacket->data[i++] = (char)c;
-            continue;
+        if (i == PACKET_DATA_NUM_CHARS) {
+            responsePacket->data[i] = '\0';
+            sprintf(responsePacket->instruction, "%i", i + startByte);
+            break;
         }
 
-        responsePacket->data[i++] = '\0';
-        sprintf(responsePacket->instruction, "%i", i);
-        break;
+        responsePacket->data[i++] = (char)c;
+    }
+
+    if (responsePacket->instruction[0] == '\0') {
+        responsePacket->data[i] = '\0';
+        sprintf(responsePacket->instruction, "End reached");
     }
 
     fclose(file);
+
+    // Close the SD card
+    sd_card_close();
 }
 
 void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket) {
@@ -195,6 +233,9 @@ void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePa
     responsePacket->request        = UART_REQUEST_SUCCEEDED;
     responsePacket->instruction[0] = '\0';
     sprintf(responsePacket->data, "%s", folderStructure);
+
+    // Close the SD card
+    sd_card_close();
 }
 
 void sd_card_data_copy(packet_t* packet) {
@@ -385,7 +426,7 @@ void sd_card_close(void) {
 
     // All done, unmount partition and disable SDMMC peripheral
     esp_vfs_fat_sdcard_unmount(MOUNT_POINT_PATH, card);
-    ESP_LOGI(SD_CARD_TAG, "Card unmounted");
+    // ESP_LOGI(SD_CARD_TAG, "Card unmounted");
     mounted = FALSE;
 }
 
@@ -441,7 +482,7 @@ uint8_t sd_card_check_directory_exists(char* directory) {
 uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
 
     // Log to console that data is being written to this file name
-    ESP_LOGI(SD_CARD_TAG, "Writing data to %s", filePath);
+    // ESP_LOGI(SD_CARD_TAG, "Writing data to %s", filePath);
 
     if (sd_card_check_file_path_exists(filePath) != WD_SUCCESS) {
         return SD_CARD_ERROR_IO_ERROR;
@@ -483,7 +524,6 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
     // Write log to file
     fprintf(file, log);
 
-    ESP_LOGI(SD_CARD_TAG, "Data written to SD CARD");
     fclose(file);
 
     return WD_SUCCESS;

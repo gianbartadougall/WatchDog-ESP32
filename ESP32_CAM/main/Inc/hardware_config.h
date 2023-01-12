@@ -4,6 +4,9 @@
 /* Public Includes */
 #include <stdint.h>
 
+/* Private Includes */
+#include "uart_comms.h"
+
 /* Public Marcos for UART */
 #define HC_UART_COMMS_TX_PIN   GPIO_NUM_1
 #define HC_UART_COMMS_RX_PIN   GPIO_NUM_3
@@ -23,6 +26,6 @@
  * @return uint8_t WD_SUCCESS if everything was configured
  * successfully else WD_ERROR
  */
-uint8_t hardware_config(void);
+uint8_t hardware_config(packet_t* packet);
 
 #endif // HARDWARE_CONFIG_H

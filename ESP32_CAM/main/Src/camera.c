@@ -15,8 +15,6 @@
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
 
-static const char* CAMERA_TAG = "CAMERA:";
-
 // support IDF 5.x
 #ifndef portTICK_RATE_MS
     #define portTICK_RATE_MS portTICK_PERIOD_MS
@@ -83,29 +81,29 @@ static camera_config_t camera_config = {
 
 int cameraInitalised = 0;
 
-esp_err_t camera_init(void) {
+uint8_t camera_init(void) {
 
-    // initialize the camera
-    esp_err_t err = esp_camera_init(&camera_config);
-    if (err != ESP_OK) {
+    // Initialize the camera
+    if (esp_camera_init(&camera_config) != ESP_OK) {
         cameraInitalised = FALSE;
-        ESP_LOGE(CAMERA_TAG, "Camera Init Failed");
         return WD_ERROR;
     }
 
     cameraInitalised = TRUE;
-    return ESP_OK;
+    return WD_SUCCESS;
 }
 
-void camera_capture_and_save_image(void) {
+void camera_capture_and_save_image(packet_t* responsePacket) {
 
     // Confirm camera has been initialised
     if (cameraInitalised == FALSE) {
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Camera was not initailised", "\0");
         return;
     }
 
     // Confirm the SD card can be mounted
     if (sd_card_open() != WD_SUCCESS) {
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "SD card could not be opened", "\0");
         return;
     }
 
@@ -115,6 +113,8 @@ void camera_capture_and_save_image(void) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
+        esp_camera_fb_return(pic);
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Failed to take a photo", "\0");
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
         return;
     }
@@ -124,7 +124,14 @@ void camera_capture_and_save_image(void) {
     sd_card_log(SYSTEM_LOG_FILE, msg);
 
     // Save the image
-    sd_card_save_image(pic->buf, pic->len);
+    if (sd_card_save_image(pic->buf, pic->len) != WD_SUCCESS) {
+        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Image could not be saved", "\0");
+        esp_camera_fb_return(pic);
+        return;
+    }
+
+    esp_camera_fb_return(pic);
+    uart_comms_create_packet(responsePacket, UART_REQUEST_SUCCEEDED, msg, "\0");
 
     sd_card_close();
 }

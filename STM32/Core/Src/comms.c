@@ -17,17 +17,28 @@
 #include "hardware_config.h"
 
 /* Private Macros */
-#define FSTR_COMMAND     "COMMAND              \t"
-#define FSTR_ACTION      "ACTION"
-#define FSTR_LED_RED_ON  "led red on           \t"
-#define FSTR_LED_RED_OFF "led red off          \t"
-#define FSTR_LED_COB_ON  "led cob on           \t"
-#define FSTR_LED_COB_OFF "led cob off          \t"
+#define FSTR_COMMAND               "COMMAND              \t"
+#define FSTR_ACTION                "ACTION"
+#define FSTR_LED_RED_ON            "led red on           \t"
+#define FSTR_LED_RED_OFF           "led red off          \t"
+#define FSTR_LED_COB_ON            "led cob on           \t"
+#define FSTR_LED_COB_OFF           "led cob off          \t"
+#define FSTR_INFO_FOLDER_STRUCUTRE "info fs              \t"
 
-#define LED_RED_ON  "led red on"
-#define LED_RED_OFF "led red off"
-#define LED_COB_ON  "led cob on"
-#define LED_COB_OFF "led cob off"
+#define LED_RED_ON            "led red on"
+#define LED_RED_OFF           "led red off"
+#define LED_COB_ON            "led cob on"
+#define LED_COB_OFF           "led cob off"
+#define INFO_FOLDER_STRUCUTRE "info fs"
+
+/**
+ * Cool things that could be added
+ * - Be able to list the folder structure of the SD card
+ * - Be able copy data across from the SD card
+ * - Status query so you could number of photos, time running for, if there were any errors etc
+ * - Be able to create new folders, delete folders and files etc that way you don't have to unplug the SD card every
+ * time
+ */
 
 #define ASCII_KEY_ENTER 0x0D
 #define ASCII_KEY_ESC   0x1C
@@ -172,6 +183,13 @@ void serial_comms_process_command(char* string) {
     if (chars_same(string, LED_COB_OFF) == TRUE) {
         log_message("Turning the COB led off\r\n");
         comms_create_packet(&packet, UART_REQUEST_LED_COB_OFF, "\0", "\0");
+        comms_send_packet(&packet);
+        return;
+    }
+
+    if (chars_same(string, INFO_FOLDER_STRUCUTRE) == TRUE) {
+        log_message("Requesting folder structure of SD Card\r\n");
+        comms_create_packet(&packet, UART_REQUEST_FOLDER_STRUCTURE, "\0", "\0");
         comms_send_packet(&packet);
         return;
     }

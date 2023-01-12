@@ -1,3 +1,13 @@
+/**
+ * @file sd_card.c
+ * @author Gian Barta-Dougall
+ * @brief
+ * @version 0.1
+ * @date 2023-01-12
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 /* Public Includes */
 #include <dirent.h>
 #include <sys/stat.h>
@@ -50,6 +60,141 @@ uint8_t sd_card_init(void) {
     }
 
     return WD_SUCCESS;
+}
+
+void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
+
+    // Loop through and calculate the number of folders and files on the ESP32
+    if (sd_card_open() != WD_SUCCESS) {
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->instruction, "The SD card could not be opened");
+        responsePacket->data[0] = '\0';
+        return;
+    }
+
+    if (requestPacket->instruction[0] == '\0') {
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->instruction, "No file was specified");
+        responsePacket->data[0] = '\0';
+        return;
+    }
+
+    char filePath[200];
+    sprintf(filePath, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
+    FILE* file = fopen(filePath, "r");
+
+    if (file == NULL) {
+        ESP_LOGE("SD CARD", "fopen failed: %s", strerror(errno));
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->data, "%s", filePath);
+        sprintf(responsePacket->instruction, "The file specified could not be opened");
+        return;
+    } else {
+        ESP_LOGI("SD CARD", "opened file");
+    }
+
+    // Check the size of the file to see if it will need to be sent in chunks
+    // struct stat st;
+    // stat(filePath, &st);
+    // if ((int)st.st_size > PACKET_DATA_NUM_CHARS) {
+    //     return;
+    // }
+
+    responsePacket->request        = UART_REQUEST_SUCCEEDED;
+    responsePacket->instruction[0] = '\0';
+    responsePacket->data[0]        = '\0';
+
+    // Loop through every byte in the file and copy it into the packet data
+    int c;
+    int i = 0;
+    while ((c = fgetc(file)) != EOF) {
+
+        if (i < PACKET_DATA_NUM_CHARS) {
+            responsePacket->data[i++] = (char)c;
+            continue;
+        }
+
+        responsePacket->data[i++] = '\0';
+        sprintf(responsePacket->instruction, "%i", i);
+        break;
+    }
+
+    fclose(file);
+}
+
+void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket) {
+
+    // Loop through and calculate the number of folders and files on the ESP32
+    if (sd_card_open() != WD_SUCCESS) {
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->instruction, "The SD card could not be opened");
+        responsePacket->data[0] = '\0';
+        return;
+    }
+
+    /* Loop through all the folders on the SD card */
+    // Create references
+    struct dirent* dirPtr;
+    DIR* directory;
+
+    // Create the path to the directory that needs to be copied
+    char path[200];
+    if (requestPacket->instruction[0] == '\0') {
+        sprintf(path, "%s", MOUNT_POINT_PATH);
+    } else {
+        sprintf(path, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
+    }
+
+    // Try open the SD card. Return error if this could not be done
+    directory = opendir(path);
+    ESP_LOGI("DIR", "Path: %s    Instruction: %s", path, requestPacket->instruction);
+    if (directory == NULL) {
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->instruction, "The specified does not exist");
+        sprintf(responsePacket->data, "%s", requestPacket->instruction);
+        return;
+    }
+
+    // Loop through all the folders in the directory and calculate the number of characters each directory has
+    uint16_t numChars = 0;
+    while ((dirPtr = readdir(directory)) != NULL) {
+        // Calculate the size of the folder name
+        numChars += strlen(dirPtr->d_name) + 2; // Adding 2 chars for \r\n
+    }
+
+    closedir(directory);
+
+    // Create string to store folder structure
+    char folderStructure[numChars + 1];
+
+    directory = opendir(path);
+    if (directory == NULL) {
+        responsePacket->request = UART_ERROR_REQUEST_FAILED;
+        sprintf(responsePacket->instruction, "The SD card directory could not be opened 2");
+        responsePacket->data[0] = '\0';
+        return;
+    }
+
+    int i = 0;
+    while ((dirPtr = readdir(directory)) != NULL) {
+        ESP_LOGI("SD CARD", "DIR: %s", dirPtr->d_name);
+        // Copy the name of the folder into the folder structure string
+        int j = 0;
+        while (dirPtr->d_name[j] != '\0') {
+            folderStructure[i++] = dirPtr->d_name[j];
+            j++;
+        }
+
+        folderStructure[i++] = '\r';
+        folderStructure[i++] = '\n';
+    }
+
+    folderStructure[i] = '\0';
+
+    // Copy the data into the packet
+    responsePacket->request        = UART_REQUEST_SUCCEEDED;
+    responsePacket->instruction[0] = '\0';
+    sprintf(responsePacket->data, "%s", folderStructure);
 }
 
 void sd_card_data_copy(packet_t* packet) {
@@ -338,6 +483,7 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
     // Write log to file
     fprintf(file, log);
 
+    ESP_LOGI(SD_CARD_TAG, "Data written to SD CARD");
     fclose(file);
 
     return WD_SUCCESS;

@@ -16,11 +16,10 @@
 #include "sdkconfig.h"
 #include <stdio.h>
 
-static const char* TAG = "example";
+#include "sd_card.h"
 #include "camera.h"
 #include "hardware_config.h"
 #include "led.h"
-#include "sd_card.h"
 #include "uart_comms.h"
 #include "wd_utils.h"
 
@@ -31,8 +30,8 @@ static const char* TAG = "example";
 #define UART_NUM HC_UART_COMMS_UART_NUM
 
 /* Private Function Declarations */
-void esp32_led_on(void);
-void esp32_led_off(void);
+void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket);
+void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
 
 void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
     packet->request = request;
@@ -68,7 +67,44 @@ void send_packet(packet_t* packet) {
 //     }
 // }
 
+void get_command(char msg[200]) {
+
+    int i = 0;
+    char data[5];
+    while (1) {
+
+        // Read data from the UART quick enough to get a single character
+        int len = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 20 / portTICK_RATE_MS);
+
+        // Write data back to the UART
+        if (len == 0) {
+            continue;
+        }
+
+        if (len == 1) {
+            uart_write_bytes(UART_NUM, (const char*)data, len);
+
+            // Check for enter key
+            if (data[0] == 0x0D) {
+                msg[i++] = '\r';
+                msg[i++] = '\n';
+                msg[i]   = '\0';
+                sendData(msg);
+
+                msg[i - 2] = '\0';
+                return;
+            }
+
+            msg[i++] = data[0];
+        }
+    }
+}
+
 void watchdog_system_start(void) {
+
+    // Turn all the LEDs off
+    led_off(COB_LED);
+    led_off(RED_LED);
 
     // char instruction[100];
     char data[RX_BUF_SIZE];
@@ -79,16 +115,18 @@ void watchdog_system_start(void) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         // Read UART and wait for command.
-        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
+        // const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 10000 / portTICK_PERIOD_MS);
 
-        if (rxBytes == 0) {
-            continue;
-        }
+        // if (rxBytes == 0) {
+        //     continue;
+        // }
+        get_command(data);
 
         // Validate incoming data
         packet_t packet;
         if (string_to_packet(&packet, data) != WD_SUCCESS) {
             sendData("ESP32 failed to parse packet\0");
+            sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
             continue;
         }
 
@@ -115,6 +153,14 @@ void watchdog_system_start(void) {
                 comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
                 send_packet(&response);
                 break;
+            case UART_REQUEST_FOLDER_STRUCTURE:
+                sd_card_copy_folder_structure(&packet, &response);
+                send_packet(&response);
+                break;
+            case UART_REQUEST_COPY_FILE:
+                sd_card_copy_file(&packet, &response);
+                send_packet(&response);
+                break;
             case UART_REQUEST_DATA_READ:
                 comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "Data has been retrieved",
                                     "Temperature: 35.6 degrees");
@@ -128,6 +174,8 @@ void watchdog_system_start(void) {
                 comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
                 send_packet(&response);
         }
+
+        sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
 
         // char responseData[RX_BUF_SIZE];
         // packet_to_string(&response, responseData);
@@ -180,7 +228,7 @@ void app_main(void) {
     // }
 
     while (1) {
-        ESP_LOGE(TAG, "Blink");
+        ESP_LOGE("Main", "Blink");
         vTaskDelay(300 / portTICK_PERIOD_MS);
         led_toggle(RED_LED);
     }

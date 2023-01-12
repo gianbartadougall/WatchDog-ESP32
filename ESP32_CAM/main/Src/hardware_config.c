@@ -19,10 +19,9 @@ uint8_t hardware_config(void) {
 
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
-    // char msg[100];
-    // if (sd_card_open() != WD_SUCCESS) {
-    //     return WD_ERROR;
-    // }
+    if (sd_card_open() != WD_SUCCESS) {
+        return WD_ERROR;
+    }
 
     // // Configure Camera
     // sd_card_log(SYSTEM_LOG_FILE, "Configuring Camera\0");
@@ -30,14 +29,14 @@ uint8_t hardware_config(void) {
     //     return WD_ERROR;
     // }
 
-    // sd_card_log(SYSTEM_LOG_FILE, "Configuring UART\0");
+    sd_card_log(SYSTEM_LOG_FILE, "Configuring UART\0");
     hardware_config_uart_comms();
 
-    // sd_card_log(SYSTEM_LOG_FILE, "Configuring LEDs\0");
+    sd_card_log(SYSTEM_LOG_FILE, "Configuring LEDs\0");
     hardware_config_leds();
 
     // Unmount the SD card
-    // sd_card_close();
+    sd_card_close();
 
     return WD_SUCCESS;
 }

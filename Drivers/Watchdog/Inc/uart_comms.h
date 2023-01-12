@@ -19,7 +19,10 @@
 #define UART_REQUEST_LED_RED_OFF              (START + 9)
 #define UART_REQUEST_LED_COB_ON               (START + 10)
 #define UART_REQUEST_LED_COB_OFF              (START + 11)
-#define UART_REQUEST_DATA_READ                (START + 12)
+#define UART_REQUEST_FOLDER_STRUCTURE         (START + 12)
+#define UART_REQUEST_DATA_READ                (START + 13)
+#define UART_REQUEST_COPY_FILE                (START + 14)
+#define UART_REQUEST_IN_PROCESS               (START + 15)
 
 #define PACKET_COMMAND_NUM_CHARS     10
 #define PACKET_INSTRUCTION_NUM_CHARS 100

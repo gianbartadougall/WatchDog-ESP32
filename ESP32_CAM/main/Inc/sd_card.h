@@ -1,3 +1,13 @@
+/**
+ * @file sd_card.h
+ * @author Gian Barta-Dougall
+ * @brief
+ * @version 0.1
+ * @date 2023-01-12
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
@@ -28,6 +38,9 @@
 uint8_t sd_card_init(void);
 uint8_t sd_card_save_image(uint8_t* imageData, int imageLength);
 uint8_t sd_card_update_image_number(void);
+
+void sd_card_copy_file_structure(packet_t* requestPacket, packet_t* responsePacket);
+void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
 
 /**
  * @brief Mounts the SD Card for reading and writing

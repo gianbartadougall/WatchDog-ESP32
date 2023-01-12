@@ -34,7 +34,7 @@ int packet_to_string(packet_t* packet, char data[RX_BUF_SIZE]) {
 }
 
 // Packet is of the form request,instruction,data
-int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
+int string_to_packet(packet_t* packet, char* data) {
 
     char info[3][RX_BUF_SIZE];
     wd_utils_split_string(data, info, 0, ',');

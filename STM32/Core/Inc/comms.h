@@ -1,7 +1,7 @@
 /**
- * @file debug_log.c
+ * @file comms.h
  * @author Gian Barta-Dougall
- * @brief Library for debugging
+ * @brief Library for communicating
  * @version 0.1
  * @date 2022-05-31
  *
@@ -30,13 +30,17 @@
  *
  * @param msg Pointer to the data to be transmitted
  */
-void comms_send_data(USART_TypeDef *uart, char *msg);
+void comms_send_data(USART_TypeDef* uart, char* msg);
 
 /**
  * @brief Reads a single character from UART line
  *
  * @return char the character it read
  */
-int comms_read_data(USART_TypeDef *uart, char msg[RX_BUF_SIZE], uint32_t timeout);
+int comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE], uint32_t timeout);
+
+void comms_add_to_buffer(USART_TypeDef* usart, char c);
+
+void comms_usart1_print_buffer(void);
 
 #endif // COMMS_H

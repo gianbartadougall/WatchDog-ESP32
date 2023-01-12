@@ -73,12 +73,12 @@ void ds18b20_deinit(void) {
 uint8_t ds18b20_read_temperature(uint8_t id) {
 
     if (ds18b20_convert_temperature() != DS18B20_SUCCESS) {
-        debug_prints("Failed to convert temperature\r\n");
+        log_prints("Failed to convert temperature\r\n");
         return DS18B20_ERROR;
     }
 
     if (ds18b20_read_scratch_pad(&sensors[id]) != DS18B20_SUCCESS) {
-        debug_prints("Failed to read scratch pad\r\n");
+        log_prints("Failed to read scratch pad\r\n");
         return DS18B20_ERROR;
     }
 
@@ -91,10 +91,10 @@ void ds18b20_print_temperatures(void) {
         char msg[100];
         sprintf(msg, "%i: %s%i.%s%i\t", i + 1, sensors[i].sign == 1 ? "-" : "", sensors[i].decimal,
                 sensors[i].fraction < 1000 ? "0" : "", sensors[i].fraction);
-        debug_prints(msg);
+        log_prints(msg);
     }
 
-    debug_prints("\r\n");
+    log_prints("\r\n");
 }
 
 void ds18b20_print_temperature(uint8_t id) {
@@ -102,7 +102,7 @@ void ds18b20_print_temperature(uint8_t id) {
     char msg[100];
     sprintf(msg, "Temp: %s%i.%s%i\r\n", sensors[id].sign == 1 ? "-" : "", sensors[id].decimal,
             sensors[id].fraction < 1000 ? "0" : "", sensors[id].fraction);
-    debug_prints(msg);
+    log_prints(msg);
 }
 
 void ds18b20_print_rom(uint8_t id) {
@@ -123,12 +123,12 @@ void ds18b20_test(void) {
 
         // Read the temperature of sensor 1 connected to the line
         if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != DS18B20_SUCCESS) {
-            debug_prints("Error reading temperature from sensor 1\r\n");
+            log_prints("Error reading temperature from sensor 1\r\n");
         }
 
         // Read the temperature of sensor 2 connected to the line
         if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != DS18B20_SUCCESS) {
-            debug_prints("Error reading temperature from sensor 2\r\n");
+            log_prints("Error reading temperature from sensor 2\r\n");
         }
 
         // Print the temperatures of all the sensors to the console
@@ -160,10 +160,10 @@ void ds18b20_match_rom(ds18b20_t* ds18b20) {
 
 /**
  * @brief Prints an unsigned 64 bit number to the console in hex. The 64-bit number
- * is seperated by spaces every 2 bytes. This function is was used for debugging
+ * is seperated by spaces every 2 bytes. This function is was used for logging
  * when printing the ROM code/datareceived from the DS18B20 sensor. This function
  * has been kept incase further development on this peripheral drive is conducted
- * and debugging is required.
+ * and logging is required.
  *
  * @param number The 64 bit number to be printed to the console.
  */
@@ -176,7 +176,7 @@ void ds18b20_print_64_bit(uint64_t number) {
 
     char msg[100];
     sprintf(msg, "Num: %x %x %x %x\r\n", bytes78, bytes56, bytes34, bytes12);
-    debug_prints(msg);
+    log_prints(msg);
 }
 
 /**
@@ -527,7 +527,7 @@ uint8_t ds18b20_reset(void) {
     }
 
     if (ds18b20Responded == DS18B20_ERROR) {
-        debug_prints("Failed to reset\r\n");
+        log_prints("Failed to reset\r\n");
     }
 
     return ds18b20Responded;

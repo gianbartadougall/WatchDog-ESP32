@@ -15,9 +15,11 @@
 #define UART_ERROR_REQUEST_UNKNOWN            (START + 6)
 #define UART_ERROR_REQUEST_TRANSLATION_FAILED (START + 7)
 #define UART_REQUEST_SUCCEEDED                (START + 5)
-#define UART_REQUEST_LED_ON                   (START + 8)
-#define UART_REQUEST_LED_OFF                  (START + 9)
-#define UART_REQUEST_DATA_READ                (START + 10)
+#define UART_REQUEST_LED_RED_ON               (START + 8)
+#define UART_REQUEST_LED_RED_OFF              (START + 9)
+#define UART_REQUEST_LED_COB_ON               (START + 10)
+#define UART_REQUEST_LED_COB_OFF              (START + 11)
+#define UART_REQUEST_DATA_READ                (START + 12)
 
 #define PACKET_COMMAND_NUM_CHARS     10
 #define PACKET_INSTRUCTION_NUM_CHARS 100

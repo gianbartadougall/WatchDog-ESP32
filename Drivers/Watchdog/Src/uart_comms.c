@@ -46,14 +46,14 @@ int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
     }
 
     // Validate request
-    switch (request) {
-        case UART_REQUEST_LED_ON:
-        case UART_REQUEST_LED_OFF:
-        case UART_REQUEST_DATA_READ:
-            break;
-        default:
-            return UART_ERROR_INVALID_REQUEST;
-    }
+    // switch (request) {
+    //     case UART_REQUEST_LED_ON:
+    //     case UART_REQUEST_LED_OFF:
+    //     case UART_REQUEST_DATA_READ:
+    //         break;
+    //     default:
+    //         return UART_ERROR_INVALID_REQUEST;
+    // }
 
     packet->request = request;
     sprintf(packet->instruction, info[1]);

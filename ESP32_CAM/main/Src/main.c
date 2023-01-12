@@ -35,9 +35,14 @@ void esp32_led_on(void);
 void esp32_led_off(void);
 
 int sendData(const char* data) {
-    const int len     = strlen(data);
+
+    // Because this data is being sent to a master MCU, the NULL character
+    // needs to be appended on if it is not to ensure the master MCU knows
+    // when the end of the sent data is. Thus add 1 to the length to ensure
+    // the null character is also sent
+    const int len     = strlen(data) + 1;
     const int txBytes = uart_write_bytes(UART_NUM, data, len);
-    // ESP_LOGI(logName, "Wrote %d bytes", txBytes);
+
     return txBytes;
 }
 
@@ -63,29 +68,29 @@ void watchdog_system_start(void) {
     char data[RX_BUF_SIZE];
 
     // while (1) {
-    //     const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
-    //     if (rxBytes > 0) {
-    //         led_toggle(RED_LED);
-    //         // ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
-    //         // ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
-    //     }
+    //     sendData("Sent some data to the STM32 to be recorded!!!\0");
+    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    //     led_toggle(RED_LED);
     // }
 
     while (1) {
         // Delay for second
-
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        led_toggle(RED_LED);
         // Transmit message
 
         // Read UART and wait for command.
         const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
 
         if (rxBytes == 0) {
-            // sendData("Received nothing\r\n");
+            sendData("Received nothing\0");
             continue;
         }
 
-        sendData("12,this is a very long piece of data to send back to you!!!!,yes yes some very longh ampuns sdjkfsk "
-                 "jslf j");
+        char msg[200];
+        sprintf(msg, "ESP32 received: '%s'", data);
+        sendData(msg);
+
         // Validate incoming data
         // packet_t packet;
         // if (string_to_packet(&packet, data) != WD_SUCCESS) {

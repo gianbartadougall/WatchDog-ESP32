@@ -12,7 +12,7 @@
 void print_64_bit1(uint64_t number);
 
 void watchdog_init(void) {
-    debug_clear();
+    log_clear();
 }
 
 void watchdog_update(void) {
@@ -23,7 +23,7 @@ void watchdog_update(void) {
     //     comms_send_data(USART1, "1,this is a test,this\0");
     //     // comms_read_data(USART1, msg1, 10000);
 
-    //     // debug_prints(msg1);
+    //     // log_prints(msg1);
     //     HAL_Delay(2000);
     // }
 
@@ -33,14 +33,14 @@ void watchdog_update(void) {
     //     // Wait for a byte of data to arrive.
 
     //     while (!(USART1->ISR & USART_ISR_RXNE)) {
-    //         debug_prints("stuck\r\n");
+    //         log_prints("stuck\r\n");
     //     };
     //     // rxb = USART1->RDR;
     //     sprintf(msg1, "%c\r\n", USART1->RDR);
-    //     debug_prints(msg1);
+    //     log_prints(msg1);
 
     //     while (!(USART1->ISR & USART_ISR_TXE)) {
-    //         debug_prints("stuck 2\r\n");
+    //         log_prints("stuck 2\r\n");
     //     };
     //     USART1->TDR = rxb++;
 
@@ -48,33 +48,37 @@ void watchdog_update(void) {
     // }
 
     // Get message from console
-    char msg[100];
-    uint8_t i = 0;
-    debug_prints("starting\r\n");
+    // uint8_t i = 0;
+    // log_prints("starting\r\n");
     while (1) {
+        HAL_Delay(1000);
+        log_message("printing: ");
+        comms_usart1_print_buffer();
+        log_prints("\r\n");
 
-        char c = debug_getc();
+        // char c = log_getc();
 
-        if (c == 0x0D) {
-            msg[i++] = '\r';
-            msg[i++] = '\n';
-            msg[i++] = '\0';
-            debug_prints("\r\n");
-            break;
-            i = 0;
-        }
+        // if (c == 0x0D) {
+        //     msg[i++] = '\r';
+        //     msg[i++] = '\n';
+        //     msg[i++] = '\0';
+        //     log_prints("\r\n");
+        //     break;
+        //     i = 0;
+        // }
 
-        // Sometimes putty accidently sends FF on restart for some reason
-        // this stops this from happening
-        if (c != 0xFF) {
-            msg[i] = c;
-            char character[2];
-            sprintf(character, "%c", c);
-            debug_prints(character);
-            i++;
-        }
+        // // Sometimes putty accidently sends FF on restart for some reason
+        // // this stops this from happening
+        // if (c != 0xFF) {
+        //     msg[i] = c;
+        //     char character[2];
+        //     sprintf(character, "%c", c);
+        //     log_prints(character);
+        //     i++;
+        // }
     }
 
+    char msg[100];
     // Construct packet from string
     packet_t packet;
     int num = string_to_packet(&packet, msg);

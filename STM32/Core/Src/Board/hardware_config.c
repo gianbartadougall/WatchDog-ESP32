@@ -22,21 +22,6 @@
 
 /* Private Macros */
 
-// Defines for the different configuration modes for the GPIO pins
-#define MODER_INPUT                0x00
-#define MODER_OUTPUT               0x01
-#define MODER_ALTERNATE_FUNCTION   0x02
-#define MODER_ANALOGUE             0x03
-#define OTYPER_PUSH_PULL           0x00
-#define OTYPER_OPEN_DRAIN          0x01
-#define OSPEER_LOW_SPEED           0x00
-#define OSPEER_MEDIUM_SPEED        0x01
-#define OSPEER_HIGH_SPEED          0x02
-#define OSPEER_VERY_HIGH_SPEED     0x03
-#define PUPDR_NO_PULL_UP_PULL_DOWN 0x00
-#define PUPDR_PULL_UP              0x01
-#define PUPDR_PULL_DOWN            0x02
-
 #define TIMER_SETTINGS_NOT_VALID(frequency, maxCount) ((SystemCoreClock / frequency) > maxCount)
 
 /* Private Structures and Enumerations */
@@ -53,6 +38,9 @@ void hardware_config_uart_init(void);
 /* Public Functions */
 
 void hardware_config_init(void) {
+
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+    __HAL_RCC_PWR_CLK_ENABLE();
 
     // Initialise uart communication and debugging
     hardware_config_uart_init();
@@ -115,11 +103,12 @@ void hardware_config_gpio_init(void) {
     UART_ESP32_TX_PORT->OSPEEDR |= (0x02 << (UART_ESP32_TX_PIN * 2));
 
     // Connect pin to alternate function
-    UART_ESP32_RX_PORT->AFR[UART_ESP32_RX_PIN > 7 ? 1 : 0] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
-    UART_ESP32_TX_PORT->AFR[UART_ESP32_TX_PIN > 7 ? 1 : 0] &= ~(0x0F << ((UART_ESP32_TX_PIN % 8) * 4));
-    UART_ESP32_RX_PORT->AFR[UART_ESP32_RX_PIN > 7 ? 1 : 0] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
-    UART_ESP32_TX_PORT->AFR[UART_ESP32_TX_PIN > 7 ? 1 : 0] |= (0x07 << ((UART_ESP32_TX_PIN % 8) * 4));
-
+    UART_ESP32_RX_PORT->AFR[0] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_TX_PORT->AFR[1] &= ~(0x0F << ((UART_ESP32_TX_PIN % 8) * 4));
+    UART_ESP32_RX_PORT->AFR[0] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_TX_PORT->AFR[1] |= (0x07 << ((UART_ESP32_TX_PIN % 8) * 4));
+    HAL_NVIC_SetPriority(UART_ESP32_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(UART_ESP32_IRQn);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
@@ -153,6 +142,9 @@ void hardware_config_gpio_init(void) {
     // Not sure why this isn't AF7 with PA2 but testing it, the STM32 only works with PA15 on AF3
     // which is a valid connection to UASAT_2_RX but so is PA3 on AF7 so not sure what the go is
     UART_LOG_RX_PORT->AFR[1] |= (0x03 << (4 * (UART_LOG_RX_PIN % 8)));
+    HAL_NVIC_SetPriority(UART_LOG_IRQn, 11, 0);
+    HAL_NVIC_EnableIRQ(UART_LOG_IRQn);
+
     /****** END CODE BLOCK ******/
 
     /* Setup GPIO pins for logging to console */
@@ -189,44 +181,18 @@ void hardware_config_uart_init(void) {
      */
 
     /* Configure UART for Commuincating with ESP32 Cam */
-    // Enable UART clock
-    // __HAL_RCC_SYSCFG_CLK_ENABLE();
-    __HAL_RCC_PWR_CLK_ENABLE();
-
-    // Enable the USART to let comms occur
 
     // Set baud rate
     UART_ESP32_CLK_ENABLE();
     UART_ESP32->BRR = SystemCoreClock / UART_ESP32_BUAD_RATE;
-    UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
+    UART_ESP32->CR1 = 0x00; // reset UART
+    UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE);
 
     // Set baud rate
     UART_LOG_CLK_ENABLE();
     UART_LOG->BRR = SystemCoreClock / UART_LOG_BUAD_RATE;
-    UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
-
-    // Enable the USART to let comms occur
-
-    // Enable peripheral clocks: GPIOA, USART2.
-    // RCC->APB1ENR1 |= (RCC_APB1ENR1_USART2EN);
-    // RCC->AHB2ENR |= (RCC_AHB2ENR_GPIOAEN);
-
-    // Configure pins A2, A15 for USART2 (AF7, AF3).
-    // GPIOA->MODER &= ~((0x3 << (2 * 2)) | (0x3 << (15 * 2)));
-    // GPIOA->MODER |= ((0x2 << (2 * 2)) | (0x2 << (15 * 2)));
-    // GPIOA->OTYPER &= ~((0x1 << 2) | (0x1 << 15));
-    // GPIOA->OSPEEDR &= ~((0x3 << (2 * 2)) | (0x3 << (15 * 2)));
-    // GPIOA->OSPEEDR |= ((0x2 << (2 * 2)) | (0x2 << (15 * 2)));
-    // GPIOA->AFR[0] &= ~((0xF << (2 * 4)));
-    // GPIOA->AFR[0] |= ((0x7 << (2 * 4)));
-    // GPIOA->AFR[1] &= ~((0xF << ((15 - 8) * 4)));
-    // GPIOA->AFR[1] |= ((0x3 << ((15 - 8) * 4)));
-
-    // uint16_t uartdiv = SystemCoreClock / 115200;
-    // USART2->BRR      = uartdiv;
-
-    // Enable the USART to let comms occur
-    // USART2->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
+    UART_LOG->CR1 &= ~(USART_CR1_EOBIE); // Reset USART
+    UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_PEIE);
 }
 
 void hardware_error_handler(void) {

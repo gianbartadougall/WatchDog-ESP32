@@ -1,7 +1,7 @@
 /**
  * @file log.c
  * @author Gian Barta-Dougall
- * @brief Library for debugging
+ * @brief Library for logging
  * @version 0.1
  * @date 2022-05-31
  *
@@ -36,43 +36,43 @@ void log_error(char* msg) {
 
     // Add additonal space to length for colour codes
     uint16_t length = get_length(msg) + 18;
-    
+
     char cmsg[length];
     sprintf(cmsg, "%s%s%s", LOG_COLOR_RED, msg, LOG_COLOR_WHITE);
-    debug_prints(cmsg);
+    log_prints(cmsg);
 }
 
 void log_message(char* msg) {
 
     // Add additonal space to length for colour codes
     uint16_t length = get_length(msg) + 18;
-    
+
     char cmsg[length];
     sprintf(cmsg, "%s%s%s", LOG_COLOR_CYAN, msg, LOG_COLOR_WHITE);
-    debug_prints(cmsg);
+    log_prints(cmsg);
 }
 
 void log_warning(char* msg) {
 
     // Add additonal space to length for colour codes
     uint16_t length = get_length(msg) + 18;
-    
+
     char cmsg[length];
     sprintf(cmsg, "%s%s%s", LOG_COLOR_YELLOW, msg, LOG_COLOR_WHITE);
-    debug_prints(cmsg);
+    log_prints(cmsg);
 }
 
 void log_success(char* msg) {
 
     // Add additonal space to length for colour codes
     uint16_t length = get_length(msg) + 18;
-    
+
     char cmsg[length];
     sprintf(cmsg, "%s%s%s", LOG_COLOR_GREEN, msg, LOG_COLOR_WHITE);
-    debug_prints(cmsg);
+    log_prints(cmsg);
 }
 
-void debug_prints(char* msg) {
+void log_prints(char* msg) {
     uint16_t i = 0;
 
     // Transmit until end of message reached
@@ -84,15 +84,27 @@ void debug_prints(char* msg) {
     }
 }
 
-char debug_getc(void) {
-    
+void log_print_const(const char* msg) {
+    uint16_t i = 0;
+
+    // Transmit until end of message reached
+    while (msg[i] != '\0') {
+        while ((USART2->ISR & USART_ISR_TXE) == 0) {};
+
+        USART2->TDR = msg[i];
+        i++;
+    }
+}
+
+char log_getc(void) {
+
     while (!(USART2->ISR & USART_ISR_RXNE)) {};
     return USART2->RDR;
 }
 
-void debug_clear(void) {
+void log_clear(void) {
     // Prints ANSI escape codes that will clear the terminal screen
-    debug_prints("\033[2J\033[H");
+    log_prints("\033[2J\033[H");
 }
 
 /**
@@ -106,19 +118,19 @@ void debug_clear(void) {
  */
 void serial_communicate(void) {
 
-    debug_clear();
+    log_clear();
     char msg[100];
     uint8_t i = 0;
     while (1) {
 
-        char c = debug_getc();
+        char c = log_getc();
         // sprintf(msg, "%x\r\n", c);
-        // debug_prints(msg);
+        // log_prints(msg);
         if (c == 0x0D) {
             msg[i++] = '\r';
             msg[i++] = '\n';
             msg[i++] = '\0';
-            debug_prints(msg);
+            log_prints(msg);
             i = 0;
         } else {
             msg[i] = c;

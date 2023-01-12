@@ -62,6 +62,7 @@
 #define UART_ESP32_CLK_ENABLE()         __HAL_RCC_USART1_CLK_ENABLE()
 
 #define UART_ESP32           USART1
+#define UART_ESP32_IRQn      USART1_IRQn
 #define UART_ESP32_RX_PORT   GPIOB
 #define UART_ESP32_TX_PORT   GPIOA
 #define UART_ESP32_RX_PIN    7
@@ -79,6 +80,7 @@
 #define UART_LOG_CLK_ENABLE()         __HAL_RCC_USART2_CLK_ENABLE()
 
 #define UART_LOG           USART2
+#define UART_LOG_IRQn      USART2_IRQn
 #define UART_LOG_RX_PORT   GPIOA
 #define UART_LOG_TX_PORT   GPIOA
 #define UART_LOG_RX_PIN    15

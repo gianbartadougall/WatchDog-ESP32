@@ -6,7 +6,7 @@
  * @brief This function handles Non maskable interrupt.
  */
 void NMI_Handler(void) {
-    debug_prints("NMI Error\r\n");
+    log_prints("NMI Error\r\n");
     while (1) {}
 }
 
@@ -15,7 +15,7 @@ void NMI_Handler(void) {
  */
 void HardFault_Handler(void) {
 
-    debug_prints("HardFault Error\r\n");
+    log_prints("HardFault Error\r\n");
 
     while (1) {}
 }
@@ -24,7 +24,7 @@ void HardFault_Handler(void) {
  * @brief This function handles Memory management fault.
  */
 void MemManage_Handler(void) {
-    debug_prints("MemManage Error\r\n");
+    log_prints("MemManage Error\r\n");
 
     while (1) {}
 }
@@ -33,7 +33,7 @@ void MemManage_Handler(void) {
  * @brief This function handles Prefetch fault, memory access fault.
  */
 void BusFault_Handler(void) {
-    debug_prints("Bus Fault Error\r\n");
+    log_prints("Bus Fault Error\r\n");
 
     while (1) {}
 }
@@ -43,7 +43,7 @@ void BusFault_Handler(void) {
  */
 void UsageFault_Handler(void) {
 
-    debug_prints("Usage Fault Error\r\n");
+    log_prints("Usage Fault Error\r\n");
 
     while (1) {}
 }
@@ -52,21 +52,21 @@ void UsageFault_Handler(void) {
  * @brief This function handles System service call via SWI instruction.
  */
 void SVC_Handler(void) {
-    debug_prints("System Service Call\r\n");
+    log_prints("System Service Call\r\n");
 }
 
 /**
- * @brief This function handles Debug monitor.
+ * @brief This function handles log monitor.
  */
-void DebugMon_Handler(void) {
-    debug_prints("Debug monitor called\r\n");
+void logMon_Handler(void) {
+    log_prints("log monitor called\r\n");
 }
 
 /**
  * @brief This function handles Pendable request for system service.
  */
 void PendSV_Handler(void) {
-    debug_prints("Pendable request\r\n");
+    log_prints("Pendable request\r\n");
 }
 
 /**

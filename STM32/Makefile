@@ -61,15 +61,16 @@ Core/Src/Board/hardware_config.c
 
 # Include Interrupt files
 INTERRUPT_SOURCES = \
-Core/Src/Interrupts/stm32l4xx_it.c 
+Core/Src/Interrupts/stm32l4xx_it.c \
+Core/Src/Interrupts/interrupts.c 
 
 # Include Utility files
 UTILITIY_SOURCES = \
-Core/Src/Utilities/log.c
+Core/Src/Utilities/log.c \
+Core/Src/Utilities/chars.c
 
 RANDOM_SOURCES = \
 Core/Src/system_stm32l4xx.c \
-Core/Src/stm32l4xx_hal_msp.c \
 Core/Src/main.c \
 Core/Src/board.c \
 Core/Src/watchdog.c \

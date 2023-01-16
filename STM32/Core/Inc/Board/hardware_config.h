@@ -88,6 +88,12 @@
 #define UART_LOG_BUAD_RATE 115200
 /**************************************************************/
 
+/********** Marcos for hardware related to the onbaord RTC **********/
+#define STM32_RTC                 RTC
+#define STM32_RTC_TIMER_FREQUENCY 1 // 1 Hz frequency for the RTC
+#define STM32_RTC_CLK_EN()        __HAL_RCC_TSC_CLK_ENABLE()
+/********************************************************************/
+
 /* Public Structures and Enumerations */
 
 /* Public Variable Declarations */

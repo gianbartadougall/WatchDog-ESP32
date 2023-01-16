@@ -67,7 +67,8 @@ Core/Src/Interrupts/interrupts.c
 # Include Utility files
 UTILITIY_SOURCES = \
 Core/Src/Utilities/log.c \
-Core/Src/Utilities/chars.c
+Core/Src/Utilities/chars.c \
+Core/Src/Utilities/stm32_rtc.c
 
 RANDOM_SOURCES = \
 Core/Src/system_stm32l4xx.c \

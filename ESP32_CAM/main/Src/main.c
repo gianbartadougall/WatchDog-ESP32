@@ -96,6 +96,26 @@ void get_command(char msg[200]) {
     }
 }
 
+void generate_status_string(packet_t* response) {
+
+    /**
+     * @brief Status String is of the form
+     *
+     * Number of images: 34
+     * SD Card size: 32000Mb
+     * Errors: No
+     */
+
+    uint16_t numImages = 0;
+    if (sd_card_search_num_images(&numImages, response) != WD_SUCCESS) {
+        return;
+    }
+
+    response->request        = UART_REQUEST_SUCCEEDED;
+    response->instruction[0] = '\0';
+    sprintf(response->data, "Number of images: %i\r\n", numImages);
+}
+
 void watchdog_system_start(void) {
 
     // Turn all the LEDs off
@@ -149,8 +169,8 @@ void watchdog_system_start(void) {
                 uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
                 send_packet(&response);
                 break;
-            case UART_REQUEST_FOLDER_STRUCTURE:
-                sd_card_copy_folder_structure(&packet, &response);
+            case UART_REQUEST_LIST_DIRECTORY:
+                sd_card_list_directory(packet.instruction, &response);
                 send_packet(&response);
                 break;
             case UART_REQUEST_COPY_FILE:
@@ -161,14 +181,19 @@ void watchdog_system_start(void) {
                 camera_capture_and_save_image(&response);
                 send_packet(&response);
                 break;
-            case UART_REQUEST_DATA_READ:
-                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "Data has been retrieved",
-                                         "Temperature: 35.6 degrees");
+            case UART_REQUEST_WRITE_TO_FILE:
+                sd_card_write_to_file(packet.instruction, packet.data, &response);
                 send_packet(&response);
-                // sd_card_data_copy(&response);
+                break;
+            case UART_REQUEST_CREATE_PATH:
+                sd_card_create_path(packet.instruction, &response);
+                send_packet(&response);
+                break;
+            case UART_REQUEST_STATUS:
+                generate_status_string(&response);
+                send_packet(&response);
                 break;
             default:; // comma here required because only statments can follow a label
-
                 char errMsg[50];
                 sprintf(errMsg, "Request %i is unkown", packet.request);
                 uart_comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
@@ -176,37 +201,12 @@ void watchdog_system_start(void) {
         }
 
         sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
-
-        // char responseData[RX_BUF_SIZE];
-        // packet_to_string(&response, responseData);
-        // uart_write_bytes(UART_NUM, responseData, strlen(responseData));
-
-        // if (action == UC_SAVE_DATA) {
-
-        //     // Extract the file path
-        //     char data[2][100]; // data[0] = filePath, data[1] = fileName
-        //     wd_utils_split_string(instruction, data, 0, UC_DATA_DELIMETER);
-
-        //     // Save data to SD card
-        //     sd_card_open();
-        //     sd_card_write(data[0], data[1], message);
-        //     sd_card_close();
-        // }
-
-        // if (action == UC_ACTION_CAPTURE_IMAGE) {
-        //     if (camera_take_image() != WD_SUCCESS) {
-        //         break;
-        //     }
-        // }
-
-        // Reset the action back to NONE
-        // action = UC_COMMAND_NONE;
     }
 }
 
-uint8_t software_config(void) {
+uint8_t software_config(packet_t* response) {
 
-    if (sd_card_init() != WD_SUCCESS) {
+    if (sd_card_init(response) != WD_SUCCESS) {
         return WD_ERROR;
     }
 
@@ -218,9 +218,7 @@ void app_main(void) {
     packet_t status;
 
     /* Initialise all the hardware used */
-    if ((hardware_config(&status) == WD_SUCCESS) && (software_config() == WD_SUCCESS)) {
-        // xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
-        // xTaskCreate(watchdog_system_start, "watchdog_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
+    if (hardware_config(&status) == WD_SUCCESS && software_config(&status) == WD_SUCCESS) {
         watchdog_system_start();
     }
 
@@ -231,6 +229,7 @@ void app_main(void) {
 
     while (1) {
         send_packet(&status);
+        sendData("\r\n");
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }

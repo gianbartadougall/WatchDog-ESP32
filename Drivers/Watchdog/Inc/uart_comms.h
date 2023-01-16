@@ -1,5 +1,18 @@
+/**
+ * @file uart_comms.h
+ * @author Gian Barta-Dougall
+ * @brief
+ * @version 0.1
+ * @date 2023-01-14
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef UART_COMMS_H
 #define UART_COMMS_H
+
+/* Public Includes */
+#include <stdint.h>
 
 /* Public Marcos for common actions */
 #define UART_DELIMETER      '_'
@@ -20,11 +33,13 @@
 #define UART_REQUEST_LED_RED_OFF              (START + 10)
 #define UART_REQUEST_LED_COB_ON               (START + 11)
 #define UART_REQUEST_LED_COB_OFF              (START + 12)
-#define UART_REQUEST_FOLDER_STRUCTURE         (START + 13)
-#define UART_REQUEST_DATA_READ                (START + 14)
-#define UART_REQUEST_COPY_FILE                (START + 15)
-#define UART_REQUEST_TAKE_PHOTO               (START + 16)
+#define UART_REQUEST_LIST_DIRECTORY           (START + 13)
+#define UART_REQUEST_COPY_FILE                (START + 14)
+#define UART_REQUEST_TAKE_PHOTO               (START + 15)
+#define UART_REQUEST_WRITE_TO_FILE            (START + 16)
 #define UART_REQUEST_IN_PROCESS               (START + 17)
+#define UART_REQUEST_CREATE_PATH              (START + 18)
+#define UART_REQUEST_STATUS                   (START + 19)
 
 #define PACKET_COMMAND_NUM_CHARS     10
 #define PACKET_INSTRUCTION_NUM_CHARS 100

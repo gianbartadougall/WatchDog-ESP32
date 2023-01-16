@@ -18,6 +18,8 @@
 #include "utilities.h"
 #include "watchdog.h"
 #include "comms.h"
+#include "stm32_rtc.h"
+#include "log.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -49,11 +51,35 @@ int main(void) {
     watchdog_init();
 
     log_message("Starting\r\n");
+    date_time_t datetime;
+    datetime.year   = 23;
+    datetime.month  = 1;
+    datetime.day    = 14;
+    datetime.hour   = 13;
+    datetime.minute = 11;
+    datetime.second = 0;
+
+    // date_time_t dt;
+    // stm32_rtc_write_datetime(&datetime);
+
+    char msg[50];
+    sprintf(msg, "PRES: %lu\r\n", RTC->PRER);
+    log_message(msg);
+
+    uint8_t lastSecond = 0;
     while (1) {
-        // watchdog_update();
-        // comms_send_data(USART1, "I have sent some data to the ESP32!!!\0", TRUE);
-        comms_usart1_print_buffer();
-        HAL_Delay(500);
+
+        while (lastSecond == datetime.second) {
+            uint8_t secondTens = (STM32_RTC->TR & RTC_TR_ST) >> RTC_TR_ST_Pos;
+            uint8_t secondOnes = (STM32_RTC->TR & RTC_TR_SU) >> RTC_TR_SU_Pos;
+            datetime.second    = (secondTens * 10) + secondOnes;
+        }
+
+        lastSecond = datetime.second;
+
+        stm32_rtc_read_datetime(&datetime);
+        stm32_rtc_print_datetime(&datetime);
+        // HAL_Delay(1000);
     }
 
     return 0;

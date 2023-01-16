@@ -34,6 +34,7 @@ void hardware_config_timer_init(void);
 void hardware_error_handler(void);
 void hardware_config_gpio_reset(void);
 void hardware_config_uart_init(void);
+void hardware_config_stm32_peripherals(void);
 
 /* Public Functions */
 
@@ -50,9 +51,60 @@ void hardware_config_init(void) {
 
     // Initialise all timers
     hardware_config_timer_init();
+
+    // Initialise stm32 peripherals such as
+    // internal rtc and comparators
+    hardware_config_stm32_peripherals();
 }
 
 /* Private Functions */
+
+void hardware_config_stm32_peripherals(void) {
+
+    /* Configure the Real time clock*/
+
+    // Enable The appropriate clocks for the RTC
+
+    // Enable DPB bit so the RCC->BDCR register can be modified
+    PWR->CR1 |= PWR_CR1_DBP;
+
+    RCC->BDCR |= RCC_BDCR_RTCEN;
+    RCC->BDCR |= RCC_BDCR_RTCSEL_0;
+    RCC->BDCR |= RCC_BDCR_LSEON;
+    while ((RCC->BDCR & RCC_BDCR_LSERDY) == 0) {}
+    // The APB clock frequency > 7 * RTC CLK frequency
+
+    // Unlock the RTC registers by writing 0xCA followed by 0x53 into the WPR register
+    STM32_RTC->WPR = 0xCA;
+    STM32_RTC->WPR = 0x53;
+
+    // Enter initialisation mode so the datetime of the RTC can be updated
+    STM32_RTC->ISR |= RTC_ISR_INIT;
+
+    // Wait for the INTIF bit to be set. This is done automatically by the
+    // mcu and confirms the RTC is ready to be configured
+    while ((STM32_RTC->ISR & RTC_ISR_INITF) == 0) {}
+
+    // Generate 1Hz clock for the calendar counter. Assume freq = 32.768Khz
+    RTC->PRER = 32768 - 1;
+
+    // Set the time format to 24 hour time
+    STM32_RTC->CR &= ~(RTC_CR_FMT);
+
+    // Set the RTC time to 0
+    STM32_RTC->TR &= ~(RTC_TR_HT | RTC_TR_HU | RTC_TR_MNT | RTC_TR_MNU | RTC_TR_ST | RTC_TR_SU);
+
+    // Set the RTC date to 0
+    STM32_RTC->DR &= ~(RTC_DR_YT | RTC_DR_YU | RTC_DR_MT | RTC_DR_MU | RTC_DR_DT | RTC_DR_DU);
+
+    // Clear the initialisation to enable the RTC
+    STM32_RTC->ISR &= ~(RTC_ISR_INIT);
+
+    while ((STM32_RTC->ISR & RTC_ISR_INITF) != 0) {}
+
+    // Confirm RSF flag is set
+    while ((STM32_RTC->ISR & RTC_ISR_RSF) == 0) {}
+}
 
 /**
  * @brief Initialise the GPIO pins used by the system.

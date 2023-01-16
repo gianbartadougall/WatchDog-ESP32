@@ -36,7 +36,6 @@
  * - Be able to list the folder structure of the SD card
  * - Be able copy data across from the SD card
  * - Status query so you could number of photos, time running for, if there were any errors etc
- * - Take a photo
  * - Be able to create new folders, delete folders and files etc that way you don't have to unplug the SD card every
  * time
  */

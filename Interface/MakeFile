@@ -1,0 +1,60 @@
+# *-* MakeFile *-*
+
+BUILD_DIR = build
+EXECUTABLE_NAME = Interface
+EXECUTABLE = $(BUILD_DIR)\$(EXECUTABLE_NAME)
+
+LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
+
+C_SOURCES = \
+Src/main.c
+
+C_INCLUDES = \
+
+LIB_SP_SOURCES = \
+serialport.c \
+timing.c \
+windows.c
+
+LIB_SP_INCLUDES = \
+-I../Drivers/LibSerialPort \
+-IC:/Windows/System32
+
+C_OBJECTS = $(patsubst %.c, %.o, $(C_SOURCES))
+LIB_SP_OBJECTS = $(patsubst %.c, %.o, $(LIB_SP_SOURCES))
+
+C_OBJECTS_BUILD_DIR = $(foreach D, $(C_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
+LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
+
+OPT = -Og
+C_COMPILER=gcc
+DEBUG_MODE=-g
+
+FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(C_INCLUDES) $(OPT)
+$(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
+
+all: $(BUILD_DIR) $(C_SOURCES) Linker
+
+Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR)
+	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi
+
+$(C_SOURCES):
+	$(info SRCS $(C_SOURCES))
+	$(C_COMPILER) $(FLAGS) -c -o $(BUILD_DIR)/$(notdir $(basename $@)).o $@
+
+$(LIB_SP_OBJECTS_BUILD_DIR):
+	$(C_COMPILER) $(FLAGS) -c -o $@ $(LIB_SP_DIRECTORY)/$(notdir $(basename $@)).c -lsetupapi
+
+$(C_OBJECTS_BUILD_DIR): $(C_SOURCES)
+	$(C_COMPILER) $(FLAGS) -c -o $@ $(strip $(filter %/$(notdir $(basename $@).c), $(C_SOURCES)))
+
+# Recipe to create build folder
+$(BUILD_DIR):
+	mkdir $@
+
+# Delete build directory
+clean:
+	@rmdir /s /q $(BUILD_DIR)
+
+run:
+	.\$(BUILD_DIR)/$(EXECUTABLE_NAME)

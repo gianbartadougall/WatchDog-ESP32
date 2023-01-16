@@ -1,21 +1,27 @@
 # *-* MakeFile *-*
 
 BUILD_DIR = build
-EXECUTABLE_NAME = Interface
+EXECUTABLE_NAME = Maple
 EXECUTABLE = $(BUILD_DIR)\$(EXECUTABLE_NAME)
 
 LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 
 C_SOURCES = \
-Src/main.c
+Src/main.c \
+../STM32/Core/Src/Utilities/chars.c
 
 C_INCLUDES = \
+-I../Drivers/Watchdog/Inc \
+-I../ESP32_CAM/main/Inc \
+-I../STM32/Core/Inc/Utilities \
+-I../STM32/Library/Inc
 
 LIB_SP_SOURCES = \
 serialport.c \
 timing.c \
 windows.c
 
+# The Windows/System32 include is required for the LibSerialPort setupapi.dll file
 LIB_SP_INCLUDES = \
 -I../Drivers/LibSerialPort \
 -IC:/Windows/System32
@@ -35,6 +41,7 @@ $(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
 
 all: $(BUILD_DIR) $(C_SOURCES) Linker
 
+# The -lsetupapi include must go at the end for it to compile properly
 Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR)
 	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi
 
@@ -43,7 +50,7 @@ $(C_SOURCES):
 	$(C_COMPILER) $(FLAGS) -c -o $(BUILD_DIR)/$(notdir $(basename $@)).o $@
 
 $(LIB_SP_OBJECTS_BUILD_DIR):
-	$(C_COMPILER) $(FLAGS) -c -o $@ $(LIB_SP_DIRECTORY)/$(notdir $(basename $@)).c -lsetupapi
+	$(C_COMPILER) $(FLAGS) -c -o $@ $(LIB_SP_DIRECTORY)/$(notdir $(basename $@)).c
 
 $(C_OBJECTS_BUILD_DIR): $(C_SOURCES)
 	$(C_COMPILER) $(FLAGS) -c -o $@ $(strip $(filter %/$(notdir $(basename $@).c), $(C_SOURCES)))

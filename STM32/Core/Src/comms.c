@@ -15,6 +15,7 @@
 #include "log.h"
 #include "chars.h"
 #include "hardware_config.h"
+#include "uart_lib.h"
 
 /* Private Macros */
 #define FSTR_COMMAND               "COMMAND              \t"
@@ -39,10 +40,6 @@
  * - Be able to create new folders, delete folders and files etc that way you don't have to unplug the SD card every
  * time
  */
-
-#define ASCII_KEY_ENTER 0x0D
-#define ASCII_KEY_ESC   0x1C
-#define ASCII_KEY_SPACE 0x20
 
 const char* WATCHDOG_MANUAL = FSTR_COMMAND FSTR_ACTION
     "\r\n" FSTR_LED_RED_ON "Turn the red LED on\r\n" FSTR_LED_RED_OFF "Turn the red LED off\r\n" FSTR_LED_COB_ON

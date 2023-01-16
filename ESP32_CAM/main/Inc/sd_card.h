@@ -23,6 +23,7 @@
 
 /* Personal Includes */
 #include "uart_comms.h"
+#include "watchdog_defines.h"
 
 /* Public Macros */
 
@@ -32,10 +33,6 @@
 #define SD_CARD_ERROR_CONNECTION_FAILURE (LOG_ERR_OFFSET + 2)
 #define SD_CARD_ERROR_IO_ERROR           (LOG_ERR_OFFSET + 3)
 #define SD_CARD_NOT_MOUNTED              (LOG_ERR_OFFSET + 4)
-
-#define SYSTEM_LOG_FILE        ("logs.txt")
-#define IMAGE_DATA_FOLDER      ("WATCHDOG/DATA")
-#define ROOT_IMAGE_DATA_FOLDER ("/sdcard/WATCHDOG/DATA")
 
 /**
  * @brief Creates the given folderpath on the SD card. The folder

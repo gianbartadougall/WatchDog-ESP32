@@ -1,75 +1,1533 @@
-=~=~=~=~=~=~=~=~=~=~=~= PuTTY log 2023.01.16 00:01:57 =~=~=~=~=~=~=~=~=~=~=~=
-[0;31mE (9663) sdmmc_common: sdmmc_init_ocr: send_op_cond (1) returned 0x107[0m
-[0;31mE (9663) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).[0m
-[0;32mI (9663) gpio: GPIO[13]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
-[0;31mE (9673) example: Failed to initialize the card (ESP_ERR_TIMEOUT). Make sure SD card lines have pull-up resistors in place.[0m
-[0;32mI (9683) main_task: Returned from app_main()[0m
+=~=~=~=~=~=~=~=~=~=~=~= PuTTY log 2023.01.16 17:11:11 =~=~=~=~=~=~=~=~=~=~=~=
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  c5594265a91f776a...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
 ets Jun  8 2016 00:22:57
 
-rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
 configsip: 0, SPIWP:0xee
 clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
 mode:DIO, clock div:2
-load:0x3fff0030,len:6972
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
 ho 0 tail 12 room 4
-load:0x40078000,len:15492
-load:0x40080400,len:3844
-entry 0x4008064c
-[0;32mI (29) boot: ESP-IDF v5.1-dev-2668-g4c98bee8a4 2nd stage bootloader[0m
-[0;32mI (29) boot: compile time Jan 16 2023 00:00:38[0m
-[0;32mI (30) boot: chip revision: v1.0[0m
-[0;32mI (34) boot.esp32: SPI Speed      : 40MHz[0m
-[0;32mI (39) boot.esp32: SPI Mode       : DIO[0m
-[0;32mI (43) boot.esp32: SPI Flash Size : 2MB[0m
-[0;32mI (48) boot: Enabling RNG early entropy source...[0m
-[0;32mI (53) boot: Partition Table:[0m
-[0;32mI (57) boot: ## Label            Usage          Type ST Offset   Length[0m
-[0;32mI (64) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
-[0;32mI (72) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
-[0;32mI (79) boot:  2 factory          factory app      00 00 00010000 00100000[0m
-[0;32mI (87) boot: End of partition table[0m
-[0;32mI (91) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=0d030h ( 53296) map[0m
-[0;32mI (119) esp_image: segment 1: paddr=0001d058 vaddr=3ffb0000 size=02090h (  8336) load[0m
-[0;32mI (122) esp_image: segment 2: paddr=0001f0f0 vaddr=40080000 size=00f28h (  3880) load[0m
-[0;32mI (126) esp_image: segment 3: paddr=00020020 vaddr=400d0020 size=25034h (151604) map[0m
-[0;32mI (188) esp_image: segment 4: paddr=0004505c vaddr=40080f28 size=0c32ch ( 49964) load[0m
-[0;32mI (215) boot: Loaded app from partition at offset 0x10000[0m
-[0;32mI (215) boot: Disabling RNG early entropy source...[0m
-[0;32mI (227) cpu_start: Pro cpu up.[0m
-[0;32mI (227) cpu_start: Starting app cpu, entry point is 0x40081154[0m
-[0;32mI (0) cpu_start: App cpu up.[0m
-[0;32mI (241) cpu_start: Pro cpu start user code[0m
-[0;32mI (241) cpu_start: cpu freq: 160000000 Hz[0m
-[0;32mI (241) cpu_start: Application information:[0m
-[0;32mI (246) cpu_start: Project name:     sd_card[0m
-[0;32mI (251) cpu_start: App version:      1[0m
-[0;32mI (255) cpu_start: Compile time:     Jan 16 2023 00:00:04[0m
-[0;32mI (261) cpu_start: ELF file SHA256:  d0e16c7205c4b75e...[0m
-[0;32mI (267) cpu_start: ESP-IDF:          v5.1-dev-2668-g4c98bee8a4[0m
-[0;32mI (274) cpu_start: Min chip rev:     v0.0[0m
-[0;32mI (278) cpu_start: Max chip rev:     v3.99 [0m
-[0;32mI (283) cpu_start: Chip rev:         v1.0[0m
-[0;32mI (288) heap_init: Initializing. RAM available for dynamic allocation:[0m
-[0;32mI (295) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
-[0;32mI (301) heap_init: At 3FFB2A18 len 0002D5E8 (181 KiB): DRAM[0m
-[0;32mI (308) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
-[0;32mI (314) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
-[0;32mI (320) heap_init: At 4008D254 len 00012DAC (75 KiB): IRAM[0m
-[0;32mI (328) spi_flash: detected chip: generic[0m
-[0;32mI (331) spi_flash: flash io: dio[0m
-[0;33mW (335) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
-[0;32mI (349) app_start: Starting scheduler on CPU0[0m
-[0;32mI (353) app_start: Starting scheduler on CPU1[0m
-[0;32mI (353) main_task: Started on CPU0[0m
-[0;32mI (363) main_task: Calling app_main()[0m
-[0;32mI (363) example: Initializing SD card[0m
-[0;32mI (363) example: Using SPI peripheral[0m
-[0;32mI (373) example: Mounting filesystem[0m
-[0;32mI (373) gpio: GPIO[13]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
-[0;32mI (423) sdspi_transaction: cmd=52, R1 response: command not supported[0m
-[0;32mI (623) sdspi_transaction: cmd=5, R1 response: command not supported[0m
-[0;31mE (9663) sdmmc_common: sdmmc_init_ocr: send_op_cond (1) returned 0x107[0m
-[0;31mE (9663) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).[0m
-[0;32mI (9663) gpio: GPIO[13]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
-[0;31mE (9673) example: Failed to initialize the card (ESP_ERR_TIMEOUT). Make sure SD card lines have pull-up resistors in place.[0m
-[0;32mI (9683) main_task: Returned from app_main()[0m
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  c5594265a91f776a...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  c559426[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1205) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1205) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+C!(ÆÎóÎ´$VW÷,◊K“W¨.H]πZ÷VñÆVH®H¯ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+Ω›πΩ’—Å"ï—ïç—Ω…Å∫ÖÕÅ¢…•ùùï…ïë5Rj§¸ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+$JΩ›πΩ’—Å"ï—ïç—Ω…Å∫ÖÕÅ¢…•ùùï…ïë5Rj§¸ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1206) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+Brownout detector was triggered
+
+ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m
+[0;32mI (1197) spiram: SPI SRAM memory test OK[0m
+[0;32mI (1205) cpu_start: Pro cpu start user code[0m
+[0;32mI (1205) cpu_start: cpu freq: 160000000[0m
+[0;32mI (1205) cpu_start: Application information:[0m
+[0;32mI (1208) cpu_start: Project name:     blink[0m
+[0;32mI (1213) cpu_start: App version:      e039ae5-dirty[0m
+[0;32mI (1219) cpu_start: Compile time:     Jan 16 2023 17:02:32[0m
+[0;32mI (1225) cpu_start: ELF file SHA256:  60475a956144a473...[0m
+[0;32mI (1231) cpu_start: ESP-IDF:          v4.4.2[0m
+[0;32mI (1236) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1243) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM[0m
+[0;32mI (1250) heap_init: At 3FFB4350 len 0002BCB0 (175 KiB): DRAM[0m
+[0;32mI (1256) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM[0m
+[0;32mI (1262) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM[0m
+[0;32mI (1269) heap_init: At 4009434C len 0000BCB4 (47 KiB): IRAM[0m
+[0;32mI (1275) spiram: Adding pool of 4095K of external SPI memory to heap allocator[0m
+[0;32mI (1284) spi_flash: detected chip: generic[0m
+[0;32mI (1288) spi_flash: flash io: dio[0m
+[0;32mI (1293) cpu_start: Starting scheduler on PRO CPU.[0m
+[0;32mI (0) cpu_start: Starting scheduler on APP CPU.[0m
+[0;32mI (1303) spiram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+§HJ◊ÎóÎ´$VW÷,◊K“W¨.H]πZ÷VñÆVH®H¯ets Jun  8 2016 00:22:57
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6660
+load:0x40078000,len:14848
+ho 0 tail 12 room 4
+load:0x40080400,len:3792
+entry 0x40080694
+[0;32mI (29) boot: ESP-IDF v4.4.2 2nd stage bootloader[0m
+[0;32mI (29) boot: compile time 19:18:33[0m
+[0;32mI (29) boot: chip revision: 1[0m
+[0;32mI (32) boot_comm: chip revision: 1, min. bootloader chip revision: 0[0m
+[0;32mI (39) boot.esp32: SPI Speed      : 40MHz[0m
+[0;32mI (43) boot.esp32: SPI Mode       : DIO[0m
+[0;32mI (48) boot.esp32: SPI Flash Size : 4MB[0m
+[0;32mI (52) boot: Enabling RNG early entropy source...[0m
+[0;32mI (58) boot: Partition Table:[0m
+[0;32mI (61) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (69) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (76) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (84) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (91) boot: End of partition table[0m
+[0;32mI (95) boot_comm: chip revision: 1, min. application chip revision: 0[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=15540h ( 87360) map[0m
+[0;32mI (143) esp_image: segment 1: paddr=00025568 vaddr=3ffb0000 size=038b4h ( 14516) load[0m
+[0;32mI (149) esp_image: segment 2: paddr=00028e24 vaddr=40080000 size=071f4h ( 29172) load[0m
+[0;32mI (161) esp_image: segment 3: paddr=00030020 vaddr=400d0020 size=38bd0h (232400) map[0m
+[0;32mI (245) esp_image: segment 4: paddr=00068bf8 vaddr=400871f4 size=0d158h ( 53592) load[0m
+[0;32mI (267) esp_image: segment 5: paddr=00075d58 vaddr=50000000 size=00010h (    16) load[0m
+[0;32mI (278) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (278) boot: Disabling RNG early entropy source...[0m
+[0;32mI (290) psram: This chip is ESP32-D0WD[0m
+[0;32mI (292) spiram: Found 64MBit SPI RAM device[0m
+[0;32mI (292) spiram: SPI RAM mode: flash 40m sram 40m[0m
+[0;32mI (295) spiram: PSRAM initialized, cache is in low/high (2-core) mode.[0m
+[0;32mI (303) cpu_start: Pro cpu up.[0m
+[0;32mI (306) cpu_start: Starting app cpu, entry point is 0x4008158c[0m
+[0;32mI (299) cpu_start: App cpu up.[0m

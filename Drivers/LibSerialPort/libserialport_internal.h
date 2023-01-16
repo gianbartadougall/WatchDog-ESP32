@@ -21,9 +21,9 @@
 #ifndef LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 #define LIBSERIALPORT_LIBSERIALPORT_INTERNAL_H
 
-// TEST CODE
+// THIS IS THE MODIFCATION OF GIAN BARTA DOUGALL REQUIRED TO GET CODE TO COMPILE
 #define LIBSERIALPORT_MSBUILD
-// TEST CODE
+// *****************************************************************************
 
 /* These MSVC-specific defines must appear before other headers.*/
 #ifdef _MSC_VER

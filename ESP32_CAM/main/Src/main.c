@@ -64,7 +64,7 @@ void send_packet(packet_t* packet) {
 void get_command(char msg[200]) {
 
     int i = 0;
-    char data[5];
+    char data[50];
     while (1) {
 
         // Read data from the UART quick enough to get a single character
@@ -116,6 +116,16 @@ void generate_status_string(packet_t* response) {
     sprintf(response->data, "Number of images: %i\r\n", numImages);
 }
 
+void record_data(packet_t* packet, packet_t* response) {
+
+    camera_capture_and_save_image(response);
+    if (response->request != UART_REQUEST_SUCCEEDED) {
+        return;
+    }
+
+    sd_card_write_to_file(packet->instruction, packet->data, response);
+}
+
 void watchdog_system_start(void) {
 
     // Turn all the LEDs off
@@ -124,30 +134,31 @@ void watchdog_system_start(void) {
 
     // char instruction[100];
     char data[RX_BUF_SIZE];
+    packet_t packet, response;
 
     while (1) {
 
         // Delay for second
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
 
         // Read UART and wait for command.
-        // const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 10000 / portTICK_PERIOD_MS);
+        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
 
-        // if (rxBytes == 0) {
-        //     continue;
-        // }
-        get_command(data);
+        if (rxBytes == 0) {
+            continue;
+        }
+
+        // get_command(data);
 
         // Validate incoming data
-        packet_t packet;
         if (string_to_packet(&packet, data) != WD_SUCCESS) {
-            sendData("ESP32 failed to parse packet\0");
-            sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
+            uart_comms_create_packet(&response, UART_ERROR_REQUEST_TRANSLATION_FAILED, "Failed to parse packet", data);
+            send_packet(&response);
+            // sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
             continue;
         }
 
         // Carry out instruction
-        packet_t response;
         switch (packet.request) {
             case UART_REQUEST_LED_RED_ON:
                 led_on(RED_LED);
@@ -192,6 +203,13 @@ void watchdog_system_start(void) {
             case UART_REQUEST_STATUS:
                 generate_status_string(&response);
                 send_packet(&response);
+                break;
+            case UART_REQUEST_RECORD_DATA:
+                record_data(&packet, &response);
+                send_packet(&response);
+                break;
+            case UART_REQUEST_PING:
+                sendData("ESP32 Watchdog\0");
                 break;
             default:; // comma here required because only statments can follow a label
                 char errMsg[50];

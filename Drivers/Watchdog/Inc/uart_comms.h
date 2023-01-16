@@ -40,6 +40,8 @@
 #define UART_REQUEST_IN_PROCESS               (START + 17)
 #define UART_REQUEST_CREATE_PATH              (START + 18)
 #define UART_REQUEST_STATUS                   (START + 19)
+#define UART_REQUEST_PING                     (START + 20)
+#define UART_REQUEST_RECORD_DATA              (START + 21)
 
 #define PACKET_COMMAND_NUM_CHARS     10
 #define PACKET_INSTRUCTION_NUM_CHARS 100

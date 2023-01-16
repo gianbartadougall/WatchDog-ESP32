@@ -6,7 +6,6 @@
  * -
  * @version 0.1
  * @date 2023-01-12
- *DATA_FOLDER_PATH_1
  * @copyright Copyright (c) 2023
  *
  */
@@ -26,10 +25,6 @@
 #include "hardware_config.h"
 
 /* Private Macros */
-#define MOUNT_POINT_PATH     ("/sdcard")
-#define WATCHDOG_FOLDER_PATH ("/sdcard/WATCHDOG")
-#define LOG_FOLDER_PATH      ("/sdcard/WATCHDOG/LOGS")
-#define DATA_FOLDER_PATH_1   ("/sdcard/WATCHDOG/DATA")
 
 #define LOG_MSG_MAX_CHARACTERS 200
 #define NULL_CHAR_LENGTH       1
@@ -199,6 +194,10 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, packet_t* response) 
     char directory[MAX_PATH_LENGTH + 9];
     sprintf(directory, "%s/%s", MOUNT_POINT_PATH, filePath);
 
+    if (sd_card_create_path(directory, response) != WD_SUCCESS) {
+        return WD_ERROR;
+    }
+
     // Try open the file
     FILE* file = fopen(directory, "a+");
 
@@ -274,28 +273,23 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
     }
 
     // Create path for image
-    for (int i = 12; i < 33; i++) {
-        char filePath[60];
-        sprintf(filePath, "%s/img%i_07_05_2023_0900.jpg", MOUNT_POINT_PATH, imageNumber);
-        filePath[i] = '\0';
+    char filePath[60];
+    sprintf(filePath, "%s/%s/img%i.jpg", MOUNT_POINT_PATH, IMAGE_DATA_FOLDER, imageNumber);
 
-        FILE* imageFile = fopen(filePath, "wb");
-        if (imageFile == NULL) {
-            uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Image file could not be created",
-                                     strerror(errno));
-            return WD_ERROR;
-        }
-
-        fclose(imageFile);
+    FILE* imageFile = fopen(filePath, "wb");
+    if (imageFile == NULL) {
+        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Image file could not be created",
+                                 strerror(errno));
+        return WD_ERROR;
     }
 
-    // for (int i = 0; i < imageLength; i++) {
-    //     fputc(imageData[i], imageFile);
-    // }
+    for (int i = 0; i < imageLength; i++) {
+        fputc(imageData[i], imageFile);
+    }
 
-    // fclose(imageFile);
+    fclose(imageFile);
 
-    // imageNumber++;
+    imageNumber++;
     return WD_SUCCESS;
 }
 
@@ -807,12 +801,12 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
 uint8_t sd_card_log(char* fileName, char* message) {
     char name[30];
     sprintf(name, "%s", fileName); // Doing this so \0 is added to the end
-    return sd_card_write(LOG_FOLDER_PATH, name, message);
+    return sd_card_write(ROOT_LOG_FOLDER_PATH, name, message);
 
     // // Print log to console
     // ESP_LOGI("LOG", "%s", message);
 
-    // if (sd_card_check_file_path_exists(LOG_FOLDER_PATH) != WD_SUCCESS) {
+    // if (sd_card_check_file_path_exists(ROOT_LOG_FOLDER_PATH) != WD_SUCCESS) {
     //     return SD_CARD_ERROR_IO_ERROR;
     // }
 
@@ -820,7 +814,7 @@ uint8_t sd_card_log(char* fileName, char* message) {
     // // fopen will create a new file with the given file path. Note fopen() can
     // // not make new directories!
     // char filePath[100];
-    // sprintf(filePath, "%s/%s", LOG_FOLDER_PATH, fileName);
+    // sprintf(filePath, "%s/%s", ROOT_LOG_FOLDER_PATH, fileName);
     // FILE* file = fopen(filePath, "a+");
 
     // // Confirm the file was opened/created correctly

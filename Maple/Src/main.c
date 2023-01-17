@@ -118,7 +118,7 @@ enum sp_return maple_search_ports(char portName[50]) {
     return SP_OK;
 }
 
-uint8_t maple_match_args(char** args, int numArgs, char uartString[100]) {
+uint8_t maple_match_args(char** args, int numArgs, sp_port) {
 
     if (numArgs == 1) {
 
@@ -138,6 +138,14 @@ uint8_t maple_match_args(char** args, int numArgs, char uartString[100]) {
         if (chars_same(args[0], "ls\0") == TRUE) {
             sprintf(uartString, "%i,%s,%s", UART_REQUEST_LIST_DIRECTORY, args[1], "");
             return TRUE;
+        }
+
+        // Check if request is to copy a file
+        if (chars_same(args[0], "cpy\0" == TRUE)) {
+
+            if (sp_blocking_write(port, uartString, strlen(uartString) + 1, 200) < 0) {
+                printf("Failed to send '%s'\n", uartString);
+            }
         }
     }
 
@@ -214,117 +222,161 @@ int main(int argc, char** argv) {
         }
 
         char uartString[100];
-        if (maple_match_args(args, numArgs, uartString) == TRUE) {
-            if (sp_blocking_write(port, uartString, strlen(uartString) + 1, 200) < 0) {
-                printf("Failed to send '%s'\n", uartString);
+        if (numArgs == 1) {
+
+            if (chars_same(args[0], "rec\0") == TRUE) {
+                sprintf(uartString, "%i,%s,%s", UART_REQUEST_RECORD_DATA, "data.txt", "21/02/2023 0900 26.625\r\n");
             }
 
-            char response[100];
-            response[0] = '\0';
-            if (sp_blocking_read(port, response, 100, 2000) >= 0) {
-                printf("%s\n", response);
+            if (chars_same(args[0], "ls\0") == TRUE) {
+                sprintf(uartString, "%i,%s,%s", UART_REQUEST_LIST_DIRECTORY, "", "");
             }
-
-        } else {
-            printf("Invalid arguments\n");
         }
 
-        // Free list of args
-        for (int i = 0; i < numArgs; i++) {
-            free(args[i]);
+        if (numArgs == 2) {
+
+            if (chars_same(args[0], "ls\0") == TRUE) {
+                sprintf(uartString, "%i,%s,%s", UART_REQUEST_LIST_DIRECTORY, args[1], "");
+            }
+
+            // Check if request is to copy a file
+            if (chars_same(args[0], "cpy\0" == TRUE)) {
+                sprintf(uartString, "%s,%s,%s", UART_REQUEST_COPY_FILE, strlen());
+                if (sp_blocking_write(port, uartString, strlen(uartString) + 1, 200) < 0) {
+                    printf("Failed to send '%s'\n", uartString);
+                }
+
+                int length = 0;
+                int data[512];
+                int size = 0;
+                while ((size = sp_blocking_read(port, data, length, 2000)) > 0) {}
+            }
+        }
+
+        if (numArgs == 3) {
+
+            if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+                chars_same(args[2], "on\0") == TRUE) {
+                sprintf(uartString, "%i,%s,%s", UART_REQUEST_LED_RED_ON, "", "");
+                return TRUE;
+            }
+
+            if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+                chars_same(args[2], "off\0") == TRUE) {
+                sprintf(uartString, "%i,%s,%s", UART_REQUEST_LED_RED_OFF, "", "");
+                return TRUE;
+            }
+        }
+
+        if (sp_blocking_write(port, uartString, strlen(uartString) + 1, 200) < 0) {
+            printf("Failed to send '%s'\n", uartString);
+        }
+
+        response[0] = '\0';
+        if (sp_blocking_read(port, response, 100, 2000) >= 0) {
+            printf("%s\n", response);
         }
     }
+    else {
+        printf("Invalid arguments\n");
+    }
 
-    // /* A pointer to a null-terminated array of pointers to
-    //  * struct sp_port, which will contain the ports found.*/
-    // struct sp_port** port_list;
-    // char espPortName[50];
-    // espPortName[0] = '\0';
+    // Free list of args
+    for (int i = 0; i < numArgs; i++) {
+        free(args[i]);
+    }
+}
 
-    // printf("Getting port list.\n");
+// /* A pointer to a null-terminated array of pointers to
+//  * struct sp_port, which will contain the ports found.*/
+// struct sp_port** port_list;
+// char espPortName[50];
+// espPortName[0] = '\0';
 
-    // /* Call sp_list_ports() to get the ports. The port_list
-    //  * pointer will be updated to refer to the array created. */
-    // enum sp_return result = sp_list_ports(&port_list);
+// printf("Getting port list.\n");
 
-    // if (result != SP_OK) {
-    //     printf("sp_list_ports() failed!\n");
-    //     return -1;
-    // }
+// /* Call sp_list_ports() to get the ports. The port_list
+//  * pointer will be updated to refer to the array created. */
+// enum sp_return result = sp_list_ports(&port_list);
 
-    // /* Iterate through the ports. When port_list[i] is NULL
-    //  * this indicates the end of the list. */
-    // int i;
-    // for (i = 0; port_list[i] != NULL; i++) {
-    //     struct sp_port* port = port_list[i];
+// if (result != SP_OK) {
+//     printf("sp_list_ports() failed!\n");
+//     return -1;
+// }
 
-    //     /* Get the name of the port. */
-    //     char* port_name = sp_get_port_name(port);
+// /* Iterate through the ports. When port_list[i] is NULL
+//  * this indicates the end of the list. */
+// int i;
+// for (i = 0; port_list[i] != NULL; i++) {
+//     struct sp_port* port = port_list[i];
 
-    //     if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK) {
-    //         printf("Could not open %s\n", port_name);
-    //         continue;
-    //     }
+//     /* Get the name of the port. */
+//     char* port_name = sp_get_port_name(port);
 
-    //     maple_configure_port(port);
+//     if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK) {
+//         printf("Could not open %s\n", port_name);
+//         continue;
+//     }
 
-    //     // To work out correct port, send ping to port and wait for response
-    //     char ping[50];
-    //     sprintf(ping, "%i,h,h", UART_REQUEST_STATUS);
-    //     int result = sp_blocking_write(port, ping, strlen(ping) + 1, 100);
-    //     if (result < 0) {
-    //         printf("Could not write bytes to %s\n", port_name);
-    //     }
+//     maple_configure_port(port);
 
-    //     // Wait for response
-    //     char response[100];
-    //     response[0] = '\0';
-    //     result      = sp_blocking_read(port, response, 100, 1100);
-    //     if (result < 0) {
-    //         printf("Error reading from %s\n", port_name);
-    //     } else {
+//     // To work out correct port, send ping to port and wait for response
+//     char ping[50];
+//     sprintf(ping, "%i,h,h", UART_REQUEST_STATUS);
+//     int result = sp_blocking_write(port, ping, strlen(ping) + 1, 100);
+//     if (result < 0) {
+//         printf("Could not write bytes to %s\n", port_name);
+//     }
 
-    //         if (response[0] == '\0') {
-    //             printf("No Response from %s\n", port_name);
-    //         } else {
-    //             sprintf(espPortName, "%s", port_name);
-    //             printf("%s\n", response);
-    //         }
-    //     }
+//     // Wait for response
+//     char response[100];
+//     response[0] = '\0';
+//     result      = sp_blocking_read(port, response, 100, 1100);
+//     if (result < 0) {
+//         printf("Error reading from %s\n", port_name);
+//     } else {
 
-    //     if (sp_close(port) != SP_OK) {
-    //         printf("Could not close %s\n", port_name);
-    //     }
-    // }
+//         if (response[0] == '\0') {
+//             printf("No Response from %s\n", port_name);
+//         } else {
+//             sprintf(espPortName, "%s", port_name);
+//             printf("%s\n", response);
+//         }
+//     }
 
-    // Connect to the port that has the ESP32 connected to it
+//     if (sp_close(port) != SP_OK) {
+//         printf("Could not close %s\n", port_name);
+//     }
+// }
 
-    // printf("Found %d ports.\n", i);
+// Connect to the port that has the ESP32 connected to it
 
-    // Check ESP32 port still available
-    // if (espPortName[0] != '\0') {
-    //     struct sp_port* port;
+// printf("Found %d ports.\n", i);
 
-    //     if (sp_get_port_by_name(espPortName, &port) != SP_OK) {
-    //         sprintf("Failed to Open ESP port: %s\n", espPortName);
-    //     } else {
-    //         printf("ESP Port found: %s\n", sp_get_port_name(port));
-    //     }
+// Check ESP32 port still available
+// if (espPortName[0] != '\0') {
+//     struct sp_port* port;
 
-    // } else {
-    //     printf("ESP port null\n");
-    // }
+//     if (sp_get_port_by_name(espPortName, &port) != SP_OK) {
+//         sprintf("Failed to Open ESP port: %s\n", espPortName);
+//     } else {
+//         printf("ESP Port found: %s\n", sp_get_port_name(port));
+//     }
 
-    // printf("Freeing port list.\n");
-    /* Free the array created by sp_list_ports(). */
-    // sp_free_port_list(port_list);
+// } else {
+//     printf("ESP port null\n");
+// }
 
-    /* Note that this will also free all the sp_port structures
-     * it points to. If you want to keep one of them (e.g. to
-     * use that port in the rest of your program), take a copy
-     * of it first using sp_copy_port(). */
+// printf("Freeing port list.\n");
+/* Free the array created by sp_list_ports(). */
+// sp_free_port_list(port_list);
 
-    return 0;
+/* Note that this will also free all the sp_port structures
+ * it points to. If you want to keep one of them (e.g. to
+ * use that port in the rest of your program), take a copy
+ * of it first using sp_copy_port(). */
+
+return 0;
 }
 
 /* Helper function for error handling. */

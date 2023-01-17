@@ -79,6 +79,17 @@ uint8_t sd_card_list_directory(char* folderPath, packet_t* response);
  */
 uint8_t sd_card_write_to_file(char* filePath, char* string, packet_t* response);
 
+/**
+ * @brief Saves an image to the SD card
+ *
+ * @param imageData The image data
+ * @param imageLength The size of the image in bytes
+ * @param response If the folders/file could be created the
+ * request of the response packet will be SUCCESS else it will
+ * be ERROR and the instruction/data parts of the response packet
+ * may contain information about why it failed
+ * @return uint8_t uint8_t WD_SUCCESS if there were no problems else WD_ERROR
+ */
 uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* response);
 
 /**
@@ -95,10 +106,18 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
  */
 uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response);
 
+/**
+ * @brief Searches the SD card for all the images on the card and updates the
+ * internal image number
+ *
+ * @param response If the folders/file could be created the
+ * request of the response packet will be SUCCESS else it will
+ * be ERROR and the instruction/data parts of the response packet
+ * may contain information about why it failed
+ * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
+ */
 uint8_t sd_card_init(packet_t* response);
-uint8_t sd_card_update_image_number(void);
 
-void sd_card_copy_file_structure(packet_t* requestPacket, packet_t* responsePacket);
 void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
 
 /**
@@ -137,8 +156,6 @@ uint8_t sd_card_log(char* fileName, char* message);
 uint8_t sd_card_write(char* filePath, char* fileName, char* message);
 
 void sd_card_data_copy(packet_t* packet);
-
-void sd_card_save_data(packet_t* packet, packet_t* response);
 
 /* Functions that don't work yet */
 uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb);

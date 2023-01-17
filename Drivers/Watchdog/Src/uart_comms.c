@@ -27,6 +27,21 @@
 /* Function Declarations */
 int uart_comms_read(char* data, int timeout);
 
+void uart_comms_bpacket_to_msg(bpacket_t* bpacket, uint8_t msg[BPACKET_LENGTH_BYTES]) {}
+
+void uart_comms_create_bpacket(bpacket_t* bpacket, uint8_t request, uint8_t numBits,
+                               uint8_t data[BPACKET_DATA_MAX_BYTES]) {
+
+    bpacket->request = request;
+    bpacket->numBits = numBits;
+
+    // Copy data into bpacket
+    int numBytes = (numBits / 8) + ((numBits % 8) == 0 ? 0 : 1);
+    for (int i = 0; i < numBytes; i++) {
+        bpacket->data[i] = data[i];
+    }
+}
+
 void uart_comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
     packet->request = request;
     sprintf(packet->instruction, "%s", instruction);

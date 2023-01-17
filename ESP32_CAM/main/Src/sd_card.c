@@ -53,6 +53,7 @@ sdmmc_card_t* card;
 /* Private Function Declarations */
 uint8_t sd_card_check_file_path_exists(char* filePath);
 uint8_t sd_card_check_directory_exists(char* directory);
+void sd_card_send_packet(packet_t* packet);
 
 /* GOOD FUNCTIONS */
 
@@ -293,8 +294,6 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
     return WD_SUCCESS;
 }
 
-/* GOOD FUNCTIONS */
-
 uint8_t sd_card_init(packet_t* response) {
 
     // Update the image number
@@ -303,92 +302,6 @@ uint8_t sd_card_init(packet_t* response) {
     }
 
     return WD_SUCCESS;
-}
-
-void sd_card_save_data(packet_t* packet, packet_t* response) {
-
-    // Return error message if the SD card cannot be opened
-    if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
-        return;
-    }
-
-    // Return an error if there was no specified file
-    if (packet->instruction[0] == '\0') {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
-        return;
-    }
-
-    /**
-     * @brief When saving data, the format of the packet is as follows
-     * instruction: path-to-file-to-save-data
-     * data: date;time;temperature-data
-     */
-
-    // Validate the file path
-    // if (sd_card_check_file_path_exists(packet->instruction) != WD_SUCCESS) {
-    //     uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The file path did not exist",
-    //                              packet->instruction);
-    //     return;
-    // }
-
-    // Open the given file path for appending (a+). If the file does not exist
-    // fopen will create a new file with the given file path. Note fopen() can
-    // not make new directories!
-    char filePath[110];
-    sprintf(filePath, "%s/%s", MOUNT_POINT_PATH, packet->instruction);
-    FILE* file = fopen(filePath, "a+");
-
-    if (file == NULL) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The file could not be opened", strerror(errno));
-        return;
-    }
-
-    // Split the data up
-    char data[3][RX_BUF_SIZE];
-    wd_utils_split_string(packet->data, data, 0, ';');
-
-    // TODO: Validate the date, time and data
-
-    char message[10 + (RX_BUF_SIZE * 3)];
-    sprintf(message, "%s %s %s\r\n", data[0], data[1], data[2]);
-
-    // Write the date, time and data to file
-    fprintf(file, message);
-
-    fclose(file);
-
-    uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", "\0");
-    return;
-}
-
-void sd_card_status(char* statusString) {
-
-    /**
-     * @brief The data that will be put into the status string includes
-     * Number of images on the SD Card:
-     * Amount of free space on the SD Card:
-     * If there have been any errors
-     *
-     */
-}
-
-int sd_card_send_data(const char* data) {
-
-    // Because this data is being sent to a master MCU, the NULL character
-    // needs to be appended on if it is not to ensure the master MCU knows
-    // when the end of the sent data is. Thus add 1 to the length to ensure
-    // the null character is also sent
-    const int len     = strlen(data) + 1;
-    const int txBytes = uart_write_bytes(HC_UART_COMMS_UART_NUM, data, len);
-
-    return txBytes;
-}
-
-void sd_card_send_packet(packet_t* packet) {
-    char string[RX_BUF_SIZE];
-    packet_to_string(packet, string);
-    sd_card_send_data(string);
 }
 
 void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
@@ -416,7 +329,7 @@ void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
      * If I file is too large to be sent in one go, the ESP32 will send back the last byte that it
      * read.
      */
-    // ESP_LOGI("SD CARD", "Validating start byte");
+
     int startByte;
 
     if (chars_to_int(requestPacket->data, &startByte) == FALSE) {
@@ -424,10 +337,9 @@ void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
         return;
     }
 
-    // ESP_LOGI("SD CARD", "Valid start byte");
     char filePath[110];
     sprintf(filePath, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
-    FILE* file = fopen(filePath, "r");
+    FILE* file = fopen(filePath, "rb"); // read binary file
 
     if (file == NULL) {
         uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The file could not be opened",
@@ -443,7 +355,6 @@ void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
         return;
     }
 
-    // ESP_LOGI("SD CARD", "Opened file");
     responsePacket->request        = UART_REQUEST_SUCCEEDED;
     responsePacket->instruction[0] = '\0';
     responsePacket->data[0]        = '\0';
@@ -479,82 +390,35 @@ void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
     sd_card_close();
 }
 
-void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket) {
+/* GOOD FUNCTIONS */
 
-    // Loop through and calculate the number of folders and files on the ESP32
-    if (sd_card_open() != WD_SUCCESS) {
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->instruction, "The SD card could not be opened");
-        responsePacket->data[0] = '\0';
-        return;
-    }
+void sd_card_status(char* statusString) {
 
-    /* Loop through all the folders on the SD card */
-    // Create references
-    struct dirent* dirPtr;
-    DIR* directory;
+    /**
+     * @brief The data that will be put into the status string includes
+     * Number of images on the SD Card:
+     * Amount of free space on the SD Card:
+     * If there have been any errors
+     *
+     */
+}
 
-    // Create the path to the directory that needs to be copied
-    char path[200];
-    if (requestPacket->instruction[0] == '\0') {
-        sprintf(path, "%s", MOUNT_POINT_PATH);
-    } else {
-        sprintf(path, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
-    }
+int sd_card_send_data(const char* data) {
 
-    // Try open the SD card. Return error if this could not be done
-    directory = opendir(path);
-    ESP_LOGI("DIR", "Path: %s    Instruction: %s", path, requestPacket->instruction);
-    if (directory == NULL) {
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->instruction, "The specified does not exist");
-        sprintf(responsePacket->data, "%s", requestPacket->instruction);
-        return;
-    }
+    // Because this data is being sent to a master MCU, the NULL character
+    // needs to be appended on if it is not to ensure the master MCU knows
+    // when the end of the sent data is. Thus add 1 to the length to ensure
+    // the null character is also sent
+    const int len     = strlen(data) + 1;
+    const int txBytes = uart_write_bytes(HC_UART_COMMS_UART_NUM, data, len);
 
-    // Loop through all the folders in the directory and calculate the number of characters each directory has
-    uint16_t numChars = 0;
-    while ((dirPtr = readdir(directory)) != NULL) {
-        // Calculate the size of the folder name
-        numChars += strlen(dirPtr->d_name) + 2; // Adding 2 chars for \r\n
-    }
+    return txBytes;
+}
 
-    closedir(directory);
-
-    // Create string to store folder structure
-    char folderStructure[numChars + 1];
-
-    directory = opendir(path);
-    if (directory == NULL) {
-        responsePacket->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(responsePacket->instruction, "The SD card directory could not be opened 2");
-        responsePacket->data[0] = '\0';
-        return;
-    }
-
-    int i = 0;
-    while ((dirPtr = readdir(directory)) != NULL) {
-        ESP_LOGI("SD CARD", "DIR: %s", dirPtr->d_name);
-        // Copy the name of the folder into the folder structure string
-        int j = 0;
-        while (dirPtr->d_name[j] != '\0') {
-            folderStructure[i++] = dirPtr->d_name[j];
-            j++;
-        }
-
-        folderStructure[i++] = '\r';
-        folderStructure[i++] = '\n';
-    }
-
-    folderStructure[i] = '\0';
-
-    // Copy the data into the packet
-    responsePacket->request        = UART_REQUEST_SUCCEEDED;
-    responsePacket->instruction[0] = '\0';
-    sprintf(responsePacket->data, "%s", folderStructure);
-
-    // Close the SD card
-    sd_card_close();
+void sd_card_send_packet(packet_t* packet) {
+    char string[RX_BUF_SIZE];
+    packet_to_string(packet, string);
+    sd_card_send_data(string);
 }
 
 void sd_card_data_copy(packet_t* packet) {
@@ -572,59 +436,6 @@ void sd_card_data_copy(packet_t* packet) {
     packet->instruction[0] = '\0';
     sprintf(packet->data, "Temperature data: -12.558 degrees");
 }
-
-// uint8_t sd_card_update_image_number(void) {
-
-// // Ensure the SD card is mounted before attempting to save the image
-// if (sd_card_open() != WD_SUCCESS) {
-//     return WD_ERROR;
-// }
-
-// // If there is no data on the SD card, return an image number of 0. The
-// // function will log this error internally
-// if (sd_card_check_file_path_exists(DATA_FOLDER_PATH_1) != WD_SUCCESS) {
-//     imageNumber = 0;
-//     return WD_ERROR;
-// }
-
-// // Loop through images in the data folder path and find the last image
-// // number saved
-// DIR* dataDir = opendir(DATA_FOLDER_PATH_1);
-
-// char msg[50];
-// if (dataDir == NULL) {
-//     sprintf(msg, "Could not open directory '%s'", DATA_FOLDER_PATH_1);
-//     sd_card_log(SYSTEM_LOG_FILE, msg);
-//     imageNumber = 0;
-//     return WD_ERROR;
-// }
-
-// // Loop through all the files in the folder and set the image number to the
-// // highest number found
-// struct dirent* file;
-// while ((file = readdir(dataDir)) != NULL) {
-
-//     // File name is stored in file->d_name
-//     int number;
-//     if (wd_utils_extract_number(file->d_name, &number, IMG_NUM_START_INDEX, IMG_NUM_END_CHARACTER) != WD_SUCCESS)
-//     {
-//         return WD_ERROR;
-//     }
-
-//     if (number > imageNumber) {
-//         imageNumber = number;
-//     }
-// }
-
-// closedir(dataDir);
-
-// // Increment image number by 1
-// sprintf(msg, "Highest image number found was %i", imageNumber);
-// sd_card_log(SYSTEM_LOG_FILE, msg);
-
-// imageNumber += 1;
-// return WD_SUCCESS;
-// }
 
 uint8_t sd_card_open(void) {
 

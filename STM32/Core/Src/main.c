@@ -36,21 +36,7 @@ UART_HandleTypeDef huart2;
 void error_handler(void);
 void SystemClock_Config(void);
 
-/**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
-
-    // Reset all peripherals, initialise the flash interface and the systick
-    HAL_Init();
-    SystemClock_Config();
-
-    // Initialise hardware
-    hardware_config_init();
-    watchdog_init();
-
-    log_message("Starting\r\n");
+void rtc_testing(void) {
     date_time_t datetime;
     datetime.year   = 23;
     datetime.month  = 1;
@@ -80,6 +66,27 @@ int main(void) {
         stm32_rtc_read_datetime(&datetime);
         stm32_rtc_print_datetime(&datetime);
         // HAL_Delay(1000);
+    }
+}
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+
+    // Reset all peripherals, initialise the flash interface and the systick
+    HAL_Init();
+    SystemClock_Config();
+
+    // Initialise hardware
+    hardware_config_init();
+    watchdog_init();
+
+    log_message("Starting\r\n");
+
+    while (1) {
+        watchdog_update();
     }
 
     return 0;

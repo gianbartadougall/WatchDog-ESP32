@@ -28,6 +28,7 @@
 #include "ds18b20.h"
 #include "log.h"
 #include "hardware_config.h"
+#include "utilities.h"
 
 /* Private Macros */
 #define SET_PIN_LOW(port, pin) (port->BSRR |= (0x01 << (pin + 16)))
@@ -72,17 +73,17 @@ void ds18b20_deinit(void) {
 
 uint8_t ds18b20_read_temperature(uint8_t id) {
 
-    if (ds18b20_convert_temperature() != DS18B20_SUCCESS) {
+    if (ds18b20_convert_temperature() != TRUE) {
         log_prints("Failed to convert temperature\r\n");
-        return DS18B20_ERROR;
+        return FALSE;
     }
 
-    if (ds18b20_read_scratch_pad(&sensors[id]) != DS18B20_SUCCESS) {
+    if (ds18b20_read_scratch_pad(&sensors[id]) != TRUE) {
         log_prints("Failed to read scratch pad\r\n");
-        return DS18B20_ERROR;
+        return FALSE;
     }
 
-    return DS18B20_SUCCESS;
+    return TRUE;
 }
 
 void ds18b20_print_temperatures(void) {
@@ -109,6 +110,11 @@ void ds18b20_print_rom(uint8_t id) {
     print_64_bit(sensors[id].rom);
 }
 
+void ds18b20_get_temperature(uint8_t id, char tempStr[30]) {
+    sprintf(tempStr, "Temp: %s%i.%s%i\r\n", sensors[id].sign == 1 ? "-" : "", sensors[id].decimal,
+            sensors[id].fraction < 1000 ? "0" : "", sensors[id].fraction);
+}
+
 /**
  * @brief This function is a test function you can run to ensure hardware
  * is working correctly. It also provides an example of how to use this driver
@@ -122,12 +128,12 @@ void ds18b20_test(void) {
     while (1) {
 
         // Read the temperature of sensor 1 connected to the line
-        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != DS18B20_SUCCESS) {
+        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
             log_prints("Error reading temperature from sensor 1\r\n");
         }
 
         // Read the temperature of sensor 2 connected to the line
-        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != DS18B20_SUCCESS) {
+        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
             log_prints("Error reading temperature from sensor 2\r\n");
         }
 
@@ -196,17 +202,17 @@ void ds18b20_print_64_bit(uint64_t number) {
  * be 0 as you should only have one sensor connected when using this function
  * so the ROM code that is read will be stored in the 0th index of the sensor
  * list
- * @return uint8_t DS18B20_SUCCESS if no errors occured else DS18B20_ERROR
+ * @return uint8_t TRUE if no errors occured else FALSE
  */
 uint8_t ds18b20_update_rom(uint8_t id) {
 
-    if (ds18b20_reset() != DS18B20_SUCCESS) {
-        return DS18B20_ERROR;
+    if (ds18b20_reset() != TRUE) {
+        return FALSE;
     }
 
     sensors[id].rom = ds18b20_read_rom();
 
-    return DS18B20_SUCCESS;
+    return TRUE;
 }
 
 /**
@@ -261,12 +267,12 @@ uint64_t ds18b20_read_rom(void) {
  *
  * @param ds18b20 Pointer to the struct of the DS18B20 sensor to read the scratch
  * pad of
- * @return uint8_t DS18B20_SUCCESS if no errors occured else DS18B20_ERROR
+ * @return uint8_t TRUE if no errors occured else FALSE
  */
 uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
 
-    if (ds18b20_reset() != DS18B20_SUCCESS) {
-        return DS18B20_ERROR;
+    if (ds18b20_reset() != TRUE) {
+        return FALSE;
     }
 
     // Select the ds18b20 sensor to read the scratch pad of
@@ -285,11 +291,11 @@ uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
     // Extract the raw temperature data from the ds18b20 and process it. The temperature
     // data is in bytes 1 and 2 of the 8 bytes sent from the sensor
     uint16_t rawTemperatureData = data & 0xFFFF;
-    if (ds18b20_process_raw_temp_data(ds18b20, rawTemperatureData) != DS18B20_SUCCESS) {
-        return DS18B20_ERROR;
+    if (ds18b20_process_raw_temp_data(ds18b20, rawTemperatureData) != TRUE) {
+        return FALSE;
     }
 
-    return DS18B20_SUCCESS;
+    return TRUE;
 }
 
 /**
@@ -303,7 +309,7 @@ uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
  * @param ds18b20 Pointer to the struct the processed temperature data will
  * be stored in
  * @param rawTempData The raw tempreature data sent from the DS18B20 sensor
- * @return uint8_t DS18B20_SUCCESS if no errors occured else DS18B20_ERROR
+ * @return uint8_t TRUE if no errors occured else FALSE
  */
 uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) {
 
@@ -336,24 +342,24 @@ uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) 
 
     // Bits 11 - 15 should all be the same as they are sign bits
     if (((uint8_t)(rawTempData >> 11) != 0x00) && ((uint8_t)(rawTempData >> 11) != 0x1F)) {
-        return DS18B20_ERROR;
+        return FALSE;
     }
 
     // Extract sign bit
     ds18b20->sign = ((rawTempData & (0x01 << 12)) != 0) ? 1 : 0;
-    return DS18B20_SUCCESS;
+    return TRUE;
 }
 
 /**
  * @brief Tells every DS18B20 sensor connected to record the current temperature
  *
- * @return uint8_t DS18B20_SUCCESS if no errors occured else DS18B20_ERROR
+ * @return uint8_t TRUE if no errors occured else FALSE
  */
 uint8_t ds18b20_convert_temperature(void) {
 
     // Reset the DS1820 temperature sensor
-    if (ds18b20_reset() != DS18B20_SUCCESS) {
-        return DS18B20_ERROR;
+    if (ds18b20_reset() != TRUE) {
+        return FALSE;
     }
 
     // We want all the sensors connected to record the temperature
@@ -373,7 +379,7 @@ uint8_t ds18b20_convert_temperature(void) {
         HAL_Delay(10);
     }
 
-    return DS18B20_SUCCESS;
+    return TRUE;
 }
 
 /**
@@ -492,7 +498,7 @@ void ds18b20_write_bit(uint8_t bit) {
  * 		4. Wait at least 480us after releasing the data line before exiting the
  * 		   function
  *
- * @return uint8_t DS18B20_SUCCESS if the DS18B20 was reset else DS18B20_ERROR
+ * @return uint8_t TRUE if the DS18B20 was reset else FALSE
  */
 uint8_t ds18b20_reset(void) {
 
@@ -509,24 +515,24 @@ uint8_t ds18b20_reset(void) {
 
         // Return error if timeout occurs
         if (DS18B20_TIMER->CNT > 60) {
-            return DS18B20_ERROR;
+            return FALSE;
         }
     }
 
     // If the DS18B20 resets correctly, it will pull the line low as an ackowledgmennt.
     // At least 480us must pass after the DS18B20 has ackowledged before you can communicate
     // with the sensor again
-    uint8_t ds18b20Responded = DS18B20_ERROR;
+    uint8_t ds18b20Responded = FALSE;
     DS18B20_TIMER->CNT       = 0;
     while (DS18B20_TIMER->CNT < 480) {
 
         // Read the data line for response from the ds18b20 temperature sensor
         if ((DS18B20_PORT->IDR & (0x01 << DS18B20_PIN)) == 0) {
-            ds18b20Responded = DS18B20_SUCCESS;
+            ds18b20Responded = TRUE;
         }
     }
 
-    if (ds18b20Responded == DS18B20_ERROR) {
+    if (ds18b20Responded == FALSE) {
         log_prints("Failed to reset\r\n");
     }
 

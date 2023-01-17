@@ -16,21 +16,24 @@
 #include "chars.h"
 #include "hardware_config.h"
 #include "uart_lib.h"
+#include "ds18b20.h"
 
 /* Private Macros */
-#define FSTR_COMMAND               "COMMAND              \t"
-#define FSTR_ACTION                "ACTION"
-#define FSTR_LED_RED_ON            "led red on           \t"
-#define FSTR_LED_RED_OFF           "led red off          \t"
-#define FSTR_LED_COB_ON            "led cob on           \t"
-#define FSTR_LED_COB_OFF           "led cob off          \t"
-#define FSTR_INFO_FOLDER_STRUCUTRE "info fs              \t"
+#define FSTR_COMMAND          "COMMAND              \t"
+#define FSTR_ACTION           "ACTION"
+#define FSTR_LED_RED_ON       "led red on           \t"
+#define FSTR_LED_RED_OFF      "led red off          \t"
+#define FSTR_LED_COB_ON       "led cob on           \t"
+#define FSTR_LED_COB_OFF      "led cob off          \t"
+#define FSTR_LIST_DIRECTORIES "info fs              \t"
+#define FSTR_RECORD_DATA      "record               \t"
 
-#define LED_RED_ON            "led red on"
-#define LED_RED_OFF           "led red off"
-#define LED_COB_ON            "led cob on"
-#define LED_COB_OFF           "led cob off"
-#define INFO_FOLDER_STRUCUTRE "info fs"
+#define LED_RED_ON       "led red on"
+#define LED_RED_OFF      "led red off"
+#define LED_COB_ON       "led cob on"
+#define LED_COB_OFF      "led cob off"
+#define LIST_DIRECTORIES "info fs"
+#define RECORD_DATA      "record"
 
 /**
  * Cool things that could be added
@@ -43,7 +46,9 @@
 
 const char* WATCHDOG_MANUAL = FSTR_COMMAND FSTR_ACTION
     "\r\n" FSTR_LED_RED_ON "Turn the red LED on\r\n" FSTR_LED_RED_OFF "Turn the red LED off\r\n" FSTR_LED_COB_ON
-    "Turn the COB LED on\r\n" FSTR_LED_COB_OFF "Turn the COB LED off\r\n";
+    "Turn the COB LED on\r\n" FSTR_LED_COB_OFF "Turn the COB LED off\r\n" FSTR_LIST_DIRECTORIES
+    "List the directories in the current folder\r\n" FSTR_RECORD_DATA
+    "Record the temperature data and take a photo\r\n";
 
 /* Private Variables */
 char buffer1[1024];
@@ -184,10 +189,29 @@ void serial_comms_process_command(char* string) {
         return;
     }
 
-    if (chars_same(string, INFO_FOLDER_STRUCUTRE) == TRUE) {
+    if (chars_same(string, LIST_DIRECTORIES) == TRUE) {
         log_message("Requesting folder structure of SD Card\r\n");
-        comms_create_packet(&packet, UART_REQUEST_FOLDER_STRUCTURE, "\0", "\0");
+        comms_create_packet(&packet, UART_REQUEST_LIST_DIRECTORY, "\0", "\0");
         comms_send_packet(&packet);
+        return;
+    }
+
+    if (chars_same(string, RECORD_DATA) == TRUE) {
+
+        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
+            log_error("Failed to record temperature\r\n");
+            HAL_Delay(2000);
+            return;
+        }
+
+        // Store the temperature as a string
+        char tempStr[30];
+        ds18b20_get_temperature(DS18B20_SENSOR_ID_1, tempStr);
+
+        // Send message to record data from the esp32
+        comms_create_packet(&packet, UART_REQUEST_RECORD_DATA, "data.txt\0", tempStr);
+        comms_send_packet(&packet);
+
         return;
     }
 

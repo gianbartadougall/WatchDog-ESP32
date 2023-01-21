@@ -4,13 +4,17 @@
 /* Public Includes */
 #include <stdint.h>
 
+/* ESP32 Includes */
+#include <driver/uart.h>
+
 /* Private Includes */
 #include "uart_comms.h"
 
 /* Public Marcos for UART */
-#define HC_UART_COMMS_TX_PIN   GPIO_NUM_1
-#define HC_UART_COMMS_RX_PIN   GPIO_NUM_3
-#define HC_UART_COMMS_UART_NUM UART_NUM_0
+#define HC_UART_COMMS_TX_PIN     GPIO_NUM_1
+#define HC_UART_COMMS_RX_PIN     GPIO_NUM_3
+#define HC_UART_COMMS_UART_NUM   UART_NUM_0
+#define RX_RING_BUFFER_BYTE_SIZE 1048
 
 /* Public Marcros for Camera */
 

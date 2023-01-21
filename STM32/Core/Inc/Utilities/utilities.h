@@ -11,7 +11,7 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-/* Public Includes */
+/* Personal Includes */
 
 /* Public #defines */
 #define PIN_LOW  0

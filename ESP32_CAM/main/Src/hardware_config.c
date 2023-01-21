@@ -65,7 +65,7 @@ void hardware_config_uart_comms(void) {
         .source_clk = UART_SCLK_APB,
     };
     // We won't use a buffer for sending data.
-    uart_driver_install(HC_UART_COMMS_UART_NUM, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_driver_install(HC_UART_COMMS_UART_NUM, RX_RING_BUFFER_BYTE_SIZE, 0, 0, NULL, 0);
     uart_param_config(HC_UART_COMMS_UART_NUM, &uart_config);
     uart_set_pin(HC_UART_COMMS_UART_NUM, HC_UART_COMMS_TX_PIN, HC_UART_COMMS_RX_PIN, UART_PIN_NO_CHANGE,
                  UART_PIN_NO_CHANGE);

@@ -7,7 +7,7 @@
 /* Private Includes */
 #include "utilities.h"
 
-uint16_t chars_get_num_chars(char* str);
+uint16_t chars_get_num_bytes(char* str);
 
 uint8_t chars_same(char* str1, char* str2);
 

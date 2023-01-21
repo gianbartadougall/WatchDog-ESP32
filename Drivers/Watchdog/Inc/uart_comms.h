@@ -47,17 +47,7 @@
 #define PACKET_INSTRUCTION_NUM_CHARS 100
 #define PACKET_DATA_NUM_CHARS        100
 
-#define BPACKET_LENGTH_BYTES   34
-#define BPACKET_DATA_NUM_BYTES 32
-#define BPACKET_DATA_MAX_BYTES (BPACKET_DATA_NUM_BYTES - 1)
-
 static const int RX_BUF_SIZE = (PACKET_COMMAND_NUM_CHARS + PACKET_DATA_NUM_CHARS + PACKET_INSTRUCTION_NUM_CHARS + 5);
-
-typedef struct bpacket_t {
-    uint8_t request;
-    uint8_t numBits;
-    uint8_t data[BPACKET_DATA_MAX_BYTES]; // Max 256 bytes per packet
-} bpacket_t;
 
 typedef struct packet_t {
     int request;

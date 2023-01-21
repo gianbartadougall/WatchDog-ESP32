@@ -8,12 +8,15 @@ LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 
 C_SOURCES = \
 Src/main.c \
-../STM32/Core/Src/Utilities/chars.c
+../STM32/Core/Src/Utilities/chars.c \
+../STM32/Library/Src/bpacket.c \
+../Drivers/Watchdog/Src/wd_utils.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \
 -I../ESP32_CAM/main/Inc \
 -I../STM32/Core/Inc/Utilities \
+-I../STM32/Core/Inc/Board \
 -I../STM32/Library/Inc
 
 LIB_SP_SOURCES = \

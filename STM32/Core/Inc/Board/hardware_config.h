@@ -78,6 +78,7 @@
 #define UART_LOG_GPIO_RX_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
 #define UART_LOG_GPIO_TX_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
 #define UART_LOG_CLK_ENABLE()         __HAL_RCC_USART2_CLK_ENABLE()
+#define UART_LOG_CLK_DISABLE()        __HAL_RCC_USART2_CLK_DISABLE()
 
 #define UART_LOG           USART2
 #define UART_LOG_IRQn      USART2_IRQn
@@ -104,5 +105,8 @@
  * @brief Initialise the system library.
  */
 void hardware_config_init(void);
+
+void hardware_config_uart_wakeup(void);
+void hardware_config_uart_sleep(void);
 
 #endif // HARDWARE_CONFIG_H

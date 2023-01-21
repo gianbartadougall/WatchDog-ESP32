@@ -18,6 +18,7 @@
 #include "hardware_config.h"
 #include "uart_comms.h"
 #include "wd_utils.h"
+#include "chars.h"
 
 /* Private Macros */
 #define UART_NUM HC_UART_COMMS_UART_NUM
@@ -26,21 +27,6 @@
 
 /* Function Declarations */
 int uart_comms_read(char* data, int timeout);
-
-void uart_comms_bpacket_to_msg(bpacket_t* bpacket, uint8_t msg[BPACKET_LENGTH_BYTES]) {}
-
-void uart_comms_create_bpacket(bpacket_t* bpacket, uint8_t request, uint8_t numBits,
-                               uint8_t data[BPACKET_DATA_MAX_BYTES]) {
-
-    bpacket->request = request;
-    bpacket->numBits = numBits;
-
-    // Copy data into bpacket
-    int numBytes = (numBits / 8) + ((numBits % 8) == 0 ? 0 : 1);
-    for (int i = 0; i < numBytes; i++) {
-        bpacket->data[i] = data[i];
-    }
-}
 
 void uart_comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
     packet->request = request;
@@ -55,7 +41,7 @@ int packet_to_string(packet_t* packet, char data[RX_BUF_SIZE]) {
 }
 
 // Packet is of the form request,instruction,data
-int string_to_packet(packet_t* packet, char* data) {
+int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]) {
 
     char info[3][RX_BUF_SIZE];
     wd_utils_split_string(data, info, 0, ',');

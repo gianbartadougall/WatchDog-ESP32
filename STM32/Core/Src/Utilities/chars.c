@@ -17,18 +17,18 @@
 
 uint8_t chars_contains(char* string, char* substring) {
 
-    uint16_t numChars       = chars_get_num_chars(string);
-    uint16_t subStrNumChars = chars_get_num_chars(substring);
+    uint16_t numBytes       = chars_get_num_bytes(string);
+    uint16_t subStrNumBytes = chars_get_num_bytes(substring);
 
-    for (int i = 0; i <= numChars - subStrNumChars; i++) { // 0 - 2
+    for (int i = 0; i <= numBytes - subStrNumBytes; i++) { // 0 - 2
 
-        for (int j = 0; j < subStrNumChars; j++) {
+        for (int j = 0; j < subStrNumBytes; j++) {
 
             if (string[i + j] != substring[j]) {
                 break;
             }
 
-            if (j == (subStrNumChars - 1)) {
+            if (j == (subStrNumBytes - 1)) {
                 return TRUE;
             }
         }
@@ -37,7 +37,7 @@ uint8_t chars_contains(char* string, char* substring) {
     return FALSE;
 }
 
-uint16_t chars_get_num_chars(char* str) {
+uint16_t chars_get_num_bytes(char* str) {
 
     uint16_t i = 0;
     while (str[i] != '\0') {
@@ -64,7 +64,7 @@ uint8_t chars_same(char* str1, char* str2) {
 
 uint8_t chars_to_int(char* str, int* number) {
 
-    if (chars_get_num_chars(str) > 9) {
+    if (chars_get_num_bytes(str) > 9) {
         return FALSE;
     }
 

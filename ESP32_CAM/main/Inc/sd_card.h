@@ -24,6 +24,7 @@
 /* Personal Includes */
 #include "uart_comms.h"
 #include "watchdog_defines.h"
+#include "bpacket.h"
 
 /* Public Macros */
 
@@ -63,7 +64,7 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_list_directory(char* folderPath, packet_t* response);
+uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket);
 
 /**
  * @brief Appends a string to the given file
@@ -118,7 +119,7 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response);
  */
 uint8_t sd_card_init(packet_t* response);
 
-void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
+void sd_card_copy_file(bpacket_t* bpacket);
 
 /**
  * @brief Mounts the SD Card for reading and writing

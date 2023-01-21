@@ -20,81 +20,16 @@
 #include "camera.h"
 #include "hardware_config.h"
 #include "led.h"
-#include "uart_comms.h"
 #include "wd_utils.h"
+#include "bpacket.h"
 
 #include "hardware_config.h"
+#include "esp32_uart.h"
 
-#define COB_LED  HC_COB_LED
-#define RED_LED  HC_RED_LED
-#define UART_NUM HC_UART_COMMS_UART_NUM
+#define COB_LED HC_COB_LED
+#define RED_LED HC_RED_LED
 
 /* Private Function Declarations */
-void sd_card_copy_folder_structure(packet_t* requestPacket, packet_t* responsePacket);
-void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket);
-
-int sendData(const char* data) {
-
-    // Because this data is being sent to a master MCU, the NULL character
-    // needs to be appended on if it is not to ensure the master MCU knows
-    // when the end of the sent data is. Thus add 1 to the length to ensure
-    // the null character is also sent
-    const int len     = strlen(data) + 1;
-    const int txBytes = uart_write_bytes(UART_NUM, data, len);
-
-    return txBytes;
-}
-
-void send_packet(packet_t* packet) {
-    char string[RX_BUF_SIZE];
-    packet_to_string(packet, string);
-    sendData(string);
-}
-
-// static void tx_task(void* arg) {
-//     static const char* TX_TASK_TAG = "TX_TASK";
-//     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
-//     while (1) {
-//         sendData("Hello world");
-//         // gpio_set_level(LED, 0);
-//         vTaskDelay(1000 / portTICK_PERIOD_MS);
-//     }
-// }
-
-void get_command(char msg[200]) {
-
-    int i = 0;
-    char data[50];
-    while (1) {
-
-        // Read data from the UART quick enough to get a single character
-        int len = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 20 / portTICK_RATE_MS);
-
-        // Write data back to the UART
-        if (len == 0) {
-            continue;
-        }
-
-        if (len == 1) {
-            uart_write_bytes(UART_NUM, (const char*)data, len);
-
-            // Check for enter key
-            if (data[0] == 0x0D) {
-                msg[i++] = '\r';
-                msg[i++] = '\n';
-                msg[i]   = '\0';
-                sendData(msg);
-
-                msg[i - 2] = '\0';
-                return;
-            }
-
-            if (data[0] >= '!' || data[0] <= '~') {
-                msg[i++] = data[0];
-            }
-        }
-    }
-}
 
 void generate_status_string(packet_t* response) {
 
@@ -132,9 +67,14 @@ void watchdog_system_start(void) {
     led_off(COB_LED);
     led_off(RED_LED);
 
+    uint8_t ping[1];
+    ping[0] = 23;
+
     // char instruction[100];
-    char data[RX_BUF_SIZE];
-    packet_t packet, response;
+    // char data[RX_BUF_SIZE];
+    // packet_t packet, response;
+    uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
+    bpacket_t bpacket;
 
     while (1) {
 
@@ -142,84 +82,113 @@ void watchdog_system_start(void) {
         vTaskDelay(200 / portTICK_PERIOD_MS);
 
         // Read UART and wait for command.
-        const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
-
-        if (rxBytes == 0) {
+        if (esp32_uart_read_bpacket(bdata) == 0) {
             continue;
         }
 
-        // get_command(data);
+        bpacket_decode(&bpacket, bdata);
 
-        // Validate incoming data
-        if (string_to_packet(&packet, data) != WD_SUCCESS) {
-            uart_comms_create_packet(&response, UART_ERROR_REQUEST_TRANSLATION_FAILED, "Failed to parse packet", data);
-            send_packet(&response);
-            // sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
-            continue;
-        }
-
-        // Carry out instruction
-        switch (packet.request) {
-            case UART_REQUEST_LED_RED_ON:
+        switch (bpacket.request) {
+            case BPACKET_R_LED_RED_ON:
                 led_on(RED_LED);
-                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
-                send_packet(&response);
                 break;
-            case UART_REQUEST_LED_RED_OFF:
+            case BPACKET_R_LED_RED_OFF:
                 led_off(RED_LED);
-                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
-                send_packet(&response);
                 break;
-            case UART_REQUEST_LED_COB_ON:
-                led_on(COB_LED);
-                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
-                send_packet(&response);
+            case BPACKET_R_COPY_FILE:
+                sd_card_copy_file(&bpacket);
                 break;
-            case UART_REQUEST_LED_COB_OFF:
-                led_off(COB_LED);
-                uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
-                send_packet(&response);
+            case BPACKET_R_LIST_DIR:
+                sd_card_list_directory("\0", &bpacket);
                 break;
-            case UART_REQUEST_LIST_DIRECTORY:
-                sd_card_list_directory(packet.instruction, &response);
-                send_packet(&response);
+            case BPACKET_R_PING:
+                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, ping);
+                esp32_uart_send_bpacket(&bpacket);
                 break;
-            case UART_REQUEST_COPY_FILE:
-                sd_card_copy_file(&packet, &response);
-                send_packet(&response);
+            default:
                 break;
-            case UART_REQUEST_TAKE_PHOTO:
-                camera_capture_and_save_image(&response);
-                send_packet(&response);
-                break;
-            case UART_REQUEST_WRITE_TO_FILE:
-                sd_card_write_to_file(packet.instruction, packet.data, &response);
-                send_packet(&response);
-                break;
-            case UART_REQUEST_CREATE_PATH:
-                sd_card_create_path(packet.instruction, &response);
-                send_packet(&response);
-                break;
-            case UART_REQUEST_STATUS:
-                generate_status_string(&response);
-                send_packet(&response);
-                break;
-            case UART_REQUEST_RECORD_DATA:
-                record_data(&packet, &response);
-                send_packet(&response);
-                break;
-            case UART_REQUEST_PING:
-                sendData("ESP32 Watchdog\0");
-                break;
-            default:; // comma here required because only statments can follow a label
-                char errMsg[50];
-                sprintf(errMsg, "Request %i is unkown", packet.request);
-                uart_comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
-                send_packet(&response);
         }
 
-        sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
+        continue;
     }
+    // Read UART and wait for command.
+    // const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
+
+    // if (rxBytes == 0) {
+    //     continue;
+    // }
+
+    // get_command(data);
+
+    // Validate incoming data
+    //     if (string_to_packet(&packet, data) != WD_SUCCESS) {
+    //         uart_comms_create_packet(&response, UART_ERROR_REQUEST_TRANSLATION_FAILED, "Failed to parse packet",
+    //         data); send_packet(&response); sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
+    //         continue;
+    //     }
+
+    //     // Carry out instruction
+    //     switch (packet.request) {
+    //         case UART_REQUEST_LED_RED_ON:
+    //             led_on(RED_LED);
+    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_LED_RED_OFF:
+    //             led_off(RED_LED);
+    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_LED_COB_ON:
+    //             led_on(COB_LED);
+    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_LED_COB_OFF:
+    //             led_off(COB_LED);
+    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_LIST_DIRECTORY:
+    //             sd_card_list_directory(packet.instruction, &response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_COPY_FILE:
+    //             sd_card_copy_file(&packet, &response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_TAKE_PHOTO:
+    //             camera_capture_and_save_image(&response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_WRITE_TO_FILE:
+    //             sd_card_write_to_file(packet.instruction, packet.data, &response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_CREATE_PATH:
+    //             sd_card_create_path(packet.instruction, &response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_STATUS:
+    //             generate_status_string(&response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_RECORD_DATA:
+    //             record_data(&packet, &response);
+    //             send_packet(&response);
+    //             break;
+    //         case UART_REQUEST_PING:
+    //             sendData("ESP32 Watchdog\0");
+    //             break;
+    //         default:; // comma here required because only statments can follow a label
+    //             char errMsg[50];
+    //             sprintf(errMsg, "Request %i is unkown", packet.request);
+    //             uart_comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
+    //             send_packet(&response);
+    //     }
+
+    //     sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
+    // }
 }
 
 uint8_t software_config(packet_t* response) {
@@ -246,8 +215,8 @@ void app_main(void) {
     }
 
     while (1) {
-        send_packet(&status);
-        sendData("\r\n");
+        // esp32_uart_send_packet(&status);
+        // esp32_uart_send_data("\r\n");
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }

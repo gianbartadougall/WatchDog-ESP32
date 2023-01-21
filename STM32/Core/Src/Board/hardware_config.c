@@ -247,6 +247,23 @@ void hardware_config_uart_init(void) {
     UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_PEIE);
 }
 
+void hardware_config_uart_sleep(void) {
+
+    // Disable UART
+    UART_LOG->CR1 &= ~(USART_CR1_UE);
+
+    // Disable the UART CLK
+    UART_LOG_CLK_DISABLE();
+}
+
+void hardware_config_uart_wakeup(void) {
+
+    UART_LOG_CLK_ENABLE();
+
+    // Disable the UART CLK
+    UART_LOG->CR1 |= USART_CR1_UE;
+}
+
 void hardware_error_handler(void) {
 
     // Initialise onboad LED incase it hasn't been initialised
@@ -262,4 +279,15 @@ void hardware_error_handler(void) {
 
         HAL_Delay(500);
     }
+}
+
+void hardware_config_low_power_mode(void) {
+
+    // Disable
+
+    // Set the device to low power mode
+    PWR->CR1 |= PWR_CR1_LPR;
+
+    // Set the devcice to standby mode
+    PWR->CR1 |= PWR_CR1_LPMS_STOP0 | PWR_CR1_LPMS_STOP1;
 }

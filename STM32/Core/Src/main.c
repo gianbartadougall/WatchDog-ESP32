@@ -13,13 +13,13 @@
 
 /* Private includes */
 #include "main.h"
-#include "board.h"
 #include "hardware_config.h"
 #include "utilities.h"
 #include "watchdog.h"
 #include "comms.h"
 #include "stm32_rtc.h"
 #include "log.h"
+#include "led.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -81,12 +81,24 @@ int main(void) {
 
     // Initialise hardware
     hardware_config_init();
-    watchdog_init();
 
     log_message("Starting\r\n");
 
     while (1) {
-        watchdog_update();
+        hardware_config_uart_sleep();
+        HAL_Delay(4000);
+        led_on(LED_GREEN_ID);
+        HAL_Delay(1000);
+        led_off(LED_GREEN_ID);
+        hardware_config_uart_wakeup();
+        HAL_Delay(4000);
+        led_on(LED_GREEN_ID);
+        HAL_Delay(1000);
+        led_off(LED_GREEN_ID);
+
+        // Put the watchdog into deep sleep mode
+
+        // watchdog_update();
     }
 
     return 0;

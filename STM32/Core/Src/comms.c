@@ -218,6 +218,16 @@ void serial_comms_process_command(char* string) {
     log_error("Unknown command. Type 'help' to see the list of available commands\r\n");
 }
 
+void comms_send_bpacket(USART_TypeDef* uart, bpacket_t* bpacket) {
+    int i = 0;
+
+    // Transmit until end of message reached
+    while (i < bpacket->numBytes) {
+        while ((uart->ISR & USART_ISR_TXE) == 0) {};
+        uart->TDR = bpacket->data.bytes[i++];
+    }
+}
+
 void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull) {
     uint16_t i = 0;
 

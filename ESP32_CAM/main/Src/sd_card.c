@@ -20,9 +20,11 @@
 #include "rtc.h"
 #include "sd_card.h"
 #include "wd_utils.h"
-#include "uart_comms.h"
 #include "chars.h"
 #include "hardware_config.h"
+#include "esp32_uart.h"
+
+#include "uart_comms.h"
 
 /* Private Macros */
 
@@ -54,6 +56,7 @@ sdmmc_card_t* card;
 uint8_t sd_card_check_file_path_exists(char* filePath);
 uint8_t sd_card_check_directory_exists(char* directory);
 void sd_card_send_packet(packet_t* packet);
+void sd_card_send_bpacket(packet_t* packet);
 
 /* GOOD FUNCTIONS */
 
@@ -66,7 +69,7 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response) {
     }
 
     // Validate the path length
-    if (chars_get_num_chars(folderPath) > MAX_PATH_LENGTH) {
+    if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
         uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
         return WD_ERROR;
     }
@@ -117,17 +120,19 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response) {
     return WD_SUCCESS;
 }
 
-uint8_t sd_card_list_directory(char* folderPath, packet_t* response) {
+uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket) {
 
     // Try open the SD card
     if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
+        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "SD card could not open\0");
+        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
         return WD_ERROR;
     }
 
     // Validate the path length
-    if (chars_get_num_chars(folderPath) > MAX_PATH_LENGTH) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
+    if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
+        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "Folder path > 50 chars\0");
+        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
         return WD_ERROR;
     }
 
@@ -138,7 +143,8 @@ uint8_t sd_card_list_directory(char* folderPath, packet_t* response) {
     DIR* directory;
     directory = opendir(path);
     if (directory == NULL) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The directory could not be opened", path);
+        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "Filepath could not open\0");
+        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The directory could not be opened", path);
         return WD_ERROR;
     }
 
@@ -152,28 +158,51 @@ uint8_t sd_card_list_directory(char* folderPath, packet_t* response) {
     // Go back to the start of the directory
     rewinddir(directory);
 
-    char foldersList[numChars];
-    int i = 0;
-    while ((dirPtr = readdir(directory)) != NULL && i < PACKET_DATA_NUM_CHARS) {
+    int i             = 0;
+    bpacket->request  = BPACKET_R_IN_PROGRESS;
+    bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+    while ((dirPtr = readdir(directory)) != NULL) {
 
         // Copy the name of the folder into the folder structure string
         int j = 0;
         while (dirPtr->d_name[j] != '\0') {
-            foldersList[i++] = dirPtr->d_name[j];
+            bpacket->bytes[i++] = dirPtr->d_name[j];
+
+            if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+                esp32_uart_send_bpacket(bpacket);
+                i = 0;
+            }
+
             j++;
         }
 
-        foldersList[i++] = '\r';
-        foldersList[i++] = '\n';
+        bpacket->bytes[i++] = '\r';
+
+        if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+            esp32_uart_send_bpacket(bpacket);
+            i = 0;
+        }
+
+        bpacket->bytes[i++] = '\n';
+
+        if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+            esp32_uart_send_bpacket(bpacket);
+            i = 0;
+        }
     }
 
-    // Add null terminator to the end
-    foldersList[i] = '\0';
+    if (i != 0) {
+        bpacket->request  = BPACKET_R_SUCCESS;
+        bpacket->numBytes = i;
+        esp32_uart_send_bpacket(bpacket);
+    }
 
     closedir(directory);
     sd_card_close();
 
-    uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", foldersList);
+    // bpacket_create_sp(bpacket, BPACKET_R_SUCCESS, foldersList);
+    // esp32_uart_send_bpacket(bpacket);
+    // uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", foldersList);
     return WD_SUCCESS;
 }
 
@@ -186,7 +215,7 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, packet_t* response) 
     }
 
     // Validate the path length
-    if (chars_get_num_chars(filePath) > MAX_PATH_LENGTH) {
+    if (chars_get_num_bytes(filePath) > MAX_PATH_LENGTH) {
         uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
         return WD_ERROR;
     }
@@ -304,17 +333,29 @@ uint8_t sd_card_init(packet_t* response) {
     return WD_SUCCESS;
 }
 
-void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
+void sd_card_copy_file(bpacket_t* bpacket) {
 
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
+
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "SD card failed to open\0");
+        esp32_uart_send_bpacket(bpacket);
+        // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, , "\0");
         return;
     }
 
+    // Reconstruct file path from binary data
+    char filePath[bpacket->numBytes + 1];
+    for (int i = 0; i < bpacket->numBytes; i++) {
+        filePath[i] = (char)bpacket->bytes[i];
+    }
+    filePath[bpacket->numBytes] = '\0';
+
     // Return an error if there was no specified file
-    if (requestPacket->instruction[0] == '\0') {
-        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
+    if (filePath[0] == '\0') {
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "No file specified\0");
+        esp32_uart_send_bpacket(bpacket);
+        // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
         return;
     }
 
@@ -330,64 +371,116 @@ void sd_card_copy_file(packet_t* requestPacket, packet_t* responsePacket) {
      * read.
      */
 
-    int startByte;
+    // int startByte;
 
-    if (chars_to_int(requestPacket->data, &startByte) == FALSE) {
-        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Invalid start byte", "\0");
-        return;
-    }
+    // if (chars_to_int(requestPacket->data, &startByte) == FALSE) {
+    //     uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Invalid start byte", "\0");
+    //     return;
+    // }
 
-    char filePath[110];
-    sprintf(filePath, "%s/%s", MOUNT_POINT_PATH, requestPacket->instruction);
-    FILE* file = fopen(filePath, "rb"); // read binary file
+    char fullPath[50];
+    sprintf(fullPath, "%s/%s", MOUNT_POINT_PATH, filePath);
+    FILE* file = fopen(fullPath, "rb"); // read binary file
 
     if (file == NULL) {
-        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The file could not be opened",
-                                 strerror(errno));
+        char msg[27];
+        sprintf(msg, fullPath);
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, strerror(errno));
+        esp32_uart_send_bpacket(bpacket);
+        // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The file could not be opened",
+        //                          strerror(errno));
         return;
-    }
-
-    // Confirm the start byte is less than the size of the file
-    struct stat st;
-    stat(filePath, &st);
-    if ((int)st.st_size < startByte) {
-        uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Start byte > file size", "\0");
-        return;
-    }
-
-    responsePacket->request        = UART_REQUEST_SUCCEEDED;
-    responsePacket->instruction[0] = '\0';
-    responsePacket->data[0]        = '\0';
-
-    // Skip any bytes before the start byte
-    int c;
-    for (int i = startByte; i > 0; i--) {
-        c = fgetc(file);
     }
 
     int i = 0;
+    int c;
+
+    bpacket->request  = BPACKET_R_IN_PROGRESS;
+    bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+    bpacket_t response;
     while ((c = fgetc(file)) != EOF) {
 
-        if (i == PACKET_DATA_NUM_CHARS) {
-            responsePacket->data[i] = '\0';
-            // responsePacket->instruction = []
-            // sprintf(responsePacket->instruction, "%i", i + startByte);
-            sd_card_send_packet(responsePacket);
-            i = 0;
-        }
+        // Create a bpacket
+        bpacket->bytes[i] = (uint8_t)c;
 
-        responsePacket->data[i++] = (char)c;
+        if (i == (BPACKET_MAX_NUM_DATA_BYTES - 1)) {
+
+            for (int i = 0; i < 3; i++) {
+                esp32_uart_send_bpacket(bpacket);
+
+                uint8_t responseBuffer[BPACKET_BUFFER_LENGTH_BYTES];
+                esp32_uart_read_bpacket(responseBuffer);
+                bpacket_decode(&response, responseBuffer);
+
+                if (response.request == BPACKET_R_ACKNOWLEDGE) {
+                    break;
+                }
+
+                if (i == 2) {
+                    fclose(file);
+                    sd_card_close();
+                    return;
+                }
+            }
+
+            i = 0;
+        } else {
+            i++;
+        }
     }
 
-    if (responsePacket->instruction[0] == '\0') {
-        responsePacket->data[i] = '\0';
-        // sprintf(responsePacket->instruction, "End reached");
+    if (i != 0) {
+        bpacket->request  = BPACKET_R_SUCCESS;
+        bpacket->numBytes = i;
+        esp32_uart_send_bpacket(bpacket);
     }
 
     fclose(file);
 
     // Close the SD card
     sd_card_close();
+
+    // Confirm the start byte is less than the size of the file
+    // struct stat st;
+    // stat(filePath, &st);
+    // if ((int)st.st_size < startByte) {
+    //     uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Start byte > file size", "\0");
+    //     return;
+    // }
+
+    // responsePacket->request        = UART_REQUEST_SUCCEEDED;
+    // responsePacket->instruction[0] = '\0';
+    // responsePacket->data[0]        = '\0';
+
+    // Skip any bytes before the start byte
+    // int c;
+    // for (int i = startByte; i > 0; i--) {
+    //     c = fgetc(file);
+    // }
+
+    // int i = 0;
+    // while ((c = fgetc(file)) != EOF) {
+
+    //     if (i == PACKET_DATA_NUM_CHARS) {
+    //         responsePacket->data[i] = '\0';
+    //         // responsePacket->instruction = []
+    //         // sprintf(responsePacket->instruction, "%i", i + startByte);
+    //         sd_card_send_packet(responsePacket);
+    //         i = 0;
+    //     }
+
+    //     responsePacket->data[i++] = (char)c;
+    // }
+
+    // if (responsePacket->instruction[0] == '\0') {
+    //     responsePacket->data[i] = '\0';
+    //     // sprintf(responsePacket->instruction, "End reached");
+    // }
+
+    // fclose(file);
+
+    // // Close the SD card
+    // sd_card_close();
 }
 
 /* GOOD FUNCTIONS */

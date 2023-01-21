@@ -30,4 +30,6 @@
 #define CHAR_NEW_LINE        '\n'
 #define CHAR_NULL_TERMINATOR '\0'
 
+#define ASCII_CLEAR_SCREEN "\033[2J\033[H"
+
 #endif // UART_LIB_H

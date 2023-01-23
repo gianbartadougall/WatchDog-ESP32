@@ -392,48 +392,50 @@ void sd_card_copy_file(bpacket_t* bpacket) {
         return;
     }
 
-    int i = 0;
-    int c;
+    // Get the size of the file in bytes
+    fseek(file, 0L, SEEK_END);
+    uint32_t fileNumBytes = ftell(file);
+    fseek(file, 0L, SEEK_SET);
 
     bpacket->request  = BPACKET_R_IN_PROGRESS;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
-    bpacket_t response;
-    while ((c = fgetc(file)) != EOF) {
+    int pi            = 0;
+    for (uint32_t i = 0; i < fileNumBytes; i++) {
 
-        // Create a bpacket
-        bpacket->bytes[i] = (uint8_t)c;
+        bpacket->bytes[pi++] = fgetc(file);
 
-        if (i == (BPACKET_MAX_NUM_DATA_BYTES - 1)) {
-
-            for (int i = 0; i < 3; i++) {
-                esp32_uart_send_bpacket(bpacket);
-
-                uint8_t responseBuffer[BPACKET_BUFFER_LENGTH_BYTES];
-                esp32_uart_read_bpacket(responseBuffer);
-                bpacket_decode(&response, responseBuffer);
-
-                if (response.request == BPACKET_R_ACKNOWLEDGE) {
-                    break;
-                }
-
-                if (i == 2) {
-                    fclose(file);
-                    sd_card_close();
-                    return;
-                }
-            }
-
-            i = 0;
-        } else {
-            i++;
+        if (pi < BPACKET_MAX_NUM_DATA_BYTES && (i + 1) != fileNumBytes) {
+            continue;
         }
+
+        if ((i + 1) == fileNumBytes) {
+            bpacket->request  = BPACKET_R_SUCCESS;
+            bpacket->numBytes = pi--;
+        }
+
+        esp32_uart_send_bpacket(bpacket);
+        pi = 0;
     }
 
-    if (i != 0) {
-        bpacket->request  = BPACKET_R_SUCCESS;
-        bpacket->numBytes = i;
-        esp32_uart_send_bpacket(bpacket);
-    }
+    // if (i != 0) {
+    //     bpacket->request  = BPACKET_R_SUCCESS;
+    //     bpacket->numBytes = i;
+    //     esp32_uart_send_bpacket(bpacket);
+    // }
+
+    // bpacket_t response;
+    // while ((c = fgetc(file)) != EOF) {
+
+    //     // Create a bpacket
+    //     bpacket->bytes[i++] = (uint8_t)c;
+
+    //     if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+
+    //         // Check if this
+    //         esp32_uart_send_bpacket(bpacket);
+    //         i = 0;
+    //     }
+    // }
 
     fclose(file);
 

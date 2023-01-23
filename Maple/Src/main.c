@@ -20,6 +20,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <windows.h>   // Use for multi threading
+#include <sys/timeb.h> // Used for time functionality
 
 /* Personal Includes */
 #include "chars.h"
@@ -40,9 +42,31 @@ void maple_create_and_send_bpacket(struct sp_port* port, uint8_t request, uint8_
                                    uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
 void maple_send_bpacket(struct sp_port* port, bpacket_t* bpacket);
 
-#define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 12)
+#define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 50)
 uint8_t rxBuffer[RX_BUFFER_SIZE];
-uint16_t bufferIndex = 0;
+// uint8_t rxBuffer[BPACKET_BUFFER_LENGTH_BYTES * 12];
+// uint16_t bufferIndex = 0;
+
+#define PACKET_BUFFER_SIZE 50
+uint8_t packetBufferIndex  = 0;
+uint8_t packetPendingIndex = 0;
+bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
+
+void maple_increment_packet_buffer_index(void) {
+    packetBufferIndex++;
+
+    if (packetBufferIndex == PACKET_BUFFER_SIZE) {
+        packetBufferIndex = 0;
+    }
+}
+
+void maple_increment_packet_pending_index(void) {
+    packetPendingIndex++;
+
+    if (packetPendingIndex == PACKET_BUFFER_SIZE) {
+        packetPendingIndex = 0;
+    }
+}
 
 uint8_t maple_configure_port(struct sp_port* port) {
 
@@ -145,77 +169,10 @@ enum sp_return maple_search_ports(char portName[50]) {
     return SP_OK;
 }
 
-uint8_t maple_recieve_packet(struct sp_port* port, bpacket_t bpacket) {
-
-    bpacket.bytes[0] = '\0';
-    bpacket.request  = 0;
-    bpacket.numBytes = 0;
-
-    bufferIndex = 0;
-    char c[1];
-
-    int numBytes              = 0;
-    int stopByteExpectedIndex = 0;
-    int startByteExpected     = 1;
-
-    while ((numBytes = sp_blocking_read(port, c, 1, 400)) > 0) {
-
-        if (bpacket.request == 0) {
-
-            if (c[0] != BPACKET_START_BYTE) {
-                continue;
-            }
-
-            // Start byte found
-
-            startByteExpected       = 0;
-            rxBuffer[bufferIndex++] = c[0];
-            printf("%c", c[0]);
-
-            // Calculate when the next stop byte should occur
-            if (sp_blocking_read(port, c, 1, 400) <= 0) {
-                printf("Missing data\n");
-                return FALSE;
-            } else {
-                rxBuffer[bufferIndex++] = c[0];
-                printf("%c", c[0]);
-                stopByteExpectedIndex = (bufferIndex + c[0] + 1) % RX_BUFFER_SIZE;
-            }
-
-            continue;
-        }
-
-        // Pretty sure this is a stop byte
-        rxBuffer[bufferIndex++] = c[0];
-        // printf("%c", c[0]);
-
-        if (bufferIndex == RX_BUFFER_SIZE) {
-            bufferIndex = 0;
-        }
-
-        if (c[0] == BPACKET_STOP_BYTE) {
-            startByteExpected = 1;
-            // printf("\n");
-
-            if (bufferIndex != stopByteExpectedIndex) {
-                printf("Stop byte error %i != %i\n", bufferIndex, stopByteExpectedIndex);
-                return FALSE;
-            }
-        }
-    }
-
-    if (numBytes == 0 && in == 0) {
-        printf("Time out\n");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-uint8_t maple_copy_file(struct sp_port* port, char* filePath) {
+uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName) {
 
     FILE* target;
-    target = fopen("img.jpg", "wb"); // Read binary
+    target = fopen(cpyFileName, "wb"); // Read binary
 
     if (target == NULL) {
         printf("Could not open file\n");
@@ -227,7 +184,7 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath) {
     int filePathNumBytes = chars_get_num_bytes(filePath);
     if (filePathNumBytes > BPACKET_MAX_NUM_DATA_BYTES) {
         printf("File path is too long\n");
-        fclose(target);
+        // fclose(target);
         return FALSE;
     }
 
@@ -240,81 +197,53 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath) {
     // Send command to copy file. Keeping reading until no more data to send across
     maple_create_and_send_bpacket(port, BPACKET_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
 
-    bufferIndex = 0;
-    char c[1];
+    // Sleep(3000);
 
-    int numBytes              = 0;
-    int stopByteExpectedIndex = 0;
-    int startByteExpected     = 1;
-    int in                    = 0;
+    int packetsFinished = FALSE;
+    int count           = 0;
+    while (packetsFinished == FALSE) {
 
-    while ((numBytes = sp_blocking_read(port, c, 1, 400)) > 0) {
-        in = 1;
-        if (startByteExpected == 1) {
+        // Wait until the packet is ready
+        count = 0;
+        while (packetPendingIndex == packetBufferIndex) {
 
-            if (c[0] != BPACKET_START_BYTE) {
-                printf("ERROR\r\n");
-                fclose(target);
-                return FALSE;
-            } else {
-                startByteExpected       = 0;
-                rxBuffer[bufferIndex++] = c[0];
-
-                // Calculate when the next stop byte should occur
-                if (sp_blocking_read(port, c, 1, 400) <= 0) {
-                    printf("Missing data 1\n");
-                    fclose(target);
-                    return FALSE;
-                } else {
-                    rxBuffer[bufferIndex++] = c[0];
-                    stopByteExpectedIndex   = (bufferIndex + c[0]) % RX_BUFFER_SIZE;
-                }
-
-                // Get the request
-                if (sp_blocking_read(port, c, 1, 400) <= 0) {
-                    printf("Missing data 2\n");
-                    fclose(target);
-                    return FALSE;
-                } else {
-
-                    // Confirm request is valid
-                    // if (c[0] != BPACKET_R_IN_PROGRESS && c[0] != BPACKET_R_SUCCESS) {
-
-                    //     printf("Request error\n");
-                    //     return FALSE;
-                    // }
-                    rxBuffer[bufferIndex++] = c[0];
-                }
-
-                continue;
-            }
-        }
-
-        if (c[0] == BPACKET_STOP_BYTE) {
-            startByteExpected = 1;
-            // printf("\n");
-
-            if (bufferIndex != stopByteExpectedIndex) {
-                printf("Stop byte error %i != %i\n", bufferIndex, stopByteExpectedIndex);
-                fclose(target);
+            if (count == 1000) {
+                printf("Timeout 1000ms\n");
                 return FALSE;
             }
+
+            Sleep(1);
+            count++;
         }
 
-        // Pretty sure this is a stop byte
-        rxBuffer[bufferIndex++] = c[0];
-        fputc(c[0], target);
+        // printf("Request[%i]: %i Num bytes: %i -> ", packetPendingIndex, packetBuffer[packetPendingIndex].request,
+        //        packetBuffer[packetPendingIndex].numBytes);
+        // Packet ready. Print its contents
+        // for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+        //     printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
+        // }
+        // printf("\n");
 
-        if (bufferIndex == RX_BUFFER_SIZE) {
-            bufferIndex = 0;
+        if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
+            packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+            printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
         }
+
+        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+            packetsFinished = TRUE;
+        }
+
+        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+            fputc(packetBuffer[packetPendingIndex].bytes[i], target);
+        }
+
+        maple_increment_packet_pending_index();
     }
 
-    if (numBytes == 0 && in == 0) {
-        printf("Time out\n");
-        fclose(target);
-        return FALSE;
-    }
+    // for (int i = 0; i < RX_BUFFER_SIZE; i++) {
+    //     printf("%c", rxBuffer[i]);
+    // }
+    // printf("\n");
 
     fclose(target);
 
@@ -341,36 +270,22 @@ void maple_list_directory(struct sp_port* port, char* filePath) {
     bpacket_create_sp(&packet, BPACKET_R_LIST_DIR, filePath);
     maple_send_bpacket(port, &packet);
 
-    // Wait for all the data to come back from the ESP32
-    int numBytes;
-    uint8_t rxBytes[BPACKET_BUFFER_LENGTH_BYTES];
-    bpacket_t bpacket;
-    int in = 0;
+    int packetsFinished = FALSE;
+    while (packetsFinished == FALSE) {
 
-    while ((numBytes = sp_blocking_read(port, rxBytes, BPACKET_BUFFER_LENGTH_BYTES - 1, 300)) > 0) {
+        // Wait until the packet is ready
+        while (packetPendingIndex == packetBufferIndex) {}
 
-        bpacket_decode(&bpacket, rxBytes);
-        in = 1;
-
-        if (bpacket.request != BPACKET_R_IN_PROGRESS && bpacket.request != BPACKET_R_SUCCESS) {
-            printf("Error in message received: cmd: %i num bytes: %i", bpacket.request, bpacket.numBytes);
-            maple_print_bpacket_data(&bpacket);
-            return;
+        // Packet ready. Print its contents
+        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+            printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
         }
 
-        for (int i = 0; i < bpacket.numBytes; i++) {
-            printf("%c", bpacket.bytes[i]);
+        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+            packetsFinished = TRUE;
         }
 
-        if (bpacket.request == BPACKET_R_SUCCESS) {
-            break;
-        }
-    }
-
-    if (numBytes < 0) {
-        printf("Failed to read bytes from port\n");
-    } else if (in == 0) {
-        printf("Time out, no data\n");
+        maple_increment_packet_pending_index();
     }
 }
 
@@ -424,17 +339,15 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
         }
 
         // Check if request is to copy a file
-        if (chars_same(args[0], "cpy\0") == TRUE) {
-            for (int i = 0; i < 3; i++) {
-                if (maple_copy_file(port, args[1]) == TRUE) {
-                    printf("SUCCESFULLY TRANSFERED FILE\n");
-                    return TRUE;
-                }
+        // if (chars_same(args[0], "cpy\0") == TRUE) {
+        //     if (maple_copy_file(port, args[1]) == TRUE) {
+        //         printf("SUCCESFULLY TRANSFERED FILE\n");
+        //         return TRUE;
+        //     }
 
-                printf("FAILED to transfer file\n");
-                return FALSE;
-            }
-        }
+        //     printf("FAILED to transfer file\n");
+        //     return FALSE;
+        // }
     }
 
     if (numArgs == 3) {
@@ -452,23 +365,141 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
             // sprintf(uartString, "%i,%s,%s", UART_REQUEST_LED_RED_OFF, "", "");
             return TRUE;
         }
+
+        if (chars_same(args[0], "cpy\0") == TRUE) {
+            if (maple_copy_file(port, args[1], args[2]) == TRUE) {
+                printf("SUCCESFULLY TRANSFERED FILE\n");
+                return TRUE;
+            }
+
+            printf("FAILED to transfer file\n");
+            return FALSE;
+        }
+    }
+
+    return FALSE;
+}
+
+DWORD WINAPI maple_listen_rx(void* arg) {
+
+    // Arg is the pointer to the port
+    struct sp_port* port = arg;
+
+    uint8_t c[1];
+    uint8_t lastChar  = BPACKET_STOP_BYTE;
+    int numBytes      = 0;
+    packetBufferIndex = 0;
+
+    int bufferIndex = 0;
+
+    int packetLengthFlag  = FALSE;
+    int packetCommandFlag = FALSE;
+    int packetByteIndex   = 0;
+    int startByteIndex    = 0;
+
+    while ((numBytes = sp_blocking_read(port, c, 1, 0)) > 0) {
+
+        if (bufferIndex == RX_BUFFER_SIZE) {
+            bufferIndex = 0;
+        }
+
+        rxBuffer[bufferIndex++] = c[0];
+
+        if (packetLengthFlag == TRUE) {
+            // Subtract 1 because this number includes the request
+            packetBuffer[packetBufferIndex].numBytes = (c[0] - 1);
+            packetLengthFlag                         = FALSE;
+            packetCommandFlag                        = TRUE;
+            lastChar                                 = c[0];
+            // printf("Packet length flag set\n");
+            continue;
+        }
+
+        if (packetCommandFlag == TRUE) {
+            packetBuffer[packetBufferIndex].request = c[0];
+            packetCommandFlag                       = FALSE;
+            lastChar                                = c[0];
+            // printf("Packet command flag set\n");
+            continue;
+        }
+
+        if (c[0] == BPACKET_START_BYTE) {
+
+            // Need to determine whether the character recieved is a start byte or part
+            // of a message. We can be very confident the character represents a start
+            // byte if:
+            // 1) The character that was recieved previously was a stop byte, and
+            // 2) The start byte agrees with the length of the last message that
+            //      was recieved
+
+            if (lastChar == BPACKET_STOP_BYTE) {
+
+                // Check whether the length of the message agrees with the position
+                // of this recieved start byte
+                // if (bufferIndex == (stopByteIndex + 1)) {
+                //     // Very certain that this byte is the start of a new packet
+                // }
+
+                // Start of new packet
+                packetLengthFlag = TRUE;
+                startByteIndex   = bufferIndex - 1; // Minus 1 because one is added at the top
+                lastChar         = c[0];
+
+                // printf("Start byte recieved\n");
+                // printf("Start byte acted upon\n");
+                continue;
+            }
+
+            //
+        }
+
+        if (c[0] == BPACKET_STOP_BYTE) {
+            // printf("Buffer index: %i Start index: %i\n", bufferIndex, startByteIndex);
+
+            // Calculate the
+            int stopByteIndex = (bufferIndex == 0 ? RX_BUFFER_SIZE : bufferIndex) - 1;
+
+            // The added 3 is for the start byte and the second byte in the bpacket that holds
+            // the number of data bytes the packet should contain and the request byte
+            int predictedStopByteIndex =
+                (startByteIndex + 3 + packetBuffer[packetBufferIndex].numBytes) % RX_BUFFER_SIZE;
+
+            // Need to determine whether the character recieved was a stop byte or
+            // part of the message. If the stop byte is in the predicted spot, then
+            // we can be farily certain that this byte is a stop byte
+            if (stopByteIndex == predictedStopByteIndex) {
+
+                // Very sure this is the end of a packet
+                // printf("Request[%i]: %i Numbytes: %i-> ", packetBufferIndex, packetBuffer[packetBufferIndex].request,
+                //        packetBuffer[packetBufferIndex].numBytes);
+                // // Packet ready. Print its contents
+                // for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
+                //     printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
+                // }
+                // printf("\n");
+
+                // Reset byte index to 0
+                packetByteIndex = 0;
+                lastChar        = c[0];
+
+                // printf("Stop byte recieved\n");
+                maple_increment_packet_buffer_index();
+                continue;
+            }
+        }
+
+        // Byte is a data byte, add to the bpacket
+        packetBuffer[packetBufferIndex].bytes[packetByteIndex++] = c[0];
+    }
+
+    if (numBytes < 0) {
+        printf("Error reading COM port\n");
     }
 
     return FALSE;
 }
 
 int main(int argc, char** argv) {
-
-    // bpacket_t p;
-    // bpacket_create_sp(&p, 35, "this is a test!\0");
-    // printf("req: %i\n", p.request);
-    // bpacket_buffer_t b;
-    // bpacket_to_buffer(&p, &b);
-    // printf("Num bytes: %i '%s'\n", b.numBytes, b.buffer);
-    // bpacket_t c;
-    // bpacket_decode(&c, b.buffer);
-    // printf("Request: %i, message %s  Size bytes: %i\n", c.request, c.bytes, c.numBytes);
-    // return 0;
 
     char espPortName[50];
     espPortName[0]        = '\0';
@@ -492,6 +523,13 @@ int main(int argc, char** argv) {
 
     if (check(maple_open_port(port)) != SP_OK) {
         printf("Could not open ESP port\n");
+        return 0;
+    }
+
+    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, port, 0, NULL);
+
+    if (!thread) {
+        printf("Thread failed\n");
         return 0;
     }
 

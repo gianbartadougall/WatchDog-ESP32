@@ -45,13 +45,13 @@
  * Examples of valid paths are
  *      - folder1/data
  *      - project/data/temperatureData/temps.txt
- * @param response If the folders/file could be created the
+ * @param bpacket If the folders/file could be created the
  * request of the response packet will be SUCCESS else it will
  * be ERROR and the instruction/data parts of the response packet
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_create_path(char* folderPath, packet_t* response);
+uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket);
 
 /**
  * @brief Lists all folders and files in a given directory
@@ -64,7 +64,7 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket);
+uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);
 
 /**
  * @brief Appends a string to the given file
@@ -78,20 +78,20 @@ uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_write_to_file(char* filePath, char* string, packet_t* response);
+uint8_t sd_card_write_to_file(char* filePath, char* string, bpacket_t* bpacket);
 
 /**
  * @brief Saves an image to the SD card
  *
  * @param imageData The image data
  * @param imageLength The size of the image in bytes
- * @param response If the folders/file could be created the
+ * @param bpacket If the folders/file could be created the
  * request of the response packet will be SUCCESS else it will
  * be ERROR and the instruction/data parts of the response packet
  * may contain information about why it failed
  * @return uint8_t uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* response);
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpacket);
 
 /**
  * @brief Finds all the images saved on the SD card in the image data folder and
@@ -105,7 +105,7 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response);
+uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket);
 
 /**
  * @brief Searches the SD card for all the images on the card and updates the
@@ -117,9 +117,9 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_init(packet_t* response);
+uint8_t sd_card_init(bpacket_t* bpacket);
 
-void sd_card_copy_file(bpacket_t* bpacket);
+void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);
 
 /**
  * @brief Mounts the SD Card for reading and writing
@@ -155,8 +155,6 @@ uint8_t sd_card_log(char* fileName, char* message);
  * characters in this message must be within the set limit
  */
 uint8_t sd_card_write(char* filePath, char* fileName, char* message);
-
-void sd_card_data_copy(packet_t* packet);
 
 /* Functions that don't work yet */
 uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb);

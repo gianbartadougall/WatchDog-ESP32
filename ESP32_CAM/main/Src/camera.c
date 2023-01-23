@@ -8,9 +8,12 @@
  * @copyright Copyright (c) 2022
  *
  */
+
+/* Personal Includes */
 #include "camera.h"
 #include "wd_utils.h"
 #include "sd_card.h"
+#include "esp32_uart.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -93,17 +96,19 @@ uint8_t camera_init(void) {
     return WD_SUCCESS;
 }
 
-void camera_capture_and_save_image(packet_t* response) {
+void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised
     if (cameraInitalised == FALSE) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Camera was not initailised", "\0");
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "Camera was unitailised\0");
+        esp32_uart_send_bpacket(bpacket);
         return;
     }
 
     // Confirm the SD card can be mounted
     if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "SD card could not be opened", "\0");
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "SD card could not open\0");
+        esp32_uart_send_bpacket(bpacket);
         return;
     }
 
@@ -113,23 +118,18 @@ void camera_capture_and_save_image(packet_t* response) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
+        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "Failed to take a photo\0");
+        esp32_uart_send_bpacket(bpacket);
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Failed to take a photo", "\0");
-    } else if (sd_card_save_image(pic->buf, pic->len, response) != WD_SUCCESS) {
+    } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != WD_SUCCESS) {
         sd_card_log(SYSTEM_LOG_FILE, "Image could not be saved");
     } else {
         char msg[100];
-        sprintf(msg, "Image captured. Size was %zu bytes", pic->len);
+        sprintf(msg, "Image was %zu bytes", pic->len);
         sd_card_log(SYSTEM_LOG_FILE, msg);
-        uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, msg, "\0");
+        bpacket_create_sp(bpacket, BPACKET_R_SUCCESS, msg);
+        esp32_uart_send_bpacket(bpacket);
     }
-
-    // Save the image
-    // if (sd_card_save_image(pic->buf, pic->len) != WD_SUCCESS) {
-    //     uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Image could not be saved", "\0");
-    //     esp_camera_fb_return(pic);
-    //     return;
-    // }
 
     esp_camera_fb_return(pic);
 

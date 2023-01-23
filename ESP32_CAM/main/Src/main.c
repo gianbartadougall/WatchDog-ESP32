@@ -8,6 +8,8 @@
  * @copyright Copyright (c) 2022
  *
  */
+
+/* Library includes */
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "esp_log.h"
@@ -16,50 +18,21 @@
 #include "sdkconfig.h"
 #include <stdio.h>
 
+/* Personal Includes */
 #include "sd_card.h"
 #include "camera.h"
 #include "hardware_config.h"
 #include "led.h"
 #include "wd_utils.h"
 #include "bpacket.h"
-
-#include "hardware_config.h"
 #include "esp32_uart.h"
+#include "help.h"
 
+/* Private Macros */
 #define COB_LED HC_COB_LED
 #define RED_LED HC_RED_LED
 
 /* Private Function Declarations */
-
-void generate_status_string(packet_t* response) {
-
-    /**
-     * @brief Status String is of the form
-     *
-     * Number of images: 34
-     * SD Card size: 32000Mb
-     * Errors: No
-     */
-
-    uint16_t numImages = 0;
-    if (sd_card_search_num_images(&numImages, response) != WD_SUCCESS) {
-        return;
-    }
-
-    response->request        = UART_REQUEST_SUCCEEDED;
-    response->instruction[0] = '\0';
-    sprintf(response->data, "Number of images: %i\r\n", numImages);
-}
-
-void record_data(packet_t* packet, packet_t* response) {
-
-    camera_capture_and_save_image(response);
-    if (response->request != UART_REQUEST_SUCCEEDED) {
-        return;
-    }
-
-    sd_card_write_to_file(packet->instruction, packet->data, response);
-}
 
 void watchdog_system_start(void) {
 
@@ -75,6 +48,7 @@ void watchdog_system_start(void) {
     // packet_t packet, response;
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
     bpacket_t bpacket;
+    bpacket_char_array_t bpacketCharArray;
 
     while (1) {
 
@@ -89,127 +63,59 @@ void watchdog_system_start(void) {
         bpacket_decode(&bpacket, bdata);
 
         switch (bpacket.request) {
-            case BPACKET_R_LED_RED_ON:
-                led_on(RED_LED);
+            case BPACKET_GEN_R_HELP:
+                esp32_uart_send_string(uartHelp);
                 break;
-            case BPACKET_R_LED_RED_OFF:
-                led_off(RED_LED);
-                break;
-            case BPACKET_R_COPY_FILE:
-                sd_card_copy_file(&bpacket);
-                break;
-            case BPACKET_R_LIST_DIR:
-                sd_card_list_directory("\0", &bpacket);
-                break;
-            case BPACKET_R_PING:
+            case BPACKET_GEN_R_PING:
                 bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, ping);
                 esp32_uart_send_bpacket(&bpacket);
+                break;
+            case WATCHDOG_BPK_R_LIST_DIR:
+                bpacket_data_to_string(&bpacket, &bpacketCharArray);
+                sd_card_list_directory(&bpacket, &bpacketCharArray);
+                break;
+            case WATCHDOG_BPK_R_COPY_FILE:
+                bpacket_data_to_string(&bpacket, &bpacketCharArray);
+                sd_card_copy_file(&bpacket, &bpacketCharArray);
+                break;
+            case WATCHDOG_BPK_R_TAKE_PHOTO:
+                camera_capture_and_save_image(&bpacket);
+                break;
+            case WATCHDOG_BPK_R_WRITE_TO_FILE:
+                break;
+            case WATCHDOG_BPK_R_RECORD_DATA:
+                break;
+            case WATCHDOG_BPK_R_LED_RED_ON:
+                led_on(RED_LED);
+                break;
+            case WATCHDOG_BPK_R_LED_RED_OFF:
+                led_off(RED_LED);
                 break;
             default:
                 break;
         }
-
-        continue;
     }
-    // Read UART and wait for command.
-    // const int rxBytes = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 1000 / portTICK_RATE_MS);
-
-    // if (rxBytes == 0) {
-    //     continue;
-    // }
-
-    // get_command(data);
-
-    // Validate incoming data
-    //     if (string_to_packet(&packet, data) != WD_SUCCESS) {
-    //         uart_comms_create_packet(&response, UART_ERROR_REQUEST_TRANSLATION_FAILED, "Failed to parse packet",
-    //         data); send_packet(&response); sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
-    //         continue;
-    //     }
-
-    //     // Carry out instruction
-    //     switch (packet.request) {
-    //         case UART_REQUEST_LED_RED_ON:
-    //             led_on(RED_LED);
-    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned on", "\0");
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_LED_RED_OFF:
-    //             led_off(RED_LED);
-    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "LED has been turned off", "\0");
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_LED_COB_ON:
-    //             led_on(COB_LED);
-    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned on", "\0");
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_LED_COB_OFF:
-    //             led_off(COB_LED);
-    //             uart_comms_create_packet(&response, UART_REQUEST_SUCCEEDED, "COB LED has been turned off", "\0");
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_LIST_DIRECTORY:
-    //             sd_card_list_directory(packet.instruction, &response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_COPY_FILE:
-    //             sd_card_copy_file(&packet, &response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_TAKE_PHOTO:
-    //             camera_capture_and_save_image(&response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_WRITE_TO_FILE:
-    //             sd_card_write_to_file(packet.instruction, packet.data, &response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_CREATE_PATH:
-    //             sd_card_create_path(packet.instruction, &response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_STATUS:
-    //             generate_status_string(&response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_RECORD_DATA:
-    //             record_data(&packet, &response);
-    //             send_packet(&response);
-    //             break;
-    //         case UART_REQUEST_PING:
-    //             sendData("ESP32 Watchdog\0");
-    //             break;
-    //         default:; // comma here required because only statments can follow a label
-    //             char errMsg[50];
-    //             sprintf(errMsg, "Request %i is unkown", packet.request);
-    //             uart_comms_create_packet(&response, UART_ERROR_REQUEST_UNKNOWN, errMsg, "\0");
-    //             send_packet(&response);
-    //     }
-
-    //     sendData("\r\n\0"); // REMOVE WHEN GOING BACK TO USING THE STM32
-    // }
 }
 
-uint8_t software_config(packet_t* response) {
+uint8_t software_config(bpacket_t* bpacket) {
 
-    if (sd_card_init(response) != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_init(bpacket) != TRUE) {
+        return FALSE;
     }
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 void app_main(void) {
 
-    packet_t status;
+    bpacket_t status;
 
     /* Initialise all the hardware used */
-    if (hardware_config(&status) == WD_SUCCESS && software_config(&status) == WD_SUCCESS) {
+    if (hardware_config(&status) == TRUE && software_config(&status) == TRUE) {
         watchdog_system_start();
     }
 
-    if (sd_card_open() == WD_SUCCESS) {
+    if (sd_card_open() == TRUE) {
         sd_card_log(SYSTEM_LOG_FILE, "Exited Watchdog System. Waiting for shutdown");
         sd_card_close();
     }

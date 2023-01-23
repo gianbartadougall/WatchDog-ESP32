@@ -17,7 +17,8 @@ C_INCLUDES = \
 -I../ESP32_CAM/main/Inc \
 -I../STM32/Core/Inc/Utilities \
 -I../STM32/Core/Inc/Board \
--I../STM32/Library/Inc
+-I../STM32/Library/Inc \
+-IInc
 
 LIB_SP_SOURCES = \
 serialport.c \
@@ -39,8 +40,11 @@ OPT = -Og
 C_COMPILER=gcc
 DEBUG_MODE=-g
 
-FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(C_INCLUDES) $(OPT)
-$(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
+# Ensures .cpp files are recompiled if header files are edited 
+DEPENDENCY_FLAGS = -MP -MD
+
+FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(C_INCLUDES) $(DEPENDENCY_FLAGS) $(OPT)
+# $(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
 
 all: $(BUILD_DIR) $(C_SOURCES) Linker
 

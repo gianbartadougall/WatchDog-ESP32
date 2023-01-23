@@ -68,7 +68,7 @@ void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES
 
     // Confirm first 3 bytes are not null
     if (data[0] == '\0' || data[1] == '\0' || data[2] == '\0') {
-        bpacket->request  = BPACKET_R_NULL;
+        bpacket->request  = BPACKET_R_UNKNOWN;
         bpacket->numBytes = 0;
         return;
     }
@@ -81,4 +81,22 @@ void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES
     for (int i = 0; i < bpacket->numBytes; i++) {
         bpacket->bytes[i] = data[i + 3]; // The data starts on the 4th byte thus adding 3 (starting from 1)
     }
+}
+
+void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
+
+    bpacketCharArray->numBytes = bpacket->numBytes;
+
+    if (bpacket->numBytes == 0) {
+        bpacketCharArray->string[0] = '\0';
+        return;
+    }
+
+    // Copy the data to the packet.
+    int i;
+    for (i = 0; i < bpacket->numBytes; i++) {
+        bpacketCharArray->string[i] = bpacket->bytes[i];
+    }
+
+    bpacketCharArray->string[i] = '\0';
 }

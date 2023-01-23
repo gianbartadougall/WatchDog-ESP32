@@ -8,7 +8,7 @@
 #include <driver/uart.h>
 
 /* Private Includes */
-#include "uart_comms.h"
+#include "bpacket.h"
 
 /* Public Marcos for UART */
 #define HC_UART_COMMS_TX_PIN     GPIO_NUM_1
@@ -27,9 +27,9 @@
 /**
  * @brief Configures all the hardware for the system
  *
- * @return uint8_t WD_SUCCESS if everything was configured
- * successfully else WD_ERROR
+ * @return uint8_t TRUE if everything was configured
+ * successfully else FALSE
  */
-uint8_t hardware_config(packet_t* packet);
+uint8_t hardware_config(bpacket_t* bpacket);
 
 #endif // HARDWARE_CONFIG_H

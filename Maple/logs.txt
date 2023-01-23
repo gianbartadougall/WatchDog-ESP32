@@ -1,0 +1,1026 @@
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Exited Watchdog System. Waiting for shutdown
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Exited Watchdog System. Waiting for shutdown
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Configuring Camera
+1/1/2023 9:00am	Configuring UART
+1/1/2023 9:00am	Configuring LEDs
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	
+1/1/2023 9:00am	Unmounting SD card
+1/1/2023 9:00am	SD CARD mounted. Speed: 20Mhz	

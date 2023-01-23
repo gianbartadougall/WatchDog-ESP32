@@ -141,7 +141,7 @@ enum sp_return maple_search_ports(char portName[50]) {
         }
 
         // Ping port
-        maple_create_and_send_bpacket(port, BPACKET_R_PING, 0, NULL);
+        maple_create_and_send_bpacket(port, BPACKET_GEN_R_PING, 0, NULL);
 
         // Wait for response from port
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
@@ -184,7 +184,7 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName)
     int filePathNumBytes = chars_get_num_bytes(filePath);
     if (filePathNumBytes > BPACKET_MAX_NUM_DATA_BYTES) {
         printf("File path is too long\n");
-        // fclose(target);
+        fclose(target);
         return FALSE;
     }
 
@@ -195,9 +195,7 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName)
     }
 
     // Send command to copy file. Keeping reading until no more data to send across
-    maple_create_and_send_bpacket(port, BPACKET_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
-
-    // Sleep(3000);
+    maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
 
     int packetsFinished = FALSE;
     int count           = 0;
@@ -227,6 +225,8 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName)
         if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
             packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
             printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
+            fclose(target);
+            return FALSE;
         }
 
         if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
@@ -239,11 +239,6 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName)
 
         maple_increment_packet_pending_index();
     }
-
-    // for (int i = 0; i < RX_BUFFER_SIZE; i++) {
-    //     printf("%c", rxBuffer[i]);
-    // }
-    // printf("\n");
 
     fclose(target);
 
@@ -267,8 +262,29 @@ void maple_print_bpacket_data(bpacket_t* bpacket) {
 void maple_list_directory(struct sp_port* port, char* filePath) {
 
     bpacket_t packet;
-    bpacket_create_sp(&packet, BPACKET_R_LIST_DIR, filePath);
+    bpacket_create_sp(&packet, WATCHDOG_BPK_R_LIST_DIR, filePath);
     maple_send_bpacket(port, &packet);
+
+    int packetsFinished = FALSE;
+    while (packetsFinished == FALSE) {
+
+        // Wait until the packet is ready
+        while (packetPendingIndex == packetBufferIndex) {}
+
+        // Packet ready. Print its contents
+        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+            printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
+        }
+
+        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+            packetsFinished = TRUE;
+        }
+
+        maple_increment_packet_pending_index();
+    }
+}
+
+void maple_print_uart_response(void) {
 
     int packetsFinished = FALSE;
     while (packetsFinished == FALSE) {
@@ -293,6 +309,13 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
 
     if (numArgs == 1) {
 
+        if (chars_same(args[0], "help\0") == TRUE) {
+            maple_create_and_send_bpacket(port, BPACKET_GEN_R_HELP, 0, NULL);
+            maple_print_uart_response();
+            // sprintf(uartString, "%i,%s,%s", B, "data.txt", "21/02/2023 0900 26.625\r\n");
+            return TRUE;
+        }
+
         // if (chars_same(args[0], "rec\0") == TRUE) {
         //     sprintf(uartString, "%i,%s,%s", UART_REQUEST_RECORD_DATA, "data.txt", "21/02/2023 0900 26.625\r\n");
         //     return TRUE;
@@ -300,23 +323,12 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
 
         if (chars_same(args[0], "clc\0")) {
             printf(ASCII_CLEAR_SCREEN);
+            return TRUE;
         }
 
         if (chars_same(args[0], "ls\0") == TRUE) {
             maple_list_directory(port, "\0");
-            // bpacket_t packet;
-            // bpacket_create_sp(&packet, BPACKET_R_LIST_DIR, args[1]);
-            // maple_send_bpacket(port, &packet);
-
-            // uint8_t response[BPACKET_LENGTH_BYTES];
-            // if (sp_blocking_read(port, response, 100, 1100) < 0) {
-            //     printf("Response timed out\n");
-            // } else {
-            //     bpacket_decode(&packet, response);
-            //     maple_print_bpacket_data(&packet);
-            // }
-
-            // return TRUE;
+            return TRUE;
         }
     }
 
@@ -324,56 +336,31 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
 
         if (chars_same(args[0], "ls\0") == TRUE) {
             maple_list_directory(port, args[1]);
-            // bpacket_t packet;
-            // bpacket_create_sp(&packet, BPACKET_R_LIST_DIR, args[1]);
-            // maple_send_bpacket(port, &packet);
-
-            // uint8_t response[BPACKET_LENGTH_BYTES];
-            // if (sp_blocking_read(port, response, 100, 1100) < 0) {
-            //     printf("Response timed out\n");
-            // } else {
-            //     printf("Response:\n%s\n", response);
-            // }
-
-            // return TRUE;
+            return TRUE;
         }
-
-        // Check if request is to copy a file
-        // if (chars_same(args[0], "cpy\0") == TRUE) {
-        //     if (maple_copy_file(port, args[1]) == TRUE) {
-        //         printf("SUCCESFULLY TRANSFERED FILE\n");
-        //         return TRUE;
-        //     }
-
-        //     printf("FAILED to transfer file\n");
-        //     return FALSE;
-        // }
     }
 
     if (numArgs == 3) {
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "on\0") == TRUE) {
-            maple_create_and_send_bpacket(port, BPACKET_R_LED_RED_ON, 0, NULL);
-            // sprintf(uartString, "%i,%s,%s", UART_REQUEST_LED_RED_ON, "", "");
+            maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
             return TRUE;
         }
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "off\0") == TRUE) {
-            maple_create_and_send_bpacket(port, BPACKET_R_LED_RED_OFF, 0, NULL);
-            // sprintf(uartString, "%i,%s,%s", UART_REQUEST_LED_RED_OFF, "", "");
+            maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
             return TRUE;
         }
 
         if (chars_same(args[0], "cpy\0") == TRUE) {
             if (maple_copy_file(port, args[1], args[2]) == TRUE) {
-                printf("SUCCESFULLY TRANSFERED FILE\n");
-                return TRUE;
+                printf(ASCII_COLOR_GREEN "Succesfully transfered file\n" ASCII_COLOR_WHITE);
+            } else {
+                printf(ASCII_COLOR_RED "Failed to transfer file\n" ASCII_COLOR_WHITE);
             }
-
-            printf("FAILED to transfer file\n");
-            return FALSE;
+            return TRUE;
         }
     }
 
@@ -561,7 +548,9 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        maple_match_args(args, numArgs, port);
+        if (maple_match_args(args, numArgs, port) == FALSE) {
+            printf(ASCII_COLOR_RED "Unkown command: '%s'\n" ASCII_COLOR_WHITE, userInput);
+        }
 
         // Free list of args
         for (int i = 0; i < numArgs; i++) {

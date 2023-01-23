@@ -17,20 +17,24 @@
 #define BPACKET_START_BYTE 'A'
 #define BPACKET_STOP_BYTE  'B'
 
-#define START                   2
-#define BPACKET_R_ERROR         (0 + START)
-#define BPACKET_R_NULL          (1 + START)
-#define BPACKET_R_SUCCESS       (2 + START)
-#define BPACKET_R_IN_PROGRESS   (3 + START)
-#define BPACKET_R_LIST_DIR      (4 + START)
-#define BPACKET_R_COPY_FILE     (5 + START)
-#define BPACKET_R_TAKE_PHOTO    (6 + START)
-#define BPACKET_R_WRITE_TO_FILE (7 + START)
-#define BPACKET_R_RECORD_DATA   (8 + START)
-#define BPACKET_R_PING          (9 + START)
-#define BPACKET_R_LED_RED_ON    (10 + START)
-#define BPACKET_R_LED_RED_OFF   (11 + START)
-#define BPACKET_R_ACKNOWLEDGE   (12 + START)
+#define START                     2 // Start at 2 so no code is the same as TRUE/FALSE
+#define BPACKET_R_FAILED          (START + 0)
+#define BPACKET_R_SUCCESS         (START + 1)
+#define BPACKET_R_UNKNOWN         (START + 2)
+#define BPACKET_R_IN_PROGRESS     (START + 3)
+#define BPACKET_GEN_R_HELP        (START + 4)
+#define BPACKET_GEN_R_PING        (START + 5)
+#define BPACKET_SPECIFIC_R_OFFSET (START + 6) // This is the offset applied to specific projects
+
+// #define BPACKET_R_LIST_DIR      (4 + START)
+// #define BPACKET_R_COPY_FILE     (5 + START)
+// #define BPACKET_R_TAKE_PHOTO    (6 + START)
+// #define BPACKET_R_WRITE_TO_FILE (7 + START)
+// #define BPACKET_R_RECORD_DATA   (8 + START)
+// #define BPACKET_R_PING          (9 + START)
+// #define BPACKET_R_LED_RED_ON    (10 + START)
+// #define BPACKET_R_LED_RED_OFF   (11 + START)
+// #define BPACKET_R_ACKNOWLEDGE   (12 + START)
 
 #define BPACKET_REQUEST_SIZE_BYTES 1
 #define BPACKET_MAX_NUM_DATA_BYTES 31
@@ -52,6 +56,11 @@ typedef struct bpacket_buffer_t {
     uint8_t buffer[BPACKET_BUFFER_LENGTH_BYTES];
 } bpacket_buffer_t;
 
+typedef struct bpacket_char_array_t {
+    uint8_t numBytes;
+    char string[BPACKET_MAX_NUM_DATA_BYTES + 1]; // One extra for null character
+} bpacket_char_array_t;
+
 void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
 void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
@@ -60,5 +69,7 @@ void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
 void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char string[BPACKET_MAX_NUM_DATA_BYTES + 1]);
 
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer);
+
+void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);
 
 #endif // BPACKET_H

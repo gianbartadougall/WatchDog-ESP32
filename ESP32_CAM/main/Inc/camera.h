@@ -17,17 +17,15 @@
 #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
 #include "esp_camera.h"
 
 /* Private Includes */
-#include "uart_comms.h"
+#include "bpacket.h"
 
 uint8_t camera_init(void);
 
-void camera_capture_and_save_image(packet_t* responsePacket);
+void camera_capture_and_save_image(bpacket_t* bpacket);
 
 #endif // CAMERA_H

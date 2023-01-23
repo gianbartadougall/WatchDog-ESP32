@@ -13,22 +13,22 @@
 void hardware_config_leds(void);
 void hardware_config_uart_comms(void);
 
-uint8_t hardware_config(packet_t* packet) {
+uint8_t hardware_config(bpacket_t* bpacket) {
 
     /* Configure all the required hardware */
 
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
-    if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(packet, UART_ERROR_INIT_ERROR, "SD Card failed to init", "'\0");
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD Card failed to init\0");
+        return FALSE;
     }
 
     // Configure Camera
     sd_card_log(SYSTEM_LOG_FILE, "Configuring Camera\0");
-    if (camera_init() != WD_SUCCESS) {
-        uart_comms_create_packet(packet, UART_ERROR_INIT_ERROR, "Camera failed to init", "'\0");
-        return WD_ERROR;
+    if (camera_init() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to init\0");
+        return FALSE;
     }
 
     sd_card_log(SYSTEM_LOG_FILE, "Configuring UART\0");
@@ -40,7 +40,7 @@ uint8_t hardware_config(packet_t* packet) {
     // Unmount the SD card
     sd_card_close();
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 void hardware_config_leds(void) {

@@ -21,6 +21,7 @@ int esp32_uart_send_data(const char* data);
 // void esp32_uart_get_packet(char msg[200]);
 
 // void esp32_uart_send_packet(packet_t* packet);
+void esp32_uart_send_string(char* string);
 
 int esp32_uart_read_bpacket(uint8_t bpacketBuffer[BPACKET_BUFFER_LENGTH_BYTES]);
 

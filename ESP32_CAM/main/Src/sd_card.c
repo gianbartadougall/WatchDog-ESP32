@@ -60,18 +60,18 @@ void sd_card_send_bpacket(packet_t* packet);
 
 /* GOOD FUNCTIONS */
 
-uint8_t sd_card_create_path(char* folderPath, packet_t* response) {
+uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\n");
+        return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
-        return WD_ERROR;
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Folder path > 50 characters\n");
+        return FALSE;
     }
 
     // Try create folder
@@ -99,8 +99,8 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response) {
                 FILE* file = fopen(directory, "w");
 
                 if (file == NULL) {
-                    uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "File could not be made", path);
-                    return WD_ERROR;
+                    bpacket_create_sp(bpacket, BPACKET_R_FAILED, "File could not be made\n");
+                    return FALSE;
                 }
 
                 break;
@@ -108,32 +108,34 @@ uint8_t sd_card_create_path(char* folderPath, packet_t* response) {
 
             // Error if the directory does not exist and a new one could not be made
             if (stat(directory, &st) != 0 && mkdir(directory, 0700) != 0) {
-                uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Directory could not be made", path);
-                return WD_ERROR;
+                bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Dir could not be made\n");
+                return FALSE;
             }
 
             path[i] = '/';
         }
     }
 
-    uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", "\0");
-    return WD_SUCCESS;
+    bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    return TRUE;
 }
 
-uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket) {
+uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
+
+    char* folderPath = bpacketCharArray->string;
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "SD card could not open\0");
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\0");
         // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
-        return WD_ERROR;
+        return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
-        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "Folder path > 50 chars\0");
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Folder path > 50 chars\0");
         // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
-        return WD_ERROR;
+        return FALSE;
     }
 
     // Append the mounting point of the SD card to the folder path
@@ -143,9 +145,9 @@ uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket) {
     DIR* directory;
     directory = opendir(path);
     if (directory == NULL) {
-        bpacket_create_sp(bpacket, BPACKET_R_ERROR, "Filepath could not open\0");
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath could not open\0");
         // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The directory could not be opened", path);
-        return WD_ERROR;
+        return FALSE;
     }
 
     // Calculate number of characters in all folder names combined
@@ -203,65 +205,64 @@ uint8_t sd_card_list_directory(char* folderPath, bpacket_t* bpacket) {
     // bpacket_create_sp(bpacket, BPACKET_R_SUCCESS, foldersList);
     // esp32_uart_send_bpacket(bpacket);
     // uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", foldersList);
-    return WD_SUCCESS;
+    return TRUE;
 }
 
-uint8_t sd_card_write_to_file(char* filePath, char* string, packet_t* response) {
+uint8_t sd_card_write_to_file(char* filePath, char* string, bpacket_t* bpacket) {
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD Card could not open\0");
+        return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(filePath) > MAX_PATH_LENGTH) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
-        return WD_ERROR;
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath > 50 characters\0");
+        return FALSE;
     }
 
     // Add SD card mount point to start of path
     char directory[MAX_PATH_LENGTH + 9];
     sprintf(directory, "%s/%s", MOUNT_POINT_PATH, filePath);
 
-    if (sd_card_create_path(directory, response) != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_create_path(directory, bpacket) != TRUE) {
+        return FALSE;
     }
 
     // Try open the file
     FILE* file = fopen(directory, "a+");
 
     if (file == NULL) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "File could not be opened", filePath);
-        return WD_ERROR;
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath could not open\0");
+        return FALSE;
     }
 
     fprintf(file, string);
     fclose(file);
 
-    uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", "\0");
-    return WD_SUCCESS;
+    bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    return TRUE;
 }
 
-uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response) {
+uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket) {
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        return FALSE;
     }
 
     // Confirm the directory for the images exists
-    if (sd_card_create_path(IMAGE_DATA_FOLDER, response) != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_create_path(IMAGE_DATA_FOLDER, bpacket) != TRUE) {
+        return FALSE;
     }
 
     // Open the directory where the images are stored
     DIR* directory;
     directory = opendir(ROOT_IMAGE_DATA_FOLDER);
     if (directory == NULL) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Could not open directory",
-                                 ROOT_IMAGE_DATA_FOLDER);
-        return WD_ERROR;
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Img dir could not open\0");
+        return FALSE;
     }
 
     // Loop through each file and calculate the number of images
@@ -273,33 +274,33 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, packet_t* response) {
         }
     }
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb) {
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        return FALSE;
     }
 
     *maxStorageCapacityMb = (card->csd.capacity * card->csd.sector_size) / (1024 * 1024);
 
     sd_card_close();
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* response) {
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpacket) {
 
     // Try open the SD card
-    if (sd_card_open() != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_open() != TRUE) {
+        return FALSE;
     }
 
     // Create the data folder path if required
-    if (sd_card_create_path(IMAGE_DATA_FOLDER, response) != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_create_path(IMAGE_DATA_FOLDER, bpacket) != TRUE) {
+        return FALSE;
     }
 
     // Create path for image
@@ -308,9 +309,8 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
 
     FILE* imageFile = fopen(filePath, "wb");
     if (imageFile == NULL) {
-        uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Image file could not be created",
-                                 strerror(errno));
-        return WD_ERROR;
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Image file failed to open\0");
+        return FALSE;
     }
 
     for (int i = 0; i < imageLength; i++) {
@@ -320,36 +320,37 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, packet_t* respon
     fclose(imageFile);
 
     imageNumber++;
-    return WD_SUCCESS;
+    return TRUE;
 }
 
-uint8_t sd_card_init(packet_t* response) {
+uint8_t sd_card_init(bpacket_t* bpacket) {
 
     // Update the image number
-    if (sd_card_search_num_images(&imageNumber, response) != WD_SUCCESS) {
-        return WD_ERROR;
+    if (sd_card_search_num_images(&imageNumber, bpacket) != TRUE) {
+        return FALSE;
     }
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
-void sd_card_copy_file(bpacket_t* bpacket) {
+void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
 
     // Return error message if the SD card cannot be opened
-    if (sd_card_open() != WD_SUCCESS) {
-
+    if (sd_card_open() != TRUE) {
         bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "SD card failed to open\0");
         esp32_uart_send_bpacket(bpacket);
         // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, , "\0");
         return;
     }
 
+    char* filePath = bpacketCharArray->string;
+
     // Reconstruct file path from binary data
-    char filePath[bpacket->numBytes + 1];
-    for (int i = 0; i < bpacket->numBytes; i++) {
-        filePath[i] = (char)bpacket->bytes[i];
-    }
-    filePath[bpacket->numBytes] = '\0';
+    // char filePath[bpacket->numBytes + 1];
+    // for (int i = 0; i < bpacket->numBytes; i++) {
+    //     filePath[i] = (char)bpacket->bytes[i];
+    // }
+    // filePath[bpacket->numBytes] = '\0';
 
     // Return an error if there was no specified file
     if (filePath[0] == '\0') {
@@ -387,8 +388,6 @@ void sd_card_copy_file(bpacket_t* bpacket) {
         sprintf(msg, fullPath);
         bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, strerror(errno));
         esp32_uart_send_bpacket(bpacket);
-        // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "The file could not be opened",
-        //                          strerror(errno));
         return;
     }
 
@@ -516,27 +515,11 @@ void sd_card_send_packet(packet_t* packet) {
     sd_card_send_data(string);
 }
 
-void sd_card_data_copy(packet_t* packet) {
-
-    // For this type of request, the instruction should contain the file path to the data
-    // that needs to be copied. Validate the file path
-    if (sd_card_check_file_path_exists(packet->instruction) != WD_SUCCESS) {
-        packet->request = UART_ERROR_REQUEST_FAILED;
-        sprintf(packet->instruction, "The file path was invalid");
-        sprintf(packet->data, "%s", packet->instruction);
-        return;
-    }
-
-    packet->request        = UART_REQUEST_SUCCEEDED;
-    packet->instruction[0] = '\0';
-    sprintf(packet->data, "Temperature data: -12.558 degrees");
-}
-
 uint8_t sd_card_open(void) {
 
     // Return if the sd card has already been mounted
     if (mounted != FALSE) {
-        return WD_SUCCESS;
+        return TRUE;
     }
 
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
@@ -574,7 +557,7 @@ uint8_t sd_card_open(void) {
     }
 
     int returnCode = sd_card_log(SYSTEM_LOG_FILE, sdCardLog);
-    if (returnCode != WD_SUCCESS) {
+    if (returnCode != TRUE) {
         if (returnCode == SD_CARD_ERROR_IO_ERROR) {
             ESP_LOGE(SD_CARD_TAG, "Could not open file to write");
         }
@@ -585,7 +568,7 @@ uint8_t sd_card_open(void) {
     }
 
     mounted = TRUE;
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 void sd_card_close(void) {
@@ -625,13 +608,13 @@ uint8_t sd_card_check_file_path_exists(char* filePath) {
 
         if (filePath[i + 1] == '/' || i == (length - 1)) {
             copyFilePath[i + 1] = '\0'; // Add null terminator to string
-            if (sd_card_check_directory_exists(copyFilePath) != WD_SUCCESS) {
-                return WD_ERROR;
+            if (sd_card_check_directory_exists(copyFilePath) != TRUE) {
+                return FALSE;
             }
         }
     }
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 uint8_t sd_card_check_directory_exists(char* directory) {
@@ -642,16 +625,16 @@ uint8_t sd_card_check_directory_exists(char* directory) {
 
     // if stat returns 0 then the directory was able to be found
     if (stat(directory, &st) == 0) {
-        return WD_SUCCESS;
+        return TRUE;
     }
 
     // Try to create the directory. mkdir() returning 0 => directory was created
     if (mkdir(directory, 0700) == 0) {
-        return WD_SUCCESS;
+        return TRUE;
     }
 
     ESP_LOGE(SD_CARD_TAG, "Error trying to create directory %s. Error: '%s'", directory, strerror(errno));
-    return WD_ERROR;
+    return FALSE;
 }
 
 uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
@@ -659,7 +642,7 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
     // Log to console that data is being written to this file name
     // ESP_LOGI(SD_CARD_TAG, "Writing data to %s", filePath);
 
-    if (sd_card_check_file_path_exists(filePath) != WD_SUCCESS) {
+    if (sd_card_check_file_path_exists(filePath) != TRUE) {
         return SD_CARD_ERROR_IO_ERROR;
     }
 
@@ -701,7 +684,7 @@ uint8_t sd_card_write(char* filePath, char* fileName, char* message) {
 
     fclose(file);
 
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 uint8_t sd_card_log(char* fileName, char* message) {
@@ -712,7 +695,7 @@ uint8_t sd_card_log(char* fileName, char* message) {
     // // Print log to console
     // ESP_LOGI("LOG", "%s", message);
 
-    // if (sd_card_check_file_path_exists(ROOT_LOG_FOLDER_PATH) != WD_SUCCESS) {
+    // if (sd_card_check_file_path_exists(ROOT_LOG_FOLDER_PATH) != TRUE) {
     //     return SD_CARD_ERROR_IO_ERROR;
     // }
 
@@ -754,5 +737,5 @@ uint8_t sd_card_log(char* fileName, char* message) {
 
     // fclose(file);
 
-    // return WD_SUCCESS;
+    // return TRUE;
 }

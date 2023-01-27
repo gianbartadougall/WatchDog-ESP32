@@ -66,7 +66,7 @@ void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES
 void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
                       uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
 
-void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char string[BPACKET_MAX_NUM_DATA_BYTES + 1]);
+void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string);
 
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer);
 

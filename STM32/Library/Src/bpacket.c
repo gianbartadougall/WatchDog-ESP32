@@ -36,7 +36,12 @@ void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
     }
 }
 
-void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char string[BPACKET_MAX_NUM_DATA_BYTES + 1]) {
+void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string) {
+
+    // Ensure the message is small enough to fit in the packet
+    if (chars_get_num_bytes(string) > BPACKET_MAX_NUM_DATA_BYTES) {
+        return;
+    }
 
     bpacket->request  = request;
     bpacket->numBytes = chars_get_num_bytes(string);

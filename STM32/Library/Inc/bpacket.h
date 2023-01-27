@@ -61,10 +61,9 @@ typedef struct bpacket_char_array_t {
     char string[BPACKET_MAX_NUM_DATA_BYTES + 1]; // One extra for null character
 } bpacket_char_array_t;
 
-void bpacket_decode(bpacket_t* bpacket, uint8_t* data);
+void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
-void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
-                      uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
+void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data);
 
 void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string);
 

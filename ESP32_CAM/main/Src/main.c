@@ -98,6 +98,11 @@ void watchdog_system_start(void) {
     }
 }
 
+void esp32_update_settings() {
+
+    // Create a file
+}
+
 uint8_t software_config(bpacket_t* bpacket) {
 
     if (sd_card_init(bpacket) != TRUE) {

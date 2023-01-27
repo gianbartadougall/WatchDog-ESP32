@@ -31,6 +31,7 @@
 #include "watchdog_defines.h"
 #include "bpacket.h"
 #include "com_ports.h"
+#include "gui.h"
 
 #define MAPLE_MAX_ARGS 5
 
@@ -366,6 +367,10 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 }
 
 int main(int argc, char** argv) {
+
+    gui_init();
+
+    while (1) {}
 
     if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
         printf("Unable to connect to Watchdog\n");

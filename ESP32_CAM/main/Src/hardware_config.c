@@ -3,11 +3,11 @@
 #include <driver/uart.h>
 
 /* Private Includes */
-#include "wd_utils.h"
 #include "hardware_config.h"
 #include "sd_card.h"
 #include "camera.h"
 #include "uart_comms.h"
+#include "utilities.h"
 
 /* Private Function Definitions */
 void hardware_config_leds(void);

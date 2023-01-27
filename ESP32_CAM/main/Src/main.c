@@ -23,10 +23,10 @@
 #include "camera.h"
 #include "hardware_config.h"
 #include "led.h"
-#include "wd_utils.h"
 #include "bpacket.h"
 #include "esp32_uart.h"
 #include "help.h"
+#include "utilities.h"
 
 /* Private Macros */
 #define COB_LED HC_COB_LED
@@ -82,6 +82,7 @@ void watchdog_system_start(void) {
                 camera_capture_and_save_image(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
+                // sd_card_write_to_file();
                 break;
             case WATCHDOG_BPK_R_RECORD_DATA:
                 break;

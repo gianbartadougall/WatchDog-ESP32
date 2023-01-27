@@ -11,9 +11,9 @@
 
 /* Personal Includes */
 #include "camera.h"
-#include "wd_utils.h"
 #include "sd_card.h"
 #include "esp32_uart.h"
+#include "utilities.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -89,25 +89,25 @@ uint8_t camera_init(void) {
     // Initialize the camera
     if (esp_camera_init(&camera_config) != ESP_OK) {
         cameraInitalised = FALSE;
-        return WD_ERROR;
+        return FALSE;
     }
 
     cameraInitalised = TRUE;
-    return WD_SUCCESS;
+    return TRUE;
 }
 
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised
-    if (cameraInitalised == FALSE) {
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "Camera was unitailised\0");
+    if (cameraInitalised != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera was unitailised\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
 
     // Confirm the SD card can be mounted
-    if (sd_card_open() != WD_SUCCESS) {
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "SD card could not open\0");
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -118,10 +118,10 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "Failed to take a photo\0");
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Failed to take a photo\0");
         esp32_uart_send_bpacket(bpacket);
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
-    } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != WD_SUCCESS) {
+    } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != TRUE) {
         sd_card_log(SYSTEM_LOG_FILE, "Image could not be saved");
     } else {
         char msg[100];

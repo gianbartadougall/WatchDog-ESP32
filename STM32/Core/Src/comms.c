@@ -140,17 +140,20 @@ void comms_usart2_add_to_buffer(char c) {
     }
 }
 
-void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
-    packet->request = request;
-    sprintf(packet->instruction, "%s", instruction);
-    sprintf(packet->data, "%s", data);
-}
+// void comms_create_packet(bpacket_t* bpacket, uint8_t request, char* instruction, char* data) {
+//     packet->request = request;
+//     sprintf(packet->instruction, "%s", instruction);
+//     sprintf(packet->data, "%s", data);
+// }
 
-void comms_send_packet(packet_t* packet) {
-    char msg[400];
-    sprintf(msg, "%i,%s,%s", packet->request, packet->instruction, packet->data);
-    comms_send_data(USART1, msg, TRUE);
-}
+// void comms_send_packet(bpacket_t* bpacket) {
+//     // char msg[400];
+//     // sprintf(msg, "%i,%s,%s", packet->request, packet->instruction, packet->data);
+//     bpacket_buffer_t packetBuffer;
+//     bpacket_to_buffer(bpacket, &packetBuffer);
+//     comms_send_bpacket();
+//     // comms_send_data(USART1, msg, TRUE);
+// }
 
 void serial_comms_process_command(char* string) {
 
@@ -159,61 +162,61 @@ void serial_comms_process_command(char* string) {
         return;
     }
 
-    packet_t packet;
+    // packet_t packet;
 
-    if (chars_same(string, LED_RED_ON) == TRUE) {
-        log_message("Turning the RED led on\r\n");
-        comms_create_packet(&packet, UART_REQUEST_LED_RED_ON, "\0", "\0");
-        comms_send_packet(&packet);
-        return;
-    }
+    // if (chars_same(string, LED_RED_ON) == TRUE) {
+    //     log_message("Turning the RED led on\r\n");
+    //     comms_create_packet(&packet, UART_REQUEST_LED_RED_ON, "\0", "\0");
+    //     comms_send_packet(&packet);
+    //     return;
+    // }
 
-    if (chars_same(string, LED_RED_OFF) == TRUE) {
-        log_message("Turning the RED led off\r\n");
-        comms_create_packet(&packet, UART_REQUEST_LED_RED_OFF, "\0", "\0");
-        comms_send_packet(&packet);
-        return;
-    }
+    // if (chars_same(string, LED_RED_OFF) == TRUE) {
+    //     log_message("Turning the RED led off\r\n");
+    //     comms_create_packet(&packet, UART_REQUEST_LED_RED_OFF, "\0", "\0");
+    //     comms_send_packet(&packet);
+    //     return;
+    // }
 
-    if (chars_same(string, LED_COB_ON) == TRUE) {
-        log_message("Turning the COB led on\r\n");
-        comms_create_packet(&packet, UART_REQUEST_LED_COB_ON, "\0", "\0");
-        comms_send_packet(&packet);
-        return;
-    }
+    // if (chars_same(string, LED_COB_ON) == TRUE) {
+    //     log_message("Turning the COB led on\r\n");
+    //     comms_create_packet(&packet, UART_REQUEST_LED_COB_ON, "\0", "\0");
+    //     comms_send_packet(&packet);
+    //     return;
+    // }
 
-    if (chars_same(string, LED_COB_OFF) == TRUE) {
-        log_message("Turning the COB led off\r\n");
-        comms_create_packet(&packet, UART_REQUEST_LED_COB_OFF, "\0", "\0");
-        comms_send_packet(&packet);
-        return;
-    }
+    // if (chars_same(string, LED_COB_OFF) == TRUE) {
+    //     log_message("Turning the COB led off\r\n");
+    //     comms_create_packet(&packet, UART_REQUEST_LED_COB_OFF, "\0", "\0");
+    //     comms_send_packet(&packet);
+    //     return;
+    // }
 
-    if (chars_same(string, LIST_DIRECTORIES) == TRUE) {
-        log_message("Requesting folder structure of SD Card\r\n");
-        comms_create_packet(&packet, UART_REQUEST_LIST_DIRECTORY, "\0", "\0");
-        comms_send_packet(&packet);
-        return;
-    }
+    // if (chars_same(string, LIST_DIRECTORIES) == TRUE) {
+    //     log_message("Requesting folder structure of SD Card\r\n");
+    //     comms_create_packet(&packet, UART_REQUEST_LIST_DIRECTORY, "\0", "\0");
+    //     comms_send_packet(&packet);
+    //     return;
+    // }
 
-    if (chars_same(string, RECORD_DATA) == TRUE) {
+    // if (chars_same(string, RECORD_DATA) == TRUE) {
 
-        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
-            log_error("Failed to record temperature\r\n");
-            HAL_Delay(2000);
-            return;
-        }
+    //     if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
+    //         log_error("Failed to record temperature\r\n");
+    //         HAL_Delay(2000);
+    //         return;
+    //     }
 
-        // Store the temperature as a string
-        char tempStr[30];
-        ds18b20_get_temperature(DS18B20_SENSOR_ID_1, tempStr);
+    //     // Store the temperature as a string
+    //     char tempStr[30];
+    //     ds18b20_get_temperature(DS18B20_SENSOR_ID_1, tempStr);
 
-        // Send message to record data from the esp32
-        comms_create_packet(&packet, UART_REQUEST_RECORD_DATA, "data.txt\0", tempStr);
-        comms_send_packet(&packet);
+    //     // Send message to record data from the esp32
+    //     comms_create_packet(&packet, UART_REQUEST_RECORD_DATA, "data.txt\0", tempStr);
+    //     comms_send_packet(&packet);
 
-        return;
-    }
+    //     return;
+    // }
 
     log_error("Unknown command. Type 'help' to see the list of available commands\r\n");
 }
@@ -224,27 +227,27 @@ void comms_send_bpacket(USART_TypeDef* uart, bpacket_t* bpacket) {
     // Transmit until end of message reached
     while (i < bpacket->numBytes) {
         while ((uart->ISR & USART_ISR_TXE) == 0) {};
-        uart->TDR = bpacket->data.bytes[i++];
+        uart->TDR = bpacket->bytes[i++];
     }
 }
 
-void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull) {
-    uint16_t i = 0;
+// void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull) {
+//     uint16_t i = 0;
 
-    // Transmit until end of message reached
-    while (msg[i] != '\0') {
-        while ((uart->ISR & USART_ISR_TXE) == 0) {};
+//     // Transmit until end of message reached
+//     while (msg[i] != '\0') {
+//         while ((uart->ISR & USART_ISR_TXE) == 0) {};
 
-        uart->TDR = msg[i];
-        i++;
-    }
+//         uart->TDR = msg[i];
+//         i++;
+//     }
 
-    if (sendNull == TRUE) {
-        while ((uart->ISR & USART_ISR_TXE) == 0) {};
+//     if (sendNull == TRUE) {
+//         while ((uart->ISR & USART_ISR_TXE) == 0) {};
 
-        uart->TDR = '\0';
-    }
-}
+//         uart->TDR = '\0';
+//     }
+// }
 
 char comms_getc(USART_TypeDef* uart) {
 

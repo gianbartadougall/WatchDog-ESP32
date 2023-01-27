@@ -21,7 +21,9 @@
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_hal_uart.h"
 
-#include "uart_comms.h"
+#include "bpacket.h"
+
+static const int RX_BUF_SIZE = 215;
 
 /**
  * @brief Writes data over UART
@@ -43,6 +45,6 @@ void comms_add_to_buffer(USART_TypeDef* usart, char c);
 
 void comms_usart1_print_buffer(void);
 
-void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data);
+// void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data);
 
 #endif // COMMS_H

@@ -32,6 +32,22 @@
 
 /* Private Macros */
 #define SET_PIN_LOW(port, pin) (port->BSRR |= (0x01 << (pin + 16)))
+#define ID_INVALID(id)         ((id < DS18B20_ID_OFFSET) || (id > (NUM_SENSORS - 1 + DS18B20_ID_OFFSET)))
+
+/** This holds the required information for each sensor that is connected to the line.
+ * Currently there is only need for the ROM code and the temperature of the sensor.
+ * If additional features are added like settings for each sensor then this struct
+ * may need to be expanded.
+ *
+ * The temperature received from the DS18B20 is always of the form +-XXXXXXX.XXXX thus
+ * the decimal point is always 4 and does not need to be stored
+ */
+typedef struct ds18b20_t {
+    uint64_t rom;
+    uint16_t decimal;
+    uint16_t fraction;
+    uint8_t sign; // 0 = positive number, 1 = negative number
+} ds18b20_t;
 
 /* Private Variable Declarations */
 ds18b20_t sensors[NUM_SENSORS];
@@ -56,7 +72,7 @@ uint64_t ds18b20_read_rom(void);
 /* ****************************************************************************** */
 /* ****************************************************************************** */
 
-void ds18b20_init() {
+void ds18b20_init(void) {
 
     // Start the microsecond clock. The paramters for this clock are defined in the
     // hardware configuration file
@@ -71,7 +87,24 @@ void ds18b20_deinit(void) {
     DS18B20_TIMER->CR1 &= ~(TIM_CR1_CEN);
 }
 
+uint8_t ds18b20_copy_temperature(uint8_t id, ds18b20_temp_t* temp) {
+
+    if (ID_INVALID(id) == TRUE) {
+        return FALSE;
+    }
+
+    temp->sign     = sensors[id].sign;
+    temp->decimal  = sensors[id].decimal;
+    temp->fraction = sensors[id].fraction;
+
+    return TRUE;
+}
+
 uint8_t ds18b20_read_temperature(uint8_t id) {
+
+    if (ID_INVALID(id) == TRUE) {
+        return FALSE;
+    }
 
     if (ds18b20_convert_temperature() != TRUE) {
         log_prints("Failed to convert temperature\r\n");

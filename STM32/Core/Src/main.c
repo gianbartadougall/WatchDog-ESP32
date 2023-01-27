@@ -81,24 +81,16 @@ int main(void) {
 
     // Initialise hardware
     hardware_config_init();
+    watchdog_init();
 
     log_message("Starting\r\n");
 
     while (1) {
-        hardware_config_uart_sleep();
-        HAL_Delay(4000);
-        led_on(LED_GREEN_ID);
-        HAL_Delay(1000);
-        led_off(LED_GREEN_ID);
-        hardware_config_uart_wakeup();
-        HAL_Delay(4000);
-        led_on(LED_GREEN_ID);
-        HAL_Delay(1000);
-        led_off(LED_GREEN_ID);
 
         // Put the watchdog into deep sleep mode
 
-        // watchdog_update();
+        watchdog_update();
+        // HAL_Delay(1000);
     }
 
     return 0;

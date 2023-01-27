@@ -8,9 +8,9 @@ LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 
 C_SOURCES = \
 Src/main.c \
+Src/com_ports.c \
 ../STM32/Core/Src/Utilities/chars.c \
-../STM32/Library/Src/bpacket.c \
-../Drivers/Watchdog/Src/wd_utils.c
+../STM32/Library/Src/bpacket.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \

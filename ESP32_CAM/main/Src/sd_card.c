@@ -19,7 +19,6 @@
 /* Personal Includes */
 #include "rtc.h"
 #include "sd_card.h"
-#include "wd_utils.h"
 #include "chars.h"
 #include "hardware_config.h"
 #include "esp32_uart.h"
@@ -55,8 +54,6 @@ sdmmc_card_t* card;
 /* Private Function Declarations */
 uint8_t sd_card_check_file_path_exists(char* filePath);
 uint8_t sd_card_check_directory_exists(char* directory);
-void sd_card_send_packet(packet_t* packet);
-void sd_card_send_bpacket(packet_t* packet);
 
 /* GOOD FUNCTIONS */
 
@@ -127,14 +124,14 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     // Try open the SD card
     if (sd_card_open() != TRUE) {
         bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\0");
-        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The SD card could not be opened", "\0");
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
         bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Folder path > 50 chars\0");
-        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "Number of chars in folder path > 50", "\0");
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
@@ -146,7 +143,7 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     directory = opendir(path);
     if (directory == NULL) {
         bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath could not open\0");
-        // uart_comms_create_packet(response, UART_ERROR_REQUEST_FAILED, "The directory could not be opened", path);
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
@@ -163,8 +160,9 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     int i             = 0;
     bpacket->request  = BPACKET_R_IN_PROGRESS;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+    int in            = FALSE; // Variable just to know whether there was anything or not
     while ((dirPtr = readdir(directory)) != NULL) {
-
+        in = 1;
         // Copy the name of the folder into the folder structure string
         int j = 0;
         while (dirPtr->d_name[j] != '\0') {
@@ -199,12 +197,14 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
         esp32_uart_send_bpacket(bpacket);
     }
 
+    if (in == FALSE) {
+        bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+        esp32_uart_send_bpacket(bpacket);
+    }
+
     closedir(directory);
     sd_card_close();
 
-    // bpacket_create_sp(bpacket, BPACKET_R_SUCCESS, foldersList);
-    // esp32_uart_send_bpacket(bpacket);
-    // uart_comms_create_packet(response, UART_REQUEST_SUCCEEDED, "\0", foldersList);
     return TRUE;
 }
 
@@ -337,7 +337,7 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "SD card failed to open\0");
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card failed to open\0");
         esp32_uart_send_bpacket(bpacket);
         // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, , "\0");
         return;
@@ -354,30 +354,11 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     // Return an error if there was no specified file
     if (filePath[0] == '\0') {
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, "No file specified\0");
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "No file specified\0");
         esp32_uart_send_bpacket(bpacket);
         // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
         return;
     }
-
-    /**
-     * @brief Copying data from the ESP32
-     *
-     * The instruction string in the request packet should contain the file path
-     * The data string in the request packet should contain the start byte
-     *
-     * The start byte determines which byte in the file the esp32 will start reading from. This is
-     * important for when files being copied need to be done in chunks because they are too large.
-     * If I file is too large to be sent in one go, the ESP32 will send back the last byte that it
-     * read.
-     */
-
-    // int startByte;
-
-    // if (chars_to_int(requestPacket->data, &startByte) == FALSE) {
-    //     uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Invalid start byte", "\0");
-    //     return;
-    // }
 
     char fullPath[50];
     sprintf(fullPath, "%s/%s", MOUNT_POINT_PATH, filePath);
@@ -386,7 +367,7 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     if (file == NULL) {
         char msg[27];
         sprintf(msg, fullPath);
-        bpacket_create_sp(bpacket, UART_ERROR_REQUEST_FAILED, strerror(errno));
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, strerror(errno));
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -416,72 +397,10 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
         pi = 0;
     }
 
-    // if (i != 0) {
-    //     bpacket->request  = BPACKET_R_SUCCESS;
-    //     bpacket->numBytes = i;
-    //     esp32_uart_send_bpacket(bpacket);
-    // }
-
-    // bpacket_t response;
-    // while ((c = fgetc(file)) != EOF) {
-
-    //     // Create a bpacket
-    //     bpacket->bytes[i++] = (uint8_t)c;
-
-    //     if (i == BPACKET_MAX_NUM_DATA_BYTES) {
-
-    //         // Check if this
-    //         esp32_uart_send_bpacket(bpacket);
-    //         i = 0;
-    //     }
-    // }
-
     fclose(file);
 
     // Close the SD card
     sd_card_close();
-
-    // Confirm the start byte is less than the size of the file
-    // struct stat st;
-    // stat(filePath, &st);
-    // if ((int)st.st_size < startByte) {
-    //     uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "Start byte > file size", "\0");
-    //     return;
-    // }
-
-    // responsePacket->request        = UART_REQUEST_SUCCEEDED;
-    // responsePacket->instruction[0] = '\0';
-    // responsePacket->data[0]        = '\0';
-
-    // Skip any bytes before the start byte
-    // int c;
-    // for (int i = startByte; i > 0; i--) {
-    //     c = fgetc(file);
-    // }
-
-    // int i = 0;
-    // while ((c = fgetc(file)) != EOF) {
-
-    //     if (i == PACKET_DATA_NUM_CHARS) {
-    //         responsePacket->data[i] = '\0';
-    //         // responsePacket->instruction = []
-    //         // sprintf(responsePacket->instruction, "%i", i + startByte);
-    //         sd_card_send_packet(responsePacket);
-    //         i = 0;
-    //     }
-
-    //     responsePacket->data[i++] = (char)c;
-    // }
-
-    // if (responsePacket->instruction[0] == '\0') {
-    //     responsePacket->data[i] = '\0';
-    //     // sprintf(responsePacket->instruction, "End reached");
-    // }
-
-    // fclose(file);
-
-    // // Close the SD card
-    // sd_card_close();
 }
 
 /* GOOD FUNCTIONS */
@@ -495,24 +414,6 @@ void sd_card_status(char* statusString) {
      * If there have been any errors
      *
      */
-}
-
-int sd_card_send_data(const char* data) {
-
-    // Because this data is being sent to a master MCU, the NULL character
-    // needs to be appended on if it is not to ensure the master MCU knows
-    // when the end of the sent data is. Thus add 1 to the length to ensure
-    // the null character is also sent
-    const int len     = strlen(data) + 1;
-    const int txBytes = uart_write_bytes(HC_UART_COMMS_UART_NUM, data, len);
-
-    return txBytes;
-}
-
-void sd_card_send_packet(packet_t* packet) {
-    char string[RX_BUF_SIZE];
-    packet_to_string(packet, string);
-    sd_card_send_data(string);
 }
 
 uint8_t sd_card_open(void) {

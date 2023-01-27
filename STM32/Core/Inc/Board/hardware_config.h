@@ -44,6 +44,13 @@
 
 /**************************************/
 
+/******** Macros for Power BJT **********/
+
+#define ESP32_POWER_PORT GPIOA
+#define ESP32_POWER_PIN  11
+
+/**************************************/
+
 /********** Marcos for hardware related to the DS18B20 Temperature Sensor ***********/
 
 #define DS18B20_TIMER              TIM15

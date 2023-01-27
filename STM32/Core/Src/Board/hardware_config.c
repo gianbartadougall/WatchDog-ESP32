@@ -118,8 +118,12 @@ void hardware_config_gpio_init(void) {
     LED_GREEN_PORT->MODER &= ~(0x3 << (LED_GREEN_PIN * 2));
     LED_GREEN_PORT->MODER |= (0x01 << (LED_GREEN_PIN * 2));
 
+    /* Setup GPIO for ESP32 Power */
+    ESP32_POWER_PORT->MODER &= ~(0x3 << (ESP32_POWER_PIN * 2));
+    ESP32_POWER_PORT->MODER |= (0x01 << (ESP32_POWER_PIN * 2));
+
     /****** START CODE BLOCK ******/
-    // Description:
+    // Description: GPIO configuration for the DS18B0 Sensor
 
     // Set to be output
     DS18B20_PORT->MODER &= ~(0x3 << (DS18B20_PIN * 2));

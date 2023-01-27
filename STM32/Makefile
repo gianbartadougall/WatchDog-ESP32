@@ -78,9 +78,7 @@ Core/Src/watchdog.c \
 Core/Src/comms.c \
 
 LIBRARY_SOURCES = \
-Library/Src/ds18b20.c \
-../Drivers/Watchdog/Src/uart_comms.c \
-../Drivers/Watchdog/Src/wd_utils.c
+Library/Src/ds18b20.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)

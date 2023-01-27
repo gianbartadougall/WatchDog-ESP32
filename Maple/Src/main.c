@@ -14,7 +14,6 @@
  *
  */
 #include <libserialport.h>
-#include <stdio.h>
 
 /* C Library Includes */
 #include <string.h>
@@ -23,11 +22,15 @@
 #include <windows.h>   // Use for multi threading
 #include <sys/timeb.h> // Used for time functionality
 
+/* C Library Includes for Display Images */
+#include "stb_image.h"
+
 /* Personal Includes */
 #include "chars.h"
 #include "uart_lib.h"
 #include "watchdog_defines.h"
 #include "bpacket.h"
+#include "com_ports.h"
 
 #define MAPLE_MAX_ARGS 5
 
@@ -37,15 +40,12 @@
 
 int check(enum sp_return result);
 void maple_print_bpacket_data(bpacket_t* bpacket);
-const char* parity_name(enum sp_parity parity);
-void maple_create_and_send_bpacket(struct sp_port* port, uint8_t request, uint8_t numDataBytes,
-                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
-void maple_send_bpacket(struct sp_port* port, bpacket_t* bpacket);
+void maple_create_and_send_bpacket(uint8_t request, uint8_t numDataBytes, uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
+void maple_create_and_send_sbpacket(uint8_t request, char* string);
+void maple_print_uart_response(void);
 
 #define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 50)
 uint8_t rxBuffer[RX_BUFFER_SIZE];
-// uint8_t rxBuffer[BPACKET_BUFFER_LENGTH_BYTES * 12];
-// uint16_t bufferIndex = 0;
 
 #define PACKET_BUFFER_SIZE 50
 uint8_t packetBufferIndex  = 0;
@@ -68,108 +68,23 @@ void maple_increment_packet_pending_index(void) {
     }
 }
 
-uint8_t maple_configure_port(struct sp_port* port) {
-
-    if (port == NULL) {
-        return 0;
-    }
-
-    check(sp_set_baudrate(port, 115200));
-    check(sp_set_bits(port, 8));
-    check(sp_set_parity(port, SP_PARITY_NONE));
-    check(sp_set_stopbits(port, 1));
-    check(sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE));
-
-    return 1;
-}
-
-enum sp_return maple_open_port(struct sp_port* port) {
-
-    // Open the port
-    enum sp_return result = sp_open(port, SP_MODE_READ_WRITE);
-    if (result != SP_OK) {
-        return result;
-    }
-
-    // Configure the port settings for communication
-    check(sp_set_baudrate(port, 115200));
-    check(sp_set_bits(port, 8));
-    check(sp_set_parity(port, SP_PARITY_NONE));
-    check(sp_set_stopbits(port, 1));
-    check(sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE));
-
-    return SP_OK;
-}
-
-void maple_create_and_send_bpacket(struct sp_port* port, uint8_t request, uint8_t numDataBytes,
-                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
+void maple_create_and_send_bpacket(uint8_t request, uint8_t numDataBytes, uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
     bpacket_t bpacket;
     bpacket_create_p(&bpacket, request, numDataBytes, data);
-    maple_send_bpacket(port, &bpacket);
-}
-
-void maple_send_bpacket(struct sp_port* port, bpacket_t* bpacket) {
-
-    bpacket_buffer_t packetBuffer;
-    bpacket_to_buffer(bpacket, &packetBuffer);
-
-    if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
-        printf("Failed to send bpacket\n");
+    if (com_ports_send_bpacket(&bpacket) != TRUE) {
+        return;
     }
 }
 
-enum sp_return maple_search_ports(char portName[50]) {
-    portName[0] = '\0';
-
-    // Create a struct to hold all the COM ports currently in use
-    struct sp_port** port_list;
-    enum sp_return result = sp_list_ports(&port_list);
-
-    if (result != SP_OK) {
-        return result;
-    }
-
-    // Iterate through every port. Ping the port and check if
-    // the response matches the given target
+void maple_create_and_send_sbpacket(uint8_t request, char* string) {
     bpacket_t bpacket;
-    for (int i = 0; port_list[i] != NULL; i++) {
-
-        struct sp_port* port = port_list[i];
-
-        if (maple_open_port(port) != SP_OK) {
-            continue;
-        }
-
-        // Ping port
-        maple_create_and_send_bpacket(port, BPACKET_GEN_R_PING, 0, NULL);
-
-        // Wait for response from port
-        uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        response[0] = '\0';
-        if (sp_blocking_read(port, response, 6, 1100) < 0) {
-            sp_close(port);
-            continue;
-        }
-
-        bpacket_decode(&bpacket, response);
-
-        if (bpacket.request != BPACKET_R_SUCCESS || bpacket.bytes[0] != 23) {
-            sp_close(port);
-
-            continue;
-        }
-
-        sprintf(portName, "%s", sp_get_port_name(port));
-        sp_close(port);
-        break;
+    bpacket_create_sp(&bpacket, request, string);
+    if (com_ports_send_bpacket(&bpacket) != TRUE) {
+        return;
     }
-
-    sp_free_port_list(port_list);
-
-    return SP_OK;
 }
 
-uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName) {
+uint8_t maple_copy_file(char* filePath, char* cpyFileName) {
 
     FILE* target;
     target = fopen(cpyFileName, "wb"); // Read binary
@@ -195,7 +110,7 @@ uint8_t maple_copy_file(struct sp_port* port, char* filePath, char* cpyFileName)
     }
 
     // Send command to copy file. Keeping reading until no more data to send across
-    maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
 
     int packetsFinished = FALSE;
     int count           = 0;
@@ -259,31 +174,6 @@ void maple_print_bpacket_data(bpacket_t* bpacket) {
     printf("%s\n", data);
 }
 
-void maple_list_directory(struct sp_port* port, char* filePath) {
-
-    bpacket_t packet;
-    bpacket_create_sp(&packet, WATCHDOG_BPK_R_LIST_DIR, filePath);
-    maple_send_bpacket(port, &packet);
-
-    int packetsFinished = FALSE;
-    while (packetsFinished == FALSE) {
-
-        // Wait until the packet is ready
-        while (packetPendingIndex == packetBufferIndex) {}
-
-        // Packet ready. Print its contents
-        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-            printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
-        }
-
-        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
-            packetsFinished = TRUE;
-        }
-
-        maple_increment_packet_pending_index();
-    }
-}
-
 void maple_print_uart_response(void) {
 
     int packetsFinished = FALSE;
@@ -305,21 +195,15 @@ void maple_print_uart_response(void) {
     }
 }
 
-uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
+uint8_t maple_match_args(char** args, int numArgs) {
 
     if (numArgs == 1) {
 
         if (chars_same(args[0], "help\0") == TRUE) {
-            maple_create_and_send_bpacket(port, BPACKET_GEN_R_HELP, 0, NULL);
+            maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
             maple_print_uart_response();
-            // sprintf(uartString, "%i,%s,%s", B, "data.txt", "21/02/2023 0900 26.625\r\n");
             return TRUE;
         }
-
-        // if (chars_same(args[0], "rec\0") == TRUE) {
-        //     sprintf(uartString, "%i,%s,%s", UART_REQUEST_RECORD_DATA, "data.txt", "21/02/2023 0900 26.625\r\n");
-        //     return TRUE;
-        // }
 
         if (chars_same(args[0], "clc\0")) {
             printf(ASCII_CLEAR_SCREEN);
@@ -327,7 +211,14 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
         }
 
         if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_list_directory(port, "\0");
+            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, "\0");
+            maple_print_uart_response();
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "photo\0") == TRUE) {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
+            maple_print_uart_response();
             return TRUE;
         }
     }
@@ -335,7 +226,8 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
     if (numArgs == 2) {
 
         if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_list_directory(port, args[1]);
+            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, args[1]);
+            maple_print_uart_response();
             return TRUE;
         }
     }
@@ -344,18 +236,18 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "on\0") == TRUE) {
-            maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
             return TRUE;
         }
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "off\0") == TRUE) {
-            maple_create_and_send_bpacket(port, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
             return TRUE;
         }
 
         if (chars_same(args[0], "cpy\0") == TRUE) {
-            if (maple_copy_file(port, args[1], args[2]) == TRUE) {
+            if (maple_copy_file(args[1], args[2]) == TRUE) {
                 printf(ASCII_COLOR_GREEN "Succesfully transfered file\n" ASCII_COLOR_WHITE);
             } else {
                 printf(ASCII_COLOR_RED "Failed to transfer file\n" ASCII_COLOR_WHITE);
@@ -370,7 +262,7 @@ uint8_t maple_match_args(char** args, int numArgs, struct sp_port* port) {
 DWORD WINAPI maple_listen_rx(void* arg) {
 
     // Arg is the pointer to the port
-    struct sp_port* port = arg;
+    // struct sp_port* port = arg;
 
     uint8_t c[1];
     uint8_t lastChar  = BPACKET_STOP_BYTE;
@@ -384,7 +276,8 @@ DWORD WINAPI maple_listen_rx(void* arg) {
     int packetByteIndex   = 0;
     int startByteIndex    = 0;
 
-    while ((numBytes = sp_blocking_read(port, c, 1, 0)) > 0) {
+    // while ((numBytes = sp_blocking_read(port, c, 1, 0)) > 0) {
+    while ((numBytes = com_ports_read(c, 1, 0)) > 0) {
 
         if (bufferIndex == RX_BUFFER_SIZE) {
             bufferIndex = 0;
@@ -398,7 +291,6 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             packetLengthFlag                         = FALSE;
             packetCommandFlag                        = TRUE;
             lastChar                                 = c[0];
-            // printf("Packet length flag set\n");
             continue;
         }
 
@@ -406,7 +298,6 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             packetBuffer[packetBufferIndex].request = c[0];
             packetCommandFlag                       = FALSE;
             lastChar                                = c[0];
-            // printf("Packet command flag set\n");
             continue;
         }
 
@@ -436,8 +327,6 @@ DWORD WINAPI maple_listen_rx(void* arg) {
                 // printf("Start byte acted upon\n");
                 continue;
             }
-
-            //
         }
 
         if (c[0] == BPACKET_STOP_BYTE) {
@@ -456,20 +345,10 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             // we can be farily certain that this byte is a stop byte
             if (stopByteIndex == predictedStopByteIndex) {
 
-                // Very sure this is the end of a packet
-                // printf("Request[%i]: %i Numbytes: %i-> ", packetBufferIndex, packetBuffer[packetBufferIndex].request,
-                //        packetBuffer[packetBufferIndex].numBytes);
-                // // Packet ready. Print its contents
-                // for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
-                //     printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
-                // }
-                // printf("\n");
-
-                // Reset byte index to 0
+                // Very sure this is the end of a packet. Reset byte index to 0
                 packetByteIndex = 0;
                 lastChar        = c[0];
 
-                // printf("Stop byte recieved\n");
                 maple_increment_packet_buffer_index();
                 continue;
             }
@@ -488,39 +367,17 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    char espPortName[50];
-    espPortName[0]        = '\0';
-    enum sp_return result = maple_search_ports(espPortName);
-    if (result != SP_OK) {
-        check(result);
-        return 0;
+    if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
+        printf("Unable to connect to Watchdog\n");
+        return FALSE;
     }
 
-    if (espPortName[0] == '\0') {
-        printf("ESP port could not be found\n");
-        return 0;
-    }
-
-    // Open ESP port
-    struct sp_port* port;
-    if (check(sp_get_port_by_name(espPortName, &port)) != SP_OK) {
-        printf("Could not find ESP port\n");
-        return 0;
-    }
-
-    if (check(maple_open_port(port)) != SP_OK) {
-        printf("Could not open ESP port\n");
-        return 0;
-    }
-
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, port, 0, NULL);
+    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
     if (!thread) {
         printf("Thread failed\n");
         return 0;
     }
-
-    printf("ESP32 connected on port %s\n", espPortName);
 
     char userInput[100];
     while (1) {
@@ -548,7 +405,7 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        if (maple_match_args(args, numArgs, port) == FALSE) {
+        if (maple_match_args(args, numArgs) == FALSE) {
             printf(ASCII_COLOR_RED "Unkown command: '%s'\n" ASCII_COLOR_WHITE, userInput);
         }
 
@@ -556,143 +413,5 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numArgs; i++) {
             free(args[i]);
         }
-    }
-}
-
-// /* A pointer to a null-terminated array of pointers to
-//  * struct sp_port, which will contain the ports found.*/
-// struct sp_port** port_list;
-// char espPortName[50];
-// espPortName[0] = '\0';
-
-// printf("Getting port list.\n");
-
-// /* Call sp_list_ports() to get the ports. The port_list
-//  * pointer will be updated to refer to the array created. */
-// enum sp_return result = sp_list_ports(&port_list);
-
-// if (result != SP_OK) {
-//     printf("sp_list_ports() failed!\n");
-//     return -1;
-// }
-
-// /* Iterate through the ports. When port_list[i] is NULL
-//  * this indicates the end of the list. */
-// int i;
-// for (i = 0; port_list[i] != NULL; i++) {
-//     struct sp_port* port = port_list[i];
-
-//     /* Get the name of the port. */
-//     char* port_name = sp_get_port_name(port);
-
-//     if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK) {
-//         printf("Could not open %s\n", port_name);
-//         continue;
-//     }
-
-//     maple_configure_port(port);
-
-//     // To work out correct port, send ping to port and wait for response
-//     char ping[50];
-//     sprintf(ping, "%i,h,h", UART_REQUEST_STATUS);
-//     int result = sp_blocking_write(port, ping, strlen(ping) + 1, 100);
-//     if (result < 0) {
-//         printf("Could not write bytes to %s\n", port_name);
-//     }
-
-//     // Wait for response
-//     char response[100];
-//     response[0] = '\0';
-//     result      = sp_blocking_read(port, response, 100, 1100);
-//     if (result < 0) {
-//         printf("Error reading from %s\n", port_name);
-//     } else {
-
-//         if (response[0] == '\0') {
-//             printf("No Response from %s\n", port_name);
-//         } else {
-//             sprintf(espPortName, "%s", port_name);
-//             printf("%s\n", response);
-//         }
-//     }
-
-//     if (sp_close(port) != SP_OK) {
-//         printf("Could not close %s\n", port_name);
-//     }
-// }
-
-// Connect to the port that has the ESP32 connected to it
-
-// printf("Found %d ports.\n", i);
-
-// Check ESP32 port still available
-// if (espPortName[0] != '\0') {
-//     struct sp_port* port;
-
-//     if (sp_get_port_by_name(espPortName, &port) != SP_OK) {
-//         sprintf("Failed to Open ESP port: %s\n", espPortName);
-//     } else {
-//         printf("ESP Port found: %s\n", sp_get_port_name(port));
-//     }
-
-// } else {
-//     printf("ESP port null\n");
-// }
-
-// printf("Freeing port list.\n");
-/* Free the array created by sp_list_ports(). */
-// sp_free_port_list(port_list);
-
-/* Note that this will also free all the sp_port structures
- * it points to. If you want to keep one of them (e.g. to
- * use that port in the rest of your program), take a copy
- * of it first using sp_copy_port(). */
-
-// return 0;
-// }
-
-/* Helper function for error handling. */
-int check(enum sp_return result) {
-    /* For this example we'll just exit on any error by calling abort(). */
-    char* error_message;
-
-    switch (result) {
-        case SP_ERR_ARG:
-            printf("Error: Invalid argument.\n");
-            abort();
-        case SP_ERR_FAIL:
-            error_message = sp_last_error_message();
-            printf("Error: Failed: %s\n", error_message);
-            sp_free_error_message(error_message);
-            abort();
-        case SP_ERR_SUPP:
-            printf("Error: Not supported.\n");
-            abort();
-        case SP_ERR_MEM:
-            printf("Error: Couldn't allocate memory.\n");
-            abort();
-        case SP_OK:
-        default:
-            return result;
-    }
-}
-
-/* Helper function to give a name for each parity mode. */
-const char* parity_name(enum sp_parity parity) {
-    switch (parity) {
-        case SP_PARITY_INVALID:
-            return "(Invalid)";
-        case SP_PARITY_NONE:
-            return "None";
-        case SP_PARITY_ODD:
-            return "Odd";
-        case SP_PARITY_EVEN:
-            return "Even";
-        case SP_PARITY_MARK:
-            return "Mark";
-        case SP_PARITY_SPACE:
-            return "Space";
-        default:
-            return NULL;
     }
 }

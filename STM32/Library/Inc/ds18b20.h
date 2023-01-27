@@ -52,25 +52,16 @@
 
 // IDs for each different sensor. These are used to access the list of ds18b20_t structs
 // so you can pick a sensor that you want to commuincate with
-#define DS18B20_SENSOR_ID_1 0
-#define DS18B20_SENSOR_ID_2 1
+#define DS18B20_ID_OFFSET   23
+#define DS18B20_SENSOR_ID_1 (DS18B20_ID_OFFSET + 0)
+#define DS18B20_SENSOR_ID_2 (DS18B20_ID_OFFSET + 1)
 
 /* Public Enumerations and Strucutres */
-
-/** This holds the required information for each sensor that is connected to the line.
- * Currently there is only need for the ROM code and the temperature of the sensor.
- * If additional features are added like settings for each sensor then this struct
- * may need to be expanded.
- *
- * The temperature received from the DS18B20 is always of the form +-XXXXXXX.XXXX thus
- * the decimal point is always 4 and does not need to be stored
- */
-typedef struct ds18b20_t {
-    uint64_t rom;
+typedef struct ds18b20_temp_t {
     uint16_t decimal;
     uint16_t fraction;
     uint8_t sign; // 0 = positive number, 1 = negative number
-} ds18b20_t;
+} ds18b20_temp_t;
 
 /**
  * @brief This function showcases an example use case of this driver to print the temperatures
@@ -118,6 +109,14 @@ void ds18b20_print_temperatures(void);
  * @param id The id of the DS18B20 sensor to print the temperature of
  */
 void ds18b20_print_temperature(uint8_t id);
+
+/**
+ * @brief Stores the temperature of the given DS18B20 sensor into
+ * the given struct
+ *
+ * @param id The id of the DS18B20 sensor to print the temperature of
+ */
+uint8_t ds18b20_copy_temperature(uint8_t id, ds18b20_temp_t* temp);
 
 /**
  * @brief Prints the ROM of a given sensor to the console

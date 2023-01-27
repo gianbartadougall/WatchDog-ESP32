@@ -19,6 +19,11 @@
 
 #define UART_NUM HC_UART_COMMS_UART_NUM
 
+// support IDF 5.x
+#ifndef portTICK_RATE_MS
+    #define portTICK_RATE_MS portTICK_PERIOD_MS
+#endif
+
 void esp32_uart_send_bpacket(bpacket_t* bpacket) {
 
     bpacket_buffer_t packetBuffer;

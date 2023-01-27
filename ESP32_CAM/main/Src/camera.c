@@ -96,6 +96,10 @@ uint8_t camera_init(void) {
     return TRUE;
 }
 
+uint8_t camera_get_resolution(void) {
+    return camera_config.frame_size;
+}
+
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised

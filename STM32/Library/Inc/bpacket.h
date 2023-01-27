@@ -24,7 +24,8 @@
 #define BPACKET_R_IN_PROGRESS     (START + 3)
 #define BPACKET_GEN_R_HELP        (START + 4)
 #define BPACKET_GEN_R_PING        (START + 5)
-#define BPACKET_SPECIFIC_R_OFFSET (START + 6) // This is the offset applied to specific projects
+#define BPACKET_GET_R_STATUS      (START + 6)
+#define BPACKET_SPECIFIC_R_OFFSET (START + 7) // This is the offset applied to specific projects
 
 // #define BPACKET_R_LIST_DIR      (4 + START)
 // #define BPACKET_R_COPY_FILE     (5 + START)

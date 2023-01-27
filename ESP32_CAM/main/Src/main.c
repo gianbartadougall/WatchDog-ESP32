@@ -34,6 +34,27 @@
 
 /* Private Function Declarations */
 
+void watchdog_send_status(void) {
+
+    uint8_t id               = 1;
+    uint8_t cameraResolution = camera_get_resolution();
+    uint16_t numImages;
+    bpacket_t response;
+    if (sd_card_search_num_images(&numImages, &response) != TRUE) {
+        numImages = 5000;
+    }
+    uint8_t status = 0;
+    bpacket_t bpacket;
+    uint8_t data[5];
+    data[0] = id;
+    data[1] = cameraResolution;
+    data[2] = numImages >> 8;
+    data[3] = numImages & 0xFF;
+    data[4] = status;
+    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 5, data);
+    esp32_uart_send_bpacket(&bpacket);
+}
+
 void watchdog_system_start(void) {
 
     // Turn all the LEDs off
@@ -43,9 +64,6 @@ void watchdog_system_start(void) {
     uint8_t ping[1];
     ping[0] = 23;
 
-    // char instruction[100];
-    // char data[RX_BUF_SIZE];
-    // packet_t packet, response;
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
     bpacket_t bpacket;
     bpacket_char_array_t bpacketCharArray;
@@ -69,6 +87,9 @@ void watchdog_system_start(void) {
             case BPACKET_GEN_R_PING:
                 bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, ping);
                 esp32_uart_send_bpacket(&bpacket);
+                break;
+            case BPACKET_GET_R_STATUS:
+                watchdog_send_status();
                 break;
             case WATCHDOG_BPK_R_LIST_DIR:
                 bpacket_data_to_string(&bpacket, &bpacketCharArray);
@@ -96,11 +117,6 @@ void watchdog_system_start(void) {
                 break;
         }
     }
-}
-
-void esp32_update_settings() {
-
-    // Create a file
 }
 
 uint8_t software_config(bpacket_t* bpacket) {

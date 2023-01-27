@@ -22,8 +22,12 @@
 #include "bpacket.h"
 #include "chars.h"
 
-void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
-                      uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
+void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data) {
+
+    // Ensure the num bytes is no more than maximum
+    if (numDataBytes > BPACKET_MAX_NUM_DATA_BYTES) {
+        return;
+    }
 
     bpacket->request  = request;
     bpacket->numBytes = numDataBytes;

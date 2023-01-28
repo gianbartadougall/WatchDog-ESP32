@@ -368,38 +368,38 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
-        printf("Unable to connect to Watchdog\n");
-        return FALSE;
-    }
+    // if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
+    //     printf("Unable to connect to Watchdog\n");
+    //     return FALSE;
+    // }
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    // HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
-    if (!thread) {
-        printf("Thread failed\n");
-        return 0;
-    }
+    // if (!thread) {
+    //     printf("Thread failed\n");
+    //     return 0;
+    // }
 
-    // Watchdog connected. Get information from watchdog to display on the screen
-    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+    // // Watchdog connected. Get information from watchdog to display on the screen
+    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
-    // Wait until the packet is ready
-    while (packetPendingIndex == packetBufferIndex) {}
+    // // Wait until the packet is ready
+    // while (packetPendingIndex == packetBufferIndex) {}
 
-    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
-        printf("Error recieving status!\n");
-        return 0;
-    }
+    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+    //     printf("Error recieving status!\n");
+    //     return 0;
+    // }
 
     watchdog_info_t watchdogInfo;
-    watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
-    watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
-    watchdogInfo.numImages =
-        (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
-    watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
-    sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
+    // watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
+    // watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
+    // watchdogInfo.numImages =
+    //     (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
+    // watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
+    // sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
-    packetPendingIndex++;
+    // packetPendingIndex++;
 
     uint32_t flags = 0;
 

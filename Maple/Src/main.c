@@ -31,6 +31,7 @@
 #include "watchdog_defines.h"
 #include "bpacket.h"
 #include "com_ports.h"
+#include "gui.h"
 
 #define MAPLE_MAX_ARGS 5
 
@@ -378,6 +379,58 @@ int main(int argc, char** argv) {
         printf("Thread failed\n");
         return 0;
     }
+
+    // Watchdog connected. Get information from watchdog to display on the screen
+    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+
+    // Wait until the packet is ready
+    while (packetPendingIndex == packetBufferIndex) {}
+
+    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+        printf("Error recieving status!\n");
+        return 0;
+    }
+
+    watchdog_info_t watchdogInfo;
+    watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
+    watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
+    watchdogInfo.numImages =
+        (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
+    watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
+    sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
+
+    packetPendingIndex++;
+
+    uint32_t flags = 0;
+
+    gui_init(&watchdogInfo, &flags);
+
+    while (1) {
+
+        if ((flags & GUI_TURN_RED_LED_ON) != 0) {
+            flags &= ~(GUI_TURN_RED_LED_ON);
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+        }
+
+        if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
+            flags &= ~(GUI_TURN_RED_LED_OFF);
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+        }
+
+        if ((flags & GUI_CLOSE) != 0) {
+            break;
+        }
+
+        gui_update();
+    }
+}
+
+/**
+ * @brief This function takes in user input from the command line and processes
+ * it. This function is deprecated since the GUI interface has been made
+ *
+ */
+void maple_command_line() {
 
     char userInput[100];
     while (1) {

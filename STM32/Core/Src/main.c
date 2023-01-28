@@ -9,9 +9,9 @@
  *
  */
 
-/* Public includes */
+/* C Library includes */
 
-/* Private includes */
+/* Personal includes */
 #include "main.h"
 #include "hardware_config.h"
 #include "utilities.h"
@@ -20,6 +20,7 @@
 #include "stm32_rtc.h"
 #include "log.h"
 #include "led.h"
+#include "stm32_flash.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -84,13 +85,15 @@ int main(void) {
     watchdog_init();
 
     log_message("Starting\r\n");
+    stm32_flash_write();
 
     while (1) {
 
         // Put the watchdog into deep sleep mode
 
-        watchdog_update();
-        // HAL_Delay(1000);
+        // watchdog_update();
+        HAL_Delay(5000);
+        log_message("here\r\n");
     }
 
     return 0;

@@ -75,7 +75,7 @@ Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
 Core/Src/board.c \
 Core/Src/watchdog.c \
-Core/Src/comms.c \
+Core/Src/comms.c
 
 LIBRARY_SOURCES = \
 Library/Src/ds18b20.c

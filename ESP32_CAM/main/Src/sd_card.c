@@ -269,7 +269,9 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket) {
     struct dirent* dirPtr;
     *numImages = 0;
     while ((dirPtr = readdir(directory)) != NULL) {
-        if (chars_contains(dirPtr->d_name, ".jpg") == TRUE) {
+        // Checking both img and IMG just incase as SD card is weird when it comes allowing/not allowing
+        // lower case letters
+        if (chars_contains(dirPtr->d_name, "img") == TRUE || chars_contains(dirPtr->d_name, "IMG") == TRUE) {
             *numImages += 1;
         }
     }

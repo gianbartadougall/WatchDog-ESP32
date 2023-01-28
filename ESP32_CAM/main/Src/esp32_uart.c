@@ -43,47 +43,6 @@ int esp32_uart_send_data(const char* data) {
     return txBytes;
 }
 
-// void esp32_uart_get_packet(char msg[200]) {
-
-//     int i = 0;
-//     char data[50];
-//     while (1) {
-
-//         // Read data from the UART quick enough to get a single character
-//         int len = uart_read_bytes(UART_NUM, data, RX_BUF_SIZE, 20 / portTICK_RATE_MS);
-
-//         // Write data back to the UART
-//         if (len == 0) {
-//             continue;
-//         }
-
-//         if (len == 1) {
-//             uart_write_bytes(UART_NUM, (const char*)data, len);
-
-//             // Check for enter key
-//             if (data[0] == 0x0D) {
-//                 msg[i++] = '\r';
-//                 msg[i++] = '\n';
-//                 msg[i]   = '\0';
-//                 esp32_uart_send_data(msg);
-
-//                 msg[i - 2] = '\0';
-//                 return;
-//             }
-
-//             if (data[0] >= '!' || data[0] <= '~') {
-//                 msg[i++] = data[0];
-//             }
-//         }
-//     }
-// }
-
-// void esp32_uart_send_packet(packet_t* packet) {
-//     char string[RX_BUF_SIZE];
-//     packet_to_string(packet, string);
-//     esp32_uart_send_data(string);
-// }
-
 void esp32_uart_send_string(char* string) {
 
     bpacket_t bpacket;

@@ -8,6 +8,7 @@ LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 
 C_SOURCES = \
 Src/main.c \
+Src/gui.c \
 Src/com_ports.c \
 ../STM32/Core/Src/Utilities/chars.c \
 ../STM32/Library/Src/bpacket.c
@@ -48,9 +49,10 @@ FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(C_INCLUDES) $(DEPENDENCY_FLAGS)
 
 all: $(BUILD_DIR) $(C_SOURCES) Linker
 
-# The -lsetupapi include must go at the end for it to compile properly
+# The -lsetupapi (used for libSerialPort) include must go at the end for it to compile properly.
+# The gdi32.lib is used for the win32A API
 Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR)
-	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi
+	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi -lgdi32
 
 $(C_SOURCES):
 	$(info SRCS $(C_SOURCES))

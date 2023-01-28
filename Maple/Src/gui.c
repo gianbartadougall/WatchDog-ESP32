@@ -72,11 +72,19 @@ HWND LabelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumI
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
 HFONT hFont;
 
+typedef struct rectangle_t {
+    int startX;
+    int startY;
+    int width;
+    int height;
+} rectangle_t;
+
+uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
+
 watchdog_info_t* watchdog;
 uint32_t* flags;
 
 void DrawPixels(HWND hwnd);
-void draw_image(HWND hwnd);
 
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
@@ -247,33 +255,43 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 gui_set_camera_view(hwnd);
 
                 printf("Starting livestream\n");
-                // Force windows to redraw window
-                RECT rect = {10, 10, 20, 20};
-                // InvalidateRect(hwnd, &rect, TRUE);
-                // UpdateWindow(hwnd);
-
-                RedrawWindow(hwnd, &rect, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-                UpdateWindow(hwnd);
-                // Hide all buttons and show camera view
+                InvalidateRect(hwnd, NULL, TRUE);
+                rectangle_t rectangle;
+                rectangle.startX = COL_1;
+                rectangle.startY = ROW_2;
+                rectangle.width  = 600;
+                rectangle.height = 480;
+                draw_image(hwnd, "img6.jpg", &rectangle);
+                // DrawPixels(hwnd);
             }
 
             if (LOWORD(wParam) == BUTTON_NORMAL_VIEW_HANDLE) {
                 cameraViewOn = FALSE;
 
                 // Clear the screen
-                HDC hdc          = GetDC(hwnd);
-                HBRUSH hBrush    = CreateSolidBrush(RGB(255, 255, 255));
-                HBRUSH hOldBrush = SelectObject(hdc, hBrush);
-                PatBlt(hdc, COL_1, ROW_2, 680, 480, PATCOPY);
-                SelectObject(hdc, hOldBrush);
-                ReleaseDC(hwnd, hdc);
+                InvalidateRect(hwnd, NULL, TRUE);
+                PAINTSTRUCT ps;
+                HDC hdc       = BeginPaint(hwnd, &ps);
+                RECT rect     = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+                HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
+                FillRect(hdc, &rect, hBrush);
                 DeleteObject(hBrush);
-                UpdateWindow(hwnd);
+                EndPaint(hwnd, &ps);
+                // HDC hdc          = GetDC(hwnd);
+                // HBRUSH hBrush    = CreateSolidBrush(RGB(255, 255, 255));
+                // HBRUSH hOldBrush = SelectObject(hdc, hBrush);
+                // PatBlt(hdc, COL_1, ROW_2, 680, 480, PATCOPY);
+                // SelectObject(hdc, hOldBrush);
+                // ReleaseDC(hwnd, hdc);
+                // DeleteObject(hBrush);
+                // UpdateWindow(hwnd);
+
+                // FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
 
                 gui_set_normal_view(hwnd);
 
                 // Hide all buttons and show camera view
-                printf("Stopping livestream\n");
+                // printf("Stopping livestream\n");
             }
 
             // if (LOWORD(wParam) == BUTTON_RUN_TEST_HANDLE) {
@@ -290,9 +308,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             break;
         case WM_PAINT: // This is called anytime the window needs to be redrawn
-            if (cameraViewOn == TRUE) {
-                DrawPixels(hwnd);
-            }
+            // if (cameraViewOn == TRUE) {
+            //     DrawPixels(hwnd);
+            // }
             break;
         case WM_DESTROY:
             // close the application
@@ -427,7 +445,6 @@ void DrawPixels(HWND hwnd) {
     EndPaint(hwnd, &ps);
     free(outputData);
     stbi_image_free(data);
-    ReleaseDC(hdc);
 }
 
 void draw_pixels() {
@@ -518,4 +535,94 @@ void gui_update() {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+}
+
+/* Private Functions */
+
+uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
+
+    /* Try to load images using stb libary. Only jpg images have been tested */
+
+    // Variables to store image data. n represents number of colour channels.
+    // For jpg RGB images n = 3 (R, G, B)
+    int width, height, n;
+    unsigned char* imageData = stbi_load(filePath, &width, &height, &n, 0);
+
+    // Confirm file data was able to be opened
+    if (imageData == NULL) {
+        printf("Image failed to load\n");
+        stbi_image_free(imageData);
+        return FALSE;
+    }
+
+    // Confirm image was RGB
+    if (n != 3) {
+        printf("Image was not RGB image");
+        stbi_image_free(imageData);
+        return FALSE;
+    }
+
+    unsigned char* pixelData;
+
+    // Resize the image if the desired size does not meet the image size
+    int resizeImage = (position->width != width || position->height != height) ? TRUE : FALSE;
+    if (resizeImage == TRUE) {
+
+        // Allocate space for resized image data
+        pixelData = malloc(sizeof(unsigned char) * position->width * position->height * n);
+
+        // Confirm the space could be allocated
+        if (pixelData == NULL) {
+            printf("Unable to allocate space to draw image\n");
+            return FALSE;
+        }
+
+        // Resize the image using stb library
+        if (stbir_resize_uint8(imageData, width, height, 0, pixelData, position->width, position->height, 0, n) !=
+            TRUE) {
+            printf("Error resizing image\n");
+            stbi_image_free(imageData);
+            free(pixelData);
+            return FALSE;
+        }
+
+        // Free the image data
+        stbi_image_free(imageData);
+    } else {
+        pixelData = imageData;
+        printf("%p %p\n", pixelData, imageData);
+    }
+
+    // Convert pixel data to a bit map
+    BITMAPINFO bmi;
+    memset(&bmi, 0, sizeof(bmi));
+    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth       = position->width;
+    bmi.bmiHeader.biHeight      = -position->height; // Negative to ensure picture is drawn vertical correctly
+    bmi.bmiHeader.biPlanes      = 1;
+    bmi.bmiHeader.biBitCount    = 24;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    // // Being painting
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+
+    // Render image onto window
+    if (StretchDIBits(hdc, position->startX, position->startY, position->width, position->height, 0, 0, position->width,
+                      position->height, pixelData, &bmi, DIB_RGB_COLORS, SRCCOPY) == FALSE) {
+        printf("Failed to render image\n");
+        return FALSE;
+    }
+
+    // End painting
+    EndPaint(hwnd, &ps);
+
+    // Free used resources
+    if (resizeImage == TRUE) {
+        free(pixelData);
+    } else {
+        stbi_image_free(pixelData);
+    }
+
+    return TRUE;
 }

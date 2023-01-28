@@ -13,13 +13,16 @@
 #include <windows.h>
 #include <wingdi.h>
 #include <CommCtrl.h>
+#include <winuser.h>
 
 #include <stdio.h>
+#include <sensor.h>
 
 /* Personal Includes */
 #include "gui.h"
 
 /* Private Macros */
+#define IDC_COMBOBOX  32511
 #define LEFT_MARGIN   10
 #define MIDDLE_MARGIN 270
 #define TOP_MARGIN    10
@@ -32,7 +35,7 @@
 #define LABEL_HEIGHT 30
 
 #define DROP_BOX_WIDTH  200
-#define DROP_BOX_HEIGHT 30
+#define DROP_BOX_HEIGHT 300
 
 #define WINDOW_WIDTH  (RIGHT_MARGIN + LABEL_WIDTH + (GAP_WIDTH * 3))
 #define WINDOW_HEIGHT ((LABEL_HEIGHT * 2) + TOP_MARGIN + 300)
@@ -58,10 +61,15 @@
 #define DROP_BOX_CAMERA_RESOLUTION_HANDLE 5
 #define DROP_BOX_PHOTO_FREQUENCY_HANDLE   6
 
+#define NUMBER_OF_CAM_RESOLUTIONS 7
+
 HWND dropDownCameraResolution, dropDownPhotoFrequency;
 HWND LabelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumImages, labelDate;
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest;
 HFONT hFont;
+
+framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
+    FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
 
 watchdog_info_t* watchdog;
 uint32_t* flags;
@@ -84,7 +92,7 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
-        case WM_CREATE:
+        case WM_CREATE:;
 
             char text[150];
 
@@ -122,30 +130,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             sprintf(text, "Camera Resolution");
             LabelCameraResolution = create_label(text, COL_1, ROW_4, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
-            // Button to change the camera resolution
-            dropDownCameraResolution = create_dropbox("", COL_2, ROW_4, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                                      (HMENU)DROP_BOX_CAMERA_RESOLUTION_HANDLE);
-
-            SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 640x480");
-            SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 240x240");
-            SendMessage(dropDownCameraResolution, CB_SETCURSEL, 1, 0);
-
-            // SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 320x240");
-            // SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 640x480");
-            // SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 1024x768");
-            // SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 1280x1024");
-            // SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "Resolution 1600x1200");
-
             // Label for setting to change the frequency at which photos are taken
             sprintf(text, "Photo Frequency");
             labelPhotoFrequency = create_label(text, COL_1, ROW_5, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Button to change the frequency at which photos are taken
-            dropDownPhotoFrequency = create_dropbox("", COL_2, ROW_5, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                                    (HMENU)DROP_BOX_PHOTO_FREQUENCY_HANDLE);
-            SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "1 time per day");
-            SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "2 times per day");
-            SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "3 times per day");
 
             /* START OF SECTION 3 */
 
@@ -179,14 +166,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if (LOWORD(wParam) == BUTTON_RUN_TEST_HANDLE) {
                 printf("Testing system\n");
-            }
-
-            if ((HWND)lParam == dropDownCameraResolution) {
-                // handle drop-down menu selection
-                int itemIndex = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
-                TCHAR buffer[256];
-                SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
-                printf("Selected item %i: %s\n", itemIndex, buffer);
             }
 
             break;
@@ -235,17 +214,27 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
     hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "My Window", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
                           CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
 
-    // Set the font of the button to arial
-    // SendMessage(buttonCameraView, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(buttonRunTest, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(buttonExportData, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(buttonOpenSDCard, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(LabelCameraResolution, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(labelPhotoFrequency, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(labelStatus, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(labelID, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(labelNumImages, WM_SETFONT, (WPARAM)hFont, TRUE);
-    // SendMessage(labelDate, WM_SETFONT, (WPARAM)hFont, TRUE);
+    dropDownCameraResolution =
+        CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2,
+                     ROW_4, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX, NULL, NULL);
+
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "320x240");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "352x288");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "640x480");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "800x600");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1024x768");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1280x1024");
+    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1600x1200");
+    SendMessage(dropDownCameraResolution, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+
+    // Button to change the frequency at which photos are taken
+    dropDownPhotoFrequency =
+        CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2,
+                     ROW_5, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX, NULL, NULL);
+    SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "1 time per day");
+    SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "2 times per day");
+    SendMessage(dropDownPhotoFrequency, CB_ADDSTRING, 0, (LPARAM) "3 times per day");
+    SendMessage(dropDownPhotoFrequency, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 
     if (hwnd == NULL) {
         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -254,6 +243,8 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
+
+    // CODE TO FIX DROP DOWN BOXES (5 lines)
 
     // // message loop
     // while (GetMessage(&msg, NULL, 0, 0) > 0) {

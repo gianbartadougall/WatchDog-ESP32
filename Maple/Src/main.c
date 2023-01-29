@@ -434,20 +434,24 @@ int main(int argc, char** argv) {
     //     return 0;
     // }
 
-    // watchdog_info_t watchdogInfo;
-    // watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
-    // watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
-    // watchdogInfo.numImages =
-    //     (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
-    // watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
-    // sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
+    watchdog_info_t watchdogInfo;
+    watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
+    watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
+    watchdogInfo.numImages =
+        (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
+    watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
+    sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
     // packetPendingIndex++;
 
     uint32_t flags     = 0;
     uint8_t cameraView = FALSE;
 
-    HANDLE thread = CreateThread(NULL, 0, gui, &flags, 0, NULL);
+    gui_initalisation_t guiInit;
+    guiInit.watchdog = &watchdogInfo;
+    guiInit.flags    = &flags;
+
+    HANDLE thread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
     if (!thread) {
         printf("Thread failed\n");

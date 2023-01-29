@@ -9,6 +9,8 @@ LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 C_SOURCES = \
 Src/main.c \
 Src/gui.c \
+Src/stb_image.c \
+Src/stb_image_resize.c \
 Src/com_ports.c \
 ../STM32/Core/Src/Utilities/chars.c \
 ../STM32/Library/Src/bpacket.c

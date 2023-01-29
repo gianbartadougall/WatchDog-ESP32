@@ -130,13 +130,56 @@ uint8_t maple_copy_file(char* filePath, char* cpyFileName) {
             count++;
         }
 
-        // printf("Request[%i]: %i Num bytes: %i -> ", packetPendingIndex, packetBuffer[packetPendingIndex].request,
-        //        packetBuffer[packetPendingIndex].numBytes);
-        // Packet ready. Print its contents
-        // for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-        //     printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
-        // }
-        // printf("\n");
+        if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
+            packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+            printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
+            fclose(target);
+            return FALSE;
+        }
+
+        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+            packetsFinished = TRUE;
+        }
+
+        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+            fputc(packetBuffer[packetPendingIndex].bytes[i], target);
+        }
+
+        maple_increment_packet_pending_index();
+    }
+
+    fclose(target);
+
+    return TRUE;
+}
+
+uint8_t maple_receive_camera_view(char* fileName) {
+
+    FILE* target;
+    target = fopen(fileName, "wb"); // Read binary
+
+    if (target == NULL) {
+        printf("Could not open file\n");
+        fclose(target);
+        return FALSE;
+    }
+
+    int packetsFinished = FALSE;
+    int count           = 0;
+    while (packetsFinished == FALSE) {
+
+        // Wait until the packet is ready
+        count = 0;
+        while (packetPendingIndex == packetBufferIndex) {
+
+            if (count == 1000) {
+                printf("Timeout 1000ms\n");
+                return FALSE;
+            }
+
+            Sleep(1);
+            count++;
+        }
 
         if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
             packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
@@ -368,42 +411,50 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
-        printf("Unable to connect to Watchdog\n");
-        return FALSE;
-    }
+    // if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
+    //     printf("Unable to connect to Watchdog\n");
+    //     return FALSE;
+    // }
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    // HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+
+    // if (!thread) {
+    //     printf("Thread failed\n");
+    //     return 0;
+    // }
+
+    // // Watchdog connected. Get information from watchdog to display on the screen
+    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+
+    // // Wait until the packet is ready
+    // while (packetPendingIndex == packetBufferIndex) {}
+
+    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+    //     printf("Error recieving status!\n");
+    //     return 0;
+    // }
+
+    // watchdog_info_t watchdogInfo;
+    // watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
+    // watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
+    // watchdogInfo.numImages =
+    //     (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
+    // watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
+    // sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
+
+    // packetPendingIndex++;
+
+    uint32_t flags     = 0;
+    uint8_t cameraView = FALSE;
+
+    HANDLE thread = CreateThread(NULL, 0, gui, &flags, 0, NULL);
 
     if (!thread) {
         printf("Thread failed\n");
         return 0;
     }
 
-    // Watchdog connected. Get information from watchdog to display on the screen
-    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
-
-    // Wait until the packet is ready
-    while (packetPendingIndex == packetBufferIndex) {}
-
-    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
-        printf("Error recieving status!\n");
-        return 0;
-    }
-
-    watchdog_info_t watchdogInfo;
-    watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
-    watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
-    watchdogInfo.numImages =
-        (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
-    watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
-    sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
-
-    packetPendingIndex++;
-
-    uint32_t flags = 0;
-
-    gui_init(&watchdogInfo, &flags);
+    // gui_init(&watchdogInfo, &flags);
 
     while (1) {
 
@@ -417,11 +468,35 @@ int main(int argc, char** argv) {
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
         }
 
+        if ((flags & GUI_CAMERA_VIEW_ON) != 0) {
+            flags &= ~(GUI_CAMERA_VIEW_ON);
+
+            // Send request to set resolution to low value so sending images
+            // over UART has a quick enough frame rate
+            // maple_create_and_send_bpacket(, 0, NULL);
+            cameraView = TRUE;
+        }
+
+        if ((flags & GUI_CAMERA_VIEW_OFF) != 0) {
+            flags &= ~(GUI_CAMERA_VIEW_OFF);
+            cameraView = FALSE;
+        }
+
+        if (cameraView == TRUE) {
+
+            // Request image from watchdog
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_CAMERA_VIEW, 0, NULL);
+
+            // Wait for watchdog to transmit photo over UART
+
+            if (maple_copy_file(cameraViewFileName) == TRUE) {
+                flag |= GUI_UPDATE_CAMERA_VIEW;
+            }
+        }
+
         if ((flags & GUI_CLOSE) != 0) {
             break;
         }
-
-        gui_update();
     }
 }
 

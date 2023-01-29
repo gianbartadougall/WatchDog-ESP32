@@ -55,3 +55,4 @@
 # If we have time
 - Button for viewing the data on the ESP32 from the GUI
 - Checking data input in the GUI before sending it to the ESP32
+- Read the screen resolution of the device it is on to pick the size of the window

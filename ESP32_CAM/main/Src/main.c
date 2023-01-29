@@ -55,6 +55,21 @@ void watchdog_send_status(void) {
     esp32_uart_send_bpacket(&bpacket);
 }
 
+void watchdog_update_camera_settings(bpacket_t* bpacket) {
+
+    // Decode bpacket
+    uint8_t cameraResolution = bpacket->bytes[0];
+
+    bpacket_t bpacket;
+    if (camera_change_resolution(cameraResolution) != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to update\0");
+    } else {
+        bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    }
+
+    esp32_uart_send_bpacket(bpacket);
+}
+
 void watchdog_system_start(void) {
 
     // Turn all the LEDs off
@@ -101,6 +116,9 @@ void watchdog_system_start(void) {
                 break;
             case WATCHDOG_BPK_R_TAKE_PHOTO:
                 camera_capture_and_save_image(&bpacket);
+                break;
+            case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
+                watchdog_update_camera_settings(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
                 // sd_card_write_to_file();

@@ -28,6 +28,6 @@ uint8_t camera_init(void);
 
 void camera_capture_and_save_image(bpacket_t* bpacket);
 
-uint8_t camera_get_resolution(void);
+uint8_t camera_change_resolution(void);
 
 #endif // CAMERA_H

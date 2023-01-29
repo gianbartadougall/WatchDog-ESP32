@@ -457,6 +457,9 @@ int main(int argc, char** argv) {
     //     return 0;
     // }
 
+    printf("Connected to STM32\r\n");
+    return 0;
+
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
     watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];

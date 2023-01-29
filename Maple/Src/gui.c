@@ -70,6 +70,8 @@ HFONT hFont;
 
 framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
     FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
+const char* cameraResolutionStrings[40] = {"320x240",  "352x288",   "640x480",  "800x600",
+                                           "1024x768", "1280x1024", "1600x1200"};
 
 watchdog_info_t* watchdog;
 uint32_t* flags;
@@ -84,10 +86,19 @@ HWND create_label(char* title, int startX, int startY, int width, int height, HW
                         NULL);
 }
 
-HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
-    return CreateWindowEx(WS_EX_CLIENTEDGE, "COMBOBOX", title,
-                          CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX, startY, width,
-                          height, hwnd, handle, GetModuleHandle(NULL), NULL);
+HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
+                    int numberOfOptions, const char* nameOfOptions[40], int indexOfDeafaultOption) {
+    HWND dropBox =
+        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
+                     startY, width, height, hwnd, handle, NULL, NULL);
+    /*
+    CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2, ROW_4,
+                 DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX, NULL, NULL);
+    */
+    for (int i = 0; i < numberOfOptions; i++) {
+        SendMessage(dropBox, CB_ADDSTRING, indexOfDeafaultOption, (LPARAM)nameOfOptions[i]);
+    }
+    return dropBox;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -215,18 +226,21 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
                           CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
 
     dropDownCameraResolution =
-        CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2,
-                     ROW_4, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX, NULL, NULL);
+        create_dropbox("Title", COL_2, ROW_4, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX,
+                       NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings, 0);
+    /*
+    CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2,
+                 ROW_4, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX, NULL, NULL);
 
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "320x240");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "352x288");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "640x480");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "800x600");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1024x768");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1280x1024");
-    SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1600x1200");
-    SendMessage(dropDownCameraResolution, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "320x240");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "352x288");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "640x480");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "800x600");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1024x768");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1280x1024");
+SendMessage(dropDownCameraResolution, CB_ADDSTRING, 0, (LPARAM) "1600x1200");
+SendMessage(dropDownCameraResolution, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+*/
     // Button to change the frequency at which photos are taken
     dropDownPhotoFrequency =
         CreateWindow("COMBOBOX", "", CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, COL_2,

@@ -126,9 +126,6 @@ uint8_t change_camera_resolution(uint8_t cam_res) {
         case FRAMESIZE_UXGA:
             camera_config.frame_size = FRAMESIZE_UXGA;
             break;
-        case FRAMESIZE_WQXGA:
-            camera_config.frame_size = FRAMESIZE_WQXGA;
-            break;
         default:
             // Should never get here, should only ever recieve one of the above cases
             return FALSE;

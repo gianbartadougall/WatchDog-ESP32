@@ -489,8 +489,8 @@ int main(int argc, char** argv) {
 
             // Wait for watchdog to transmit photo over UART
 
-            if (maple_copy_file(cameraViewFileName) == TRUE) {
-                flag |= GUI_UPDATE_CAMERA_VIEW;
+            if (maple_receive_camera_view(CAMERA_VIEW_FILENAME) == TRUE) {
+                flags |= GUI_UPDATE_CAMERA_VIEW;
             }
         }
 

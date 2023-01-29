@@ -21,6 +21,7 @@ C_INCLUDES = \
 -I../STM32/Core/Inc/Utilities \
 -I../STM32/Core/Inc/Board \
 -I../STM32/Library/Inc \
+-I../Drivers/ESP32_Camera/driver/include \
 -IInc
 
 LIB_SP_SOURCES = \

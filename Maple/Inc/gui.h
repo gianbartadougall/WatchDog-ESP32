@@ -25,6 +25,7 @@
 #define GUI_CAMERA_VIEW_ON     (0x01 << 3)
 #define GUI_CAMERA_VIEW_OFF    (0x01 << 4)
 #define GUI_UPDATE_CAMERA_VIEW (0x01 << 5)
+#define CAMERA_VIEW_FILENAME   ("cameraView.jpg\0")
 
 typedef struct watchdog_info_t {
     uint8_t cameraResolution;
@@ -33,8 +34,6 @@ typedef struct watchdog_info_t {
     uint8_t status;
     char datetime[50];
 } watchdog_info_t;
-
-const char* cameraViewFileName[] = {"cameraView.jpg\0"};
 
 void gui_init();
 

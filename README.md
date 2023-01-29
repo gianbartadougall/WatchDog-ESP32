@@ -1,32 +1,57 @@
 # Watchdog ESP32 Version
 
-# Application Operation
-When uploaded to the ESP32 cam, this project will initialise the SD card and the camera and take a photo (jpeg) every 5 seconds and then save that photo to the SD card. Everything the system does is logged to the SD card so if something isn't working, unplug the system and look at the logs.txt file in the SD card which is under watchdog/logs in the SD card.
+# Software
+- Workable GUI
+   - Set the layout for the normal mode (i.e buttons, labels and dropboxs)
+   - Set the layout for the camera view (images and buttons)
+   - Make drop boxes not editable vis typing
+   - Setup the flags so information can be passed to Maple
+      - Come up with protocol for sending flag and data information from GUI to Maple
+      - Time and date settings for taking photos
+      - Camera resolution settings
+      - Change settings for RTC time and date
+      - button for transfering data from ESP32 to computer
+      - button for running test
+      - button for going into camera live stream + button for going back to normal mode
+   - Setup flags to recieve data from Maple
+      - updating images for camera live stream
+      - status information
+         - Error code
+         - number of iamges
+         - current date and time
 
-The red LED on the underside of the esp32 turns off when the ESP32 is taking a photo and saving the photo to the SD card (happen once every 5 seconds). Do not turn off the power to the ESP32 whilst this is happening as you will most likely damage the SD card. Wait for the LED to turn back on as this will give you 5 seconds to turn off the power.
-
-If you see the red LED blinking once per second then an error has occured. You can unplug the ESP32 at any time and look at the logs in the SD card
-
-# Hardware Features to be Implemented in Order
-- Determine which pins can be used in conjunction with the camera and the SD card. Map out how these pins will connect to the required peripherals. These peripherals include:
-   - Temperature Sensor
-   - Real Time Clock
-   - User Interface to show any errors that have occured and potnetially when the ESP32 is in the process of taking a photo or writing to the SD card
-   - Button to make the system take a photo
-   - Button to turn the system on and off
-   - Hardware to protect the camera/ensure the camera has a clear view of the item it needs to take a photo of. Historically (using Raspberry Pi) this has been done with a servo
-   - Plan what hardware may be required to setup something like LoRa in the future. Plan what pins may be useable for any additonal sensors that may be required in the future
-- Determine how the ESP32 will be powered
-- Determine the structure of the casing and how the casing will keep all the electronics water proof
-
-# Software Features to be Implemented in Order
+# Firmware
 - Code to get the camera working (DONE)
 - Code to get the SD card working (DONE)
 - Code to create a file structure on the SD card to save data and logs (DONE)
 - Code to log operations and errors to the SD card (DONE)
-- Code to get the user interface working i.e showing errors/modes of operation 
-- Code to get the on/off power button working
-- Code to get the real time clock working
-- Code to get the temperature sensor working
-- Code to get the hardware to protect the camera working
-- Code to get the ESP32 to take a photo and record data manually
+- Get the RTC working on the STM32
+- Be able to recieve flags from GUI and send to ESP32
+      - Time and date settings for taking photos
+      - Camera resolution settings
+      - Settings for RTC time and date
+      - Transfering data from ESP32 to computer
+      - Tunning a test
+      - Streaming photos from ESP32 to GUI
+ - ESP32 recieve all of the above and change those settings
+      - Save all these settings on SD card on the ESP32
+ - Get the STM32 working in deep sleep mode
+ - Change the names of the images to a hex ID with a text file that relates ids to the date and time and temperature data
+ - Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning
+
+# Hardware
+- PCB
+   - On / off button
+   - Area for battery to be connected
+   - Buck converter
+   - Button to make the system take a test photo?
+   - Hardware to protect the camera/ensure the camera has a clear view of the item it needs to take a photo of. Historically (using Raspberry Pi) this has been done with a servo
+- Casing
+   - Determine the structure of the casing and how the casing will keep all the electronics water proof
+
+# Other
+- Write user manual for trouble shooting and how to use
+
+# If we have time
+- Button for viewing the data on the ESP32 from the GUI
+- Checking data input in the GUI before sending it to the ESP32

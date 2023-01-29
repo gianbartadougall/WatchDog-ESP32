@@ -100,8 +100,6 @@ uint8_t camera_get_resolution(void) {
     return camera_config.frame_size;
 }
 
-<<<<<<< Updated upstream
-=======
 uint8_t camera_change_resolution(uint8_t camRes) {
 
     // Deinitinalise camera so camera settings can be changed
@@ -134,9 +132,6 @@ uint8_t camera_change_resolution(uint8_t camRes) {
             // Should never get here, should only ever recieve one of the above cases
             return FALSE;
     }
-
-    bpacket_t bpacket;
-
     // Configure Camera
     sd_card_log(SYSTEM_LOG_FILE, "Reconfiguring Camera\0");
     if (camera_init() != TRUE) {
@@ -147,7 +142,6 @@ uint8_t camera_change_resolution(uint8_t camRes) {
     return TRUE;
 }
 
->>>>>>> Stashed changes
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised

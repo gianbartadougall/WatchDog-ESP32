@@ -73,7 +73,6 @@ HWND LabelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumI
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
 HFONT hFont;
 
-
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -86,7 +85,6 @@ rectangle_t cameraViewImagePosition;
 uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
 void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b);
 void gui_update_camera_view(char* fileName);
-=======
 framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
     FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
 const char* cameraResolutionStrings[40] = {"320x240",  "352x288",   "640x480",  "800x600",
@@ -281,7 +279,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             break;
 
-
             break;
         case WM_PAINT: // This is called anytime the window needs to be redrawn
             // if (cameraViewOn == TRUE) {
@@ -395,7 +392,7 @@ DWORD WINAPI gui(void* arg) {
     flags = (uint32_t*)arg;
 
     cameraViewImagePosition.startX = COL_1;
-    cameraViewImagePosition.starty = ROW_2;
+    cameraViewImagePosition.startY = ROW_2;
     cameraViewImagePosition.width  = 600;
     cameraViewImagePosition.height = 480;
 
@@ -446,7 +443,7 @@ DWORD WINAPI gui(void* arg) {
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
-    
+
     // message loop
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
 
@@ -454,7 +451,7 @@ DWORD WINAPI gui(void* arg) {
         DispatchMessage(&msg);
 
         // Check flag from maple
-        if ((flag & GUI_UPDATE_CAMERA_VIEW) != 0) {
+        if ((*flags & GUI_UPDATE_CAMERA_VIEW) != 0) {
             // draw_image(hwnd, cameraViewFileName, &cameraViewImagePosition);
         }
     }

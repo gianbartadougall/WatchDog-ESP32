@@ -53,6 +53,9 @@
 - Write user manual for trouble shooting and how to use
 
 # If we have time
+- Check battery level
+      - Maybe the LED and volatge divider option so it can be checked without a computer.
+- Create a better solution for inputing the correct time for calibrating the real time clock
 - Button for viewing the data on the ESP32 from the GUI
 - Checking data input in the GUI before sending it to the ESP32
 - Read the screen resolution of the device it is on to pick the size of the window

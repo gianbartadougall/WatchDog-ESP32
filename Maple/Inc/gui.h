@@ -35,6 +35,11 @@ typedef struct watchdog_info_t {
     char datetime[50];
 } watchdog_info_t;
 
+typedef struct gui_initalisation_t {
+    watchdog_info_t* watchdog;
+    uint32_t* flags;
+} gui_initalisation_t;
+
 void gui_init();
 
 void gui_update();

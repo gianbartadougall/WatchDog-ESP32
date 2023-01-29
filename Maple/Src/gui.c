@@ -10,10 +10,6 @@
  */
 
 /* C Library Includes */
-#include <windows.h>
-#include <wingdi.h>
-#include <CommCtrl.h>
-
 #include <stdio.h>
 
 /* Personal Includes */
@@ -79,7 +75,11 @@ typedef struct rectangle_t {
     int height;
 } rectangle_t;
 
+rectangle_t cameraViewImagePosition;
+
 uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
+void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b);
+void gui_update_camera_view(char* fileName);
 
 watchdog_info_t* watchdog;
 uint32_t* flags;
@@ -262,32 +262,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.width  = 600;
                 rectangle.height = 480;
                 draw_image(hwnd, "img6.jpg", &rectangle);
-                // DrawPixels(hwnd);
             }
 
             if (LOWORD(wParam) == BUTTON_NORMAL_VIEW_HANDLE) {
                 cameraViewOn = FALSE;
 
                 // Clear the screen
-                InvalidateRect(hwnd, NULL, TRUE);
-                PAINTSTRUCT ps;
-                HDC hdc       = BeginPaint(hwnd, &ps);
-                RECT rect     = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-                HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
-                FillRect(hdc, &rect, hBrush);
-                DeleteObject(hBrush);
-                EndPaint(hwnd, &ps);
-                // HDC hdc          = GetDC(hwnd);
-                // HBRUSH hBrush    = CreateSolidBrush(RGB(255, 255, 255));
-                // HBRUSH hOldBrush = SelectObject(hdc, hBrush);
-                // PatBlt(hdc, COL_1, ROW_2, 680, 480, PATCOPY);
-                // SelectObject(hdc, hOldBrush);
-                // ReleaseDC(hwnd, hdc);
-                // DeleteObject(hBrush);
-                // UpdateWindow(hwnd);
-
-                // FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
-
+                rectangle_t rectangle;
+                rectangle.startX = COL_1;
+                rectangle.startY = ROW_2;
+                rectangle.width  = 600;
+                rectangle.height = 480;
+                draw_rectangle(hwnd, &rectangle, 255, 255, 255);
                 gui_set_normal_view(hwnd);
 
                 // Hide all buttons and show camera view
@@ -324,129 +310,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
-// void draw_image(HWND hwnd) {
-//     stbi_load
-//     HBITMAP hBitmap = (HBITMAP)LoadImage(NULL, "img6.jpg", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-
-//     if (hBitmap == NULL) {
-//         printf("Failed to load image\n");
-//         return;
-//     }
-
-//     HDC hDC = CreateCompatibleDC(NULL);
-//     SelectObject(hDC, hBitmap);
-
-//     BITMAP bitmap;
-//     GetObject(hBitmap, sizeof(BITMAP), &bitmap);
-
-//     int width  = bitmap.bmWidth;
-//     int height = bitmap.bmHeight;
-//     int bpp    = bitmap.bmBitsPixel;
-
-//     if (bpp != 24) {
-//         printf("Image is not 24-bit\n");
-//         return;
-//     }
-
-//     unsigned char* pixelData = (unsigned char*)malloc(width * height * 3);
-
-//     GetDIBits(hDC, hBitmap, 0, height, pixelData, (BITMAPINFO*)&bitmap, DIB_RGB_COLORS);
-
-//     PAINTSTRUCT ps;
-//     RECT r;
-
-//     GetClientRect(hwnd, &r);
-
-//     if (r.bottom == 0) {
-
-//         return;
-//     }
-
-//     HDC hdc = BeginPaint(hwnd, &ps);
-
-//     int i, j;
-//     for (i = 0; i < height; i++) {
-//         for (j = 0; j < width; j++) {
-//             int offset      = (i * width + j) * 3;
-//             unsigned char r = pixelData[offset];
-//             unsigned char g = pixelData[offset + 1];
-//             unsigned char b = pixelData[offset + 2];
-//             SetPixel(hdc, j, i, RGB(r, g, b));
-//             // do something with the R, G, B values
-//         }
-//     }
-
-//     free(pixelData);
-//     DeleteDC(hDC);
-//     DeleteObject(hBitmap);
-
-//     EndPaint(hwnd, &ps);
-// }
-
-void DrawPixels(HWND hwnd) {
-    printf("Drawing\r\n");
-    PAINTSTRUCT ps;
-    RECT r;
-
-    GetClientRect(hwnd, &r);
-
-    if (r.bottom == 0) {
-        return;
-    }
-
-    HDC hdc = BeginPaint(hwnd, &ps);
-
-    int width, height, n;
-    unsigned char* data = stbi_load("img6.jpg", &width, &height, &n, 0);
-
-    if (data == NULL) {
-        printf("Image could not be opened\n");
-        stbi_image_free(data);
-        return;
-    }
-
-    if (n != 3) {
-        printf("No RGB\n");
-        return;
-    }
-
-    int newWidth              = 600;
-    int newHeight             = 480;
-    unsigned char* outputData = malloc(sizeof(unsigned char) * newWidth * newHeight * n);
-
-    if (outputData == NULL) {
-        EndPaint(hwnd, &ps);
-        stbi_image_free(data);
-        return;
-    }
-
-    if (stbir_resize_uint8(data, width, height, 0, outputData, newWidth, newHeight, 0, n) != TRUE) {
-        printf("Error resizing image\n");
-        EndPaint(hwnd, &ps);
-        stbi_image_free(data);
-        free(outputData);
-        return;
-    }
-
-    BITMAPINFO bmi;
-    memset(&bmi, 0, sizeof(bmi));
-    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth       = newWidth;
-    bmi.bmiHeader.biHeight      = -newHeight; // Negative to ensure picture is drawn vertical correctly
-    bmi.bmiHeader.biPlanes      = 1;
-    bmi.bmiHeader.biBitCount    = 24;
-    bmi.bmiHeader.biCompression = BI_RGB;
-
-    if (StretchDIBits(hdc, COL_1, ROW_2, newWidth, newHeight, 0, 0, newWidth, newHeight, outputData, &bmi,
-                      DIB_RGB_COLORS, SRCCOPY) == FALSE) {
-        printf("Failed to render image\n");
-    }
-
-    EndPaint(hwnd, &ps);
-    free(outputData);
-    stbi_image_free(data);
-}
-
 void draw_pixels() {
     // Loop through every pixel
     // int y;
@@ -481,10 +344,70 @@ void draw_pixels() {
     // EndPaint(hwnd, &ps);
 }
 
-void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
+// void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
 
-    watchdog = watchdogInfo;
-    flags    = guiFlags;
+//     watchdog = watchdogInfo;
+//     flags    = guiFlags;
+
+//     WNDCLASSEX wc;
+//     MSG msg;
+
+//     // register the window class
+//     wc.cbSize        = sizeof(WNDCLASSEX);
+//     wc.style         = 0;
+//     wc.lpfnWndProc   = WndProc;
+//     wc.cbClsExtra    = 0;
+//     wc.cbWndExtra    = 0;
+//     wc.hInstance     = NULL;
+//     wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+//     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+//     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+//     wc.lpszMenuName  = NULL;
+//     wc.lpszClassName = "myWindowClass";
+//     wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+
+//     if (!RegisterClassEx(&wc)) {
+//         MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+//         return;
+//     }
+
+//     // create the window
+//     hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "My Window", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+//                           CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
+
+//     if (hwnd == NULL) {
+//         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+//         return;
+//     }
+
+//     ShowWindow(hwnd, SW_SHOWNORMAL);
+//     UpdateWindow(hwnd);
+
+//     // message loop
+//     while (GetMessage(&msg, NULL, 0, 0) > 0) {
+//         TranslateMessage(&msg);
+//         DispatchMessage(&msg);
+//     }
+// }
+
+void gui_update() {
+    MSG msg;
+
+    if (GetMessage(&msg, NULL, 0, 0) > 0) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+}
+
+DWORD WINAPI gui(void* arg) {
+
+    // watchdog = watchdogInfo;
+    flags = (uint32_t*)arg;
+
+    cameraViewImagePosition.startX = COL_1;
+    cameraViewImagePosition.starty = ROW_2;
+    cameraViewImagePosition.width  = 600;
+    cameraViewImagePosition.height = 480;
 
     WNDCLASSEX wc;
     HWND hwnd;
@@ -506,7 +429,7 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
 
     if (!RegisterClassEx(&wc)) {
         MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        return;
+        return FALSE;
     }
 
     // create the window
@@ -515,7 +438,7 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
 
     if (hwnd == NULL) {
         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        return;
+        return FALSE;
     }
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
@@ -523,18 +446,17 @@ void gui_init(watchdog_info_t* watchdogInfo, uint32_t* guiFlags) {
 
     // message loop
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
+
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-    }
-}
 
-void gui_update() {
-    MSG msg;
-
-    if (GetMessage(&msg, NULL, 0, 0) > 0) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        // Check flag from maple
+        if ((flag & GUI_UPDATE_CAMERA_VIEW) != 0) {
+            // draw_image(hwnd, cameraViewFileName, &cameraViewImagePosition);
+        }
     }
+
+    return FALSE;
 }
 
 /* Private Functions */
@@ -593,6 +515,10 @@ uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
         printf("%p %p\n", pixelData, imageData);
     }
 
+    // Invalidate the window. This will tell windows that the window needs to be redrawn
+    // so the painting below will render
+    InvalidateRect(hwnd, NULL, TRUE);
+
     // Convert pixel data to a bit map
     BITMAPINFO bmi;
     memset(&bmi, 0, sizeof(bmi));
@@ -625,4 +551,28 @@ uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
     }
 
     return TRUE;
+}
+
+void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b) {
+
+    // Invalidate the window. This will tell windows that the window needs to be redrawn
+    // so the painting below will render
+    InvalidateRect(hwnd, NULL, TRUE);
+
+    // Create a paint struct so the window can be painted on
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+
+    // Create a rectangle
+    RECT rect = {rectangle->startX, rectangle->startY, rectangle->width, rectangle->width};
+
+    // Create a colour for the rectangle
+    HBRUSH hBrush = CreateSolidBrush(RGB(r, g, b));
+
+    // Apply colour to the rectangle
+    FillRect(hdc, &rect, hBrush);
+
+    // Clean up
+    DeleteObject(hBrush);
+    EndPaint(hwnd, &ps);
 }

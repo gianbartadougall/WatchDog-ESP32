@@ -22,9 +22,8 @@
 #define GUI_TURN_RED_LED_ON    (0x01 << 0)
 #define GUI_TURN_RED_LED_OFF   (0x01 << 1)
 #define GUI_CLOSE              (0x01 << 2)
-#define GUI_CAMERA_VIEW_ON     (0x01 << 3)
-#define GUI_CAMERA_VIEW_OFF    (0x01 << 4)
-#define GUI_UPDATE_CAMERA_VIEW (0x01 << 5)
+#define GUI_CAMERA_VIEW_STATE  (0x01 << 3)
+#define GUI_UPDATE_CAMERA_VIEW (0x01 << 4)
 #define CAMERA_VIEW_FILENAME   ("cameraView.jpg\0")
 
 typedef struct watchdog_info_t {

@@ -255,9 +255,11 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
 
     maple_increment_packet_pending_index();
 
-    if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
-        return TRUE;
+    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+        return FALSE;
     }
+
+    return TRUE;
 }
 
 uint8_t maple_match_args(char** args, int numArgs) {
@@ -455,29 +457,29 @@ int main(int argc, char** argv) {
     //     return 0;
     // }
 
-    // watchdog_info_t watchdogInfo;
-    // watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
-    // watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
-    // watchdogInfo.numImages =
-    //     (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
-    // watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
-    // sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
+    watchdog_info_t watchdogInfo;
+    watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
+    watchdogInfo.cameraResolution = packetBuffer[packetPendingIndex].bytes[1];
+    watchdogInfo.numImages =
+        (packetBuffer[packetPendingIndex].bytes[2] << 8) | packetBuffer[packetPendingIndex].bytes[3];
+    watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
+    sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
     // packetPendingIndex++;
 
     uint32_t flags     = 0;
     uint8_t cameraView = FALSE;
 
-    // gui_initalisation_t guiInit;
-    // guiInit.watchdog = &watchdogInfo;
-    // guiInit.flags    = &flags;
+    gui_initalisation_t guiInit;
+    guiInit.watchdog = &watchdogInfo;
+    guiInit.flags    = &flags;
 
-    // HANDLE thread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
+    HANDLE thread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
-    // if (!thread) {
-    //     printf("Thread failed\n");
-    //     return 0;
-    // }
+    if (!thread) {
+        printf("Thread failed\n");
+        return 0;
+    }
 
     while (1) {
 
@@ -491,24 +493,15 @@ int main(int argc, char** argv) {
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
         }
 
-        if ((flags & GUI_CAMERA_VIEW_ON) != 0) {
-            flags &= ~(GUI_CAMERA_VIEW_ON);
-
-            // Send request to set resolution to low value so sending images
-            // over UART has a quick enough frame rate
-            // maple_create_and_send_bpacket(, 0, NULL);
-            cameraView = TRUE;
-        }
-
         // Flag for fetching time and date
-        if ((flags & 1) != 0) {
-            flags &= ~(1);
+        if ((flags & WATCHDOG_BPK_R_GET_DATETIME) != 0) {
+            flags &= ~(WATCHDOG_BPK_R_GET_DATETIME);
 
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
 
             // Wait for response from ESP32
             bpacket_t response;
-            if (maple_get_uart_single_response(&response) ~ = TRUE) {
+            if (maple_get_uart_single_response(&response) != TRUE) {
                 // Error getting datetime from STM32
             }
 
@@ -536,7 +529,7 @@ int main(int argc, char** argv) {
             // Set the camera resolution to be the lowest resolution
             bpacket_t bpacket;
             bpacket_buffer_t data;
-            data.buffer[1] = WD_CAM_RES_320x240;
+            // data.buffer[1] = WD_CAM_RES_320x240;
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS, 1, data.buffer);
 
             // Confirm changing the camera resolution worked

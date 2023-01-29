@@ -100,6 +100,48 @@ uint8_t camera_get_resolution(void) {
     return camera_config.frame_size;
 }
 
+uint8_t change_camera_resolution(uint8_t cam_res) {
+
+    // Changes the resolution of the camera
+    esp_camera_deinit();
+    switch (cam_res) {
+        case FRAMESIZE_QVGA:
+            camera_config.frame_size = FRAMESIZE_QVGA;
+            break;
+        case FRAMESIZE_CIF:
+            camera_config.frame_size = FRAMESIZE_CIF;
+            break;
+        case FRAMESIZE_VGA:
+            camera_config.frame_size = FRAMESIZE_VGA;
+            break;
+        case FRAMESIZE_SVGA:
+            camera_config.frame_size = FRAMESIZE_SVGA;
+            break;
+        case FRAMESIZE_XGA:
+            camera_config.frame_size = FRAMESIZE_XGA;
+            break;
+        case FRAMESIZE_SXGA:
+            camera_config.frame_size = FRAMESIZE_SXGA;
+            break;
+        case FRAMESIZE_UXGA:
+            camera_config.frame_size = FRAMESIZE_UXGA;
+            break;
+        default:
+            // Should never get here, should only ever recieve one of the above cases
+            return FALSE;
+    }
+
+    // Configure Camera
+    sd_card_log(SYSTEM_LOG_FILE, "Reconfiguring Camera\0");
+    if (camera_init() != TRUE) {
+        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to reinitalise\0");
+        return FALSE;
+    }
+
+    // Successfully changed the camera resolution
+    return TRUE;
+}
+
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised

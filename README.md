@@ -4,7 +4,7 @@
 - Workable GUI
    - Set the layout for the normal mode (i.e buttons, labels and dropboxs) (DONE)
    - Set the layout for the camera view (images and buttons) (DONE)
-   - Make drop boxes not editable via typing
+   - Make drop boxes not editable via typing (DONE)
    - Setup the flags so information can be passed to Maple
       - Come up with protocol for sending flag and data information from GUI to Maple
       - Time and date settings for taking photos

@@ -136,12 +136,13 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             continue;
         }
 
+        // printf("Here 1\n");
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        if (sp_blocking_read(port, response, 6, 1100) < 0) {
+        if (sp_blocking_read(port, response, 6, 1500) < 0) {
             sp_close(port);
             continue;
         }
-
+        // printf("Here 2\n");
         /* TEST CODE */
         // uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
         // bpacket_create_p(&bpacket, BPACKET_GEN_R_PING, 0, NULL);
@@ -183,12 +184,12 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         /* TEST CODE */
 
         bpacket_decode(&bpacket, response);
-
+        // printf("Here 3\n");
         if (bpacket.request != BPACKET_R_SUCCESS || bpacket.bytes[0] != pingResponse) {
             sp_close(port);
             continue;
         }
-
+        // printf("Here 4\n");
         sprintf(portName, "%s", sp_get_port_name(port));
         sp_close(port);
         break;

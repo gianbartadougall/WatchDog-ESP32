@@ -44,6 +44,7 @@ void maple_print_bpacket_data(bpacket_t* bpacket);
 void maple_create_and_send_bpacket(uint8_t request, uint8_t numDataBytes, uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
 void maple_create_and_send_sbpacket(uint8_t request, char* string);
 void maple_print_uart_response(void);
+uint8_t maple_match_args(char** args, int numArgs);
 
 #define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 50)
 uint8_t rxBuffer[RX_BUFFER_SIZE];
@@ -262,70 +263,6 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
     return TRUE;
 }
 
-uint8_t maple_match_args(char** args, int numArgs) {
-
-    if (numArgs == 1) {
-
-        if (chars_same(args[0], "help\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
-            maple_print_uart_response();
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "clc\0")) {
-            printf(ASCII_CLEAR_SCREEN);
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, "\0");
-            maple_print_uart_response();
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "photo\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
-            maple_print_uart_response();
-            return TRUE;
-        }
-    }
-
-    if (numArgs == 2) {
-
-        if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, args[1]);
-            maple_print_uart_response();
-            return TRUE;
-        }
-    }
-
-    if (numArgs == 3) {
-
-        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
-            chars_same(args[2], "on\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
-            chars_same(args[2], "off\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "cpy\0") == TRUE) {
-            if (maple_copy_file(args[1], args[2]) == TRUE) {
-                printf(ASCII_COLOR_GREEN "Succesfully transfered file\n" ASCII_COLOR_WHITE);
-            } else {
-                printf(ASCII_COLOR_RED "Failed to transfer file\n" ASCII_COLOR_WHITE);
-            }
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 DWORD WINAPI maple_listen_rx(void* arg) {
 
     // Arg is the pointer to the port
@@ -446,6 +383,13 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // Send bpacket message to get help
+    maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
+    maple_print_uart_response();
+    
+    while (1) {}
+    return 0;
+    
     // Watchdog connected. Get information from watchdog to display on the screen
     maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
@@ -456,9 +400,6 @@ int main(int argc, char** argv) {
         printf("Error recieving status!\n");
         return 0;
     }
-
-    while (1) {}
-    return 0;
 
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
@@ -610,4 +551,73 @@ void maple_command_line() {
             free(args[i]);
         }
     }
+}
+
+/**
+ * @brief This function takes in a list of string arguments and matches them
+ * to the correct uart messages to be transmitted
+ *
+ */
+uint8_t maple_match_args(char** args, int numArgs) {
+
+    if (numArgs == 1) {
+
+        if (chars_same(args[0], "help\0") == TRUE) {
+            maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
+            maple_print_uart_response();
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "clc\0")) {
+            printf(ASCII_CLEAR_SCREEN);
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "ls\0") == TRUE) {
+            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, "\0");
+            maple_print_uart_response();
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "photo\0") == TRUE) {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
+            maple_print_uart_response();
+            return TRUE;
+        }
+    }
+
+    if (numArgs == 2) {
+
+        if (chars_same(args[0], "ls\0") == TRUE) {
+            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, args[1]);
+            maple_print_uart_response();
+            return TRUE;
+        }
+    }
+
+    if (numArgs == 3) {
+
+        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+            chars_same(args[2], "on\0") == TRUE) {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+            chars_same(args[2], "off\0") == TRUE) {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+            return TRUE;
+        }
+
+        if (chars_same(args[0], "cpy\0") == TRUE) {
+            if (maple_copy_file(args[1], args[2]) == TRUE) {
+                printf(ASCII_COLOR_GREEN "Succesfully transfered file\n" ASCII_COLOR_WHITE);
+            } else {
+                printf(ASCII_COLOR_RED "Failed to transfer file\n" ASCII_COLOR_WHITE);
+            }
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }

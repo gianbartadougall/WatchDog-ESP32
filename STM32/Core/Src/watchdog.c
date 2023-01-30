@@ -62,10 +62,12 @@ void watchdog_send_string(char* string) {
             j                = 0;
             bpacket_to_buffer(&bpacket, &packetBuffer);
             comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+            continue;
         }
 
         if (i == (numBytes - 1)) {
-            bpacket.request = BPACKET_R_SUCCESS;
+            bpacket.numBytes = j;
+            bpacket.request  = BPACKET_R_SUCCESS;
             bpacket_to_buffer(&bpacket, &packetBuffer);
             comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
         }
@@ -124,6 +126,7 @@ void watchdog_update(void) {
 
     // Wait for STM32 to receive a bpacket
     bpacket_t bpacket;
+    char text[] = {"Hello!\0"};
     while (1) {
 
         while (comms_process_rxbuffer(&bpacket) != TRUE) {};
@@ -141,7 +144,7 @@ void watchdog_update(void) {
             case BPACKET_GET_R_STATUS:
                 break;
             case BPACKET_GEN_R_HELP:
-                watchdog_send_string(uartHelp);
+                watchdog_send_string(text);
                 break;
             case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
                 break;

@@ -83,11 +83,9 @@ int main(void) {
     watchdog_init();
 
     log_message("Starting\r\n");
+    watchdog_update();
 
-    while (1) {
-
-        watchdog_update();
-    }
+    while (1) {}
 
     return 0;
 }

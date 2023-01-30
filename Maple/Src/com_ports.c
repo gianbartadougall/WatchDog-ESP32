@@ -120,7 +120,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
     bpacket_t bpacket;
-    for (int i = 1; port_list[i] != NULL; i++) {
+    for (int i = 0; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
 
@@ -136,16 +136,54 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             continue;
         }
 
-        // Wait for response from port
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        response[0] = '\0';
         if (sp_blocking_read(port, response, 6, 1100) < 0) {
             sp_close(port);
             continue;
         }
 
+        /* TEST CODE */
+        // uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
+        // bpacket_create_p(&bpacket, BPACKET_GEN_R_PING, 0, NULL);
+        // bpacket_buffer_t packetBuffer;
+        // bpacket_to_buffer(&bpacket, &packetBuffer);
+        // uint8_t length = 6;
+        // uint8_t data[length];
+        // data[0] = BPACKET_START_BYTE;
+        // data[1] = 3;
+        // data[2] = 19;
+        // data[3] = 'G';
+        // data[4] = 'H';
+        // data[5] = BPACKET_STOP_BYTE;
+
+        // while (1) {
+            
+        //     if (sp_blocking_write(port, data, length, 1000) < 0) {
+        //         continue;
+        //     }
+
+        //     if (sp_blocking_read(port, response, 100, 1000) < 0) {
+        //         return 0;
+        //     }
+
+        //     for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+        //         printf("%c", response[i]);
+        //     }
+
+        //     if (response[0] != '\0') {
+        //         printf("\n");
+        //     }
+            
+        //     for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+        //         response[i] = '\0';
+        //     }
+            
+            
+        // } 
+        /* TEST CODE */
+
         bpacket_decode(&bpacket, response);
-        
+
         if (bpacket.request != BPACKET_R_SUCCESS || bpacket.bytes[0] != pingResponse) {
             sp_close(port);
             continue;

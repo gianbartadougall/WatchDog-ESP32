@@ -58,4 +58,6 @@ void log_clear(void);
 
 void log_print_const(const char* msg);
 
+void log_send_data(char* data, uint8_t length);
+
 #endif // log_LOG_H

@@ -8,15 +8,68 @@
 
 #include "comms_stm32.h"
 #include "utilities.h"
+#include "chars.h"
+#include "help.h"
+#include "watchdog_defines.h"
 
-void print_64_bit1(uint64_t number);
+/* Function Prototypes */
+void watchdog_esp32_on(void);
+void watchdog_esp32_off(void);
+
+void bpacket_print(bpacket_t* bpacket) {
+    char msg[BPACKET_BUFFER_LENGTH_BYTES + 2];
+    sprintf(msg, "R: %i ", bpacket->request);
+    log_message(msg);
+
+    if (bpacket->numBytes > 0) {
+        for (int i = 0; i < bpacket->numBytes; i++) {
+            sprintf(msg, "%c", bpacket->bytes[i]);
+            log_message(msg);
+        }
+    }
+}
 
 void watchdog_init(void) {
     log_clear();
+
+    // Initialise the temperature sensor
     ds18b20_init();
 
-    uint32_t flags;
-    comms_stm32_init(&flags);
+    comms_stm32_init();
+
+    // Turn the ESP32 on
+    // watchdog_esp32_on();
+}
+
+void watchdog_send_string(char* string) {
+
+    // Loop through string
+    uint32_t numBytes = chars_get_num_bytes(string);
+
+    bpacket_t bpacket;
+    bpacket_buffer_t packetBuffer;
+    bpacket.request = BPACKET_R_IN_PROGRESS;
+
+    int j = 0;
+    for (int i = 0; i < numBytes; i++) {
+
+        bpacket.bytes[j++] = (uint8_t)string[i];
+
+        // Send bpacket if buffer is full or the end of the string
+        // has been reached
+        if (j == BPACKET_MAX_NUM_DATA_BYTES) {
+            bpacket.numBytes = j;
+            j                = 0;
+            bpacket_to_buffer(&bpacket, &packetBuffer);
+            comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+        }
+
+        if (i == (numBytes - 1)) {
+            bpacket.request = BPACKET_R_SUCCESS;
+            bpacket_to_buffer(&bpacket, &packetBuffer);
+            comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+        }
+    }
 }
 
 void watchdog_update(void) {
@@ -68,29 +121,44 @@ void watchdog_update(void) {
     //     log_message(msg);
     // }
     /* TURN ESP32 ON AND OFF USING BJT */
-    char msg[50];
+
+    // Wait for STM32 to receive a bpacket
     bpacket_t bpacket;
     while (1) {
 
-        HAL_Delay(1000);
-        comms_usart2_print_buffer();
-        // comms_process_buffer();
+        while (comms_process_rxbuffer(&bpacket) != TRUE) {};
 
-        // if (comms_stm32_get_bpacket(&bpacket) != TRUE) {
-        //     continue;
-        // }
+        switch (bpacket.request) {
+            case BPACKET_GEN_R_PING:;
 
-        // LED_GREEN_PORT->ODR |= (0x01 << LED_GREEN_PIN);
-
-        // sprintf(msg, "Request: %i", bpacket.request);
-        // log_message(msg);
-
-        // for (int i = 0; i < bpacket.numBytes; i++) {
-
-        //     sprintf(msg, "%c ", bpacket.bytes[i]);
-        //     log_message(msg);
-        // }
-
-        // log_message("\r\n");
+                // Create bpacket with STM32 ping code and send back
+                bpacket_buffer_t buffer;
+                uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
+                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &pingCode);
+                bpacket_to_buffer(&bpacket, &buffer);
+                comms_transmit(USART2, buffer.buffer, buffer.numBytes);
+                break;
+            case BPACKET_GET_R_STATUS:
+                break;
+            case BPACKET_GEN_R_HELP:
+                watchdog_send_string(uartHelp);
+                break;
+            case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
+                break;
+            case WATCHDOG_BPK_R_GET_DATETIME:
+                break;
+            case WATCHDOG_BPK_R_SET_DATETIME:
+                break;
+            default:
+                break;
+        }
     }
+}
+
+void watchdog_esp32_on(void) {
+    ESP32_POWER_PORT->BSRR |= (0x01 << ESP32_POWER_PIN);
+}
+
+void watchdog_esp32_off(void) {
+    ESP32_POWER_PORT->BSRR |= (0x10000 << ESP32_POWER_PIN);
 }

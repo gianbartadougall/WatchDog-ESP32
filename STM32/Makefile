@@ -78,7 +78,8 @@ Core/Src/watchdog.c \
 Core/Src/comms_stm32.c
 
 LIBRARY_SOURCES = \
-Library/Src/ds18b20.c
+Library/Src/ds18b20.c \
+Library/Src/bpacket.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)
@@ -146,6 +147,7 @@ C_INCLUDES =  \
 -ICore/Inc/Interrupts \
 -ICore/Inc/Utilities \
 -ILibrary/Inc \
+-I../ESP32_CAM/main/Inc \
 -I../Drivers/Watchdog/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc/Legacy \

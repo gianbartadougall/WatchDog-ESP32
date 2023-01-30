@@ -107,6 +107,15 @@ void log_clear(void) {
     log_prints("\033[2J\033[H");
 }
 
+void log_send_data(char* data, uint8_t length) {
+
+    // Transmit until end of message reached
+    for (int i = 0; i < length; i++) {
+        while ((USART2->ISR & USART_ISR_TXE) == 0) {};
+        USART2->TDR = data[i];
+    }
+}
+
 /**
  * @brief This is a test function. Code can be used for an actual uart communication
  * peripheral file where something like a desktop computer can talk to the STM32.

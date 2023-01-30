@@ -53,9 +53,6 @@ void USART2_IRQHandler(void) {
             return;
         }
 
-        // Print the character to the console
-        USART2->TDR = c;
-
         // Copy bit into buffer. Reading RDR automatically clears flag
         // comms_add_to_buffer(USART2, c);
         comms_add_to_buffer((uint8_t)c);
@@ -68,9 +65,25 @@ void USART2_IRQHandler(void) {
 
     if ((USART2->ISR & USART_ISR_EOBF) != 0) {
         USART2->ICR |= USART_ICR_EOBCF;
-        // log_prints("USART 2 Full Block received\r\n");
+        log_error("USART 2 Full Block received\r\n");
         return;
     }
 
-    log_message("stuck\r\n");
+    // Overrun error occurs when the STM32 is receiving data slower than the
+    // UART sending to it is sending
+    if ((USART2->ISR & USART_ISR_ORE) != 0) {
+        USART2->ICR |= USART_ICR_ORECF;
+        log_error("USART 2 Overrun error\r\n");
+        return;
+    }
+
+    if ((USART2->ISR & USART_ISR_IDLE) != 0) {
+        USART2->ICR |= USART_ICR_IDLECF;
+        log_error("USART 2 Idle error\r\n");
+        return;
+    }
+
+    char msg[50];
+    sprintf(msg, "%lx\r\n", USART2->ISR);
+    log_message(msg);
 }

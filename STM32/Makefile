@@ -75,11 +75,13 @@ Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
 Core/Src/board.c \
 Core/Src/watchdog.c \
-Core/Src/comms_stm32.c
+Core/Src/comms_stm32.c \
+Core/Src/watchdog_defines.c
 
 LIBRARY_SOURCES = \
 Library/Src/ds18b20.c \
-Library/Src/bpacket.c
+Library/Src/bpacket.c \
+Library/Src/datetime.c \
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)

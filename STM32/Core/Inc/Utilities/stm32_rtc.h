@@ -12,24 +12,16 @@
 #ifndef STM32_RTC_H
 #define STM32_RTC_H
 
-/* Public Includes */
+/* C Library Includes */
 #include <stdint.h>
 
-typedef struct date_time_t {
-    uint8_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-} date_time_t;
+/* Personal Includes */
+#include "datetime.h"
 
-void stm32_rtc_init(void);
+void stm32_rtc_write_datetime(dt_datetime_t* datetime);
 
-void stm32_rtc_write_datetime(date_time_t* datetime);
+void stm32_rtc_read_datetime(dt_datetime_t* datetime);
 
-void stm32_rtc_read_datetime(date_time_t* datetime);
-
-void stm32_rtc_print_datetime(date_time_t* datetime);
+void stm32_rtc_print_datetime(dt_datetime_t* datetime);
 
 #endif // STM32_RTC_H

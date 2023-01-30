@@ -1,16 +1,31 @@
+/**
+ * @file watchdog.c
+ * @author Gian Barta-Dougall ()
+ * @brief
+ * @version 0.1
+ * @date 2023-01-30
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 
-/* Private Includes */
+/* C Library Includes */
+#include <stdio.h>
+
+/* Personal Includes */
 #include "watchdog.h"
 #include "ds18b20.h"
 #include "hardware_config.h"
 #include "log.h"
-#include <stdio.h>
-
 #include "comms_stm32.h"
 #include "utilities.h"
 #include "chars.h"
 #include "help.h"
+#include "stm32_rtc.h"
 #include "watchdog_defines.h"
+
+/* Private Variables */
+dt_datetime_t datetime;
 
 /* Function Prototypes */
 void watchdog_esp32_on(void);
@@ -32,10 +47,18 @@ void bpacket_print(bpacket_t* bpacket) {
 void watchdog_init(void) {
     log_clear();
 
-    // Initialise the temperature sensor
-    ds18b20_init();
+    // Initialise all the peripherals
+    ds18b20_init();     // Temperature sensor
+    comms_stm32_init(); // Bpacket communications between Maple and EPS32
 
-    comms_stm32_init();
+    // Set the datetime to 12am 1 January 2023
+    datetime.date.year   = 23;
+    datetime.date.month  = 1;
+    datetime.date.day    = 1;
+    datetime.time.hour   = 0;
+    datetime.time.minute = 0;
+    datetime.time.second = 0;
+    stm32_rtc_write_datetime(&datetime);
 
     // Turn the ESP32 on
     // watchdog_esp32_on();
@@ -126,6 +149,7 @@ void watchdog_update(void) {
 
     // Wait for STM32 to receive a bpacket
     bpacket_t bpacket;
+    bpacket_buffer_t packetBuffer;
     char text[] = {"Hello!\0"};
     while (1) {
 
@@ -135,11 +159,10 @@ void watchdog_update(void) {
             case BPACKET_GEN_R_PING:;
 
                 // Create bpacket with STM32 ping code and send back
-                bpacket_buffer_t buffer;
                 uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
                 bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &pingCode);
-                bpacket_to_buffer(&bpacket, &buffer);
-                comms_transmit(USART2, buffer.buffer, buffer.numBytes);
+                bpacket_to_buffer(&bpacket, &packetBuffer);
+                comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
                 break;
             case BPACKET_GET_R_STATUS:
                 break;
@@ -148,7 +171,19 @@ void watchdog_update(void) {
                 break;
             case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
                 break;
-            case WATCHDOG_BPK_R_GET_DATETIME:
+            case WATCHDOG_BPK_R_GET_DATETIME:;
+
+                // Get the current datetime of the RTC
+                stm32_rtc_read_datetime(&datetime);
+                if (wd_datetime_to_bpacket(&bpacket, BPACKET_R_SUCCESS, &datetime) == TRUE) {
+                    bpacket_to_buffer(&bpacket, &packetBuffer);
+                    comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+                } else {
+                    bpacket_create_sp(&bpacket, BPACKET_R_FAILED, "Invalid RTC datetime\0");
+                    bpacket_to_buffer(&bpacket, &packetBuffer);
+                    comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+                }
+
                 break;
             case WATCHDOG_BPK_R_SET_DATETIME:
                 break;

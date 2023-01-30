@@ -15,6 +15,7 @@
 /* C Library Includes */
 #include "bpacket.h"
 #include "utilities.h"
+#include "datetime.h"
 
 #define SYSTEM_LOG_FILE        ("logs.txt")
 #define IMAGE_DATA_FOLDER      ("WATCHDOG/DATA")
@@ -54,22 +55,9 @@
 
 /* Public Enumerations */
 
-typedef struct wd_time_t {
-    uint8_t second;
-    uint8_t minute;
-    uint8_t hour;
-} wd_time_t;
-
-typedef struct wd_datetime_t {
-    wd_time_t time;
-    uint8_t day;
-    uint8_t month;
-    uint8_t year;
-} wd_datetime_t;
-
 typedef struct wd_camera_settings_t {
-    wd_time_t startTime;
-    wd_time_t endTime;
+    dt_time_t startTime;
+    dt_time_t endTime;
     uint8_t intervalMinute;
     uint8_t intervalHour;
     uint8_t resolution;
@@ -84,9 +72,9 @@ typedef struct wd_status_t {
 } wd_status_t;
 
 /* Function Prototypes */
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_datetime_t* datetime);
-uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, wd_datetime_t* datetime);
-uint8_t wd_time_is_valid(wd_time_t* time);
+uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, dt_datetime_t* datetime);
+uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime);
+uint8_t dt_time_is_valid(dt_time_t* time);
 
 uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
 uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
@@ -97,30 +85,31 @@ uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status);
 
 #ifdef WATCHDOG_FUNCTIONS
 
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_datetime_t* datetime) {
+uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, dt_datetime_t* datetime) {
 
     // Confirm the request is valid
-    if ((request != WATCHDOG_BPK_R_GET_DATETIME) || (request != WATCHDOG_BPK_R_SET_DATETIME)) {
+    if ((request != WATCHDOG_BPK_R_GET_DATETIME) && (request != WATCHDOG_BPK_R_SET_DATETIME) &&
+        (request != BPACKET_R_SUCCESS)) {
         return FALSE;
     }
 
     // Confirm the time is valid
-    if (wd_time_is_valid(&datetime->time) != TRUE) {
+    if (dt_time_is_valid(&datetime->time) != TRUE) {
         return FALSE;
     }
 
     // Confirm day is valid
-    if (datetime->day > 31) {
+    if (datetime->date.day > 31) {
         return FALSE;
     }
 
     // Confirm month is valid
-    if (datetime->month > 11) {
+    if (datetime->date.month > 11) {
         return FALSE;
     }
 
     // Confirm year is valid
-    if (datetime->year < 23 || datetime->year > 99) {
+    if (datetime->date.year < 23 || datetime->date.year > 99) {
         return FALSE;
     }
 
@@ -129,14 +118,14 @@ uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_datetime_
     bpacket->bytes[0] = datetime->time.second;
     bpacket->bytes[1] = datetime->time.minute;
     bpacket->bytes[2] = datetime->time.hour;
-    bpacket->bytes[3] = datetime->day;
-    bpacket->bytes[4] = datetime->month;
-    bpacket->bytes[5] = datetime->year;
+    bpacket->bytes[3] = datetime->date.day;
+    bpacket->bytes[4] = datetime->date.month;
+    bpacket->bytes[5] = datetime->date.year;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, wd_datetime_t* datetime) {
+uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime) {
 
     // confirm bpacket has the right number of bytes
     if (bpacket->numBytes != 6) {
@@ -144,16 +133,17 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, wd_datetime_t* datetime) {
     }
 
     // Confirm the request is valid
-    if ((bpacket->request != WATCHDOG_BPK_R_GET_DATETIME) || (bpacket->request != WATCHDOG_BPK_R_SET_DATETIME)) {
+    if ((bpacket->request != WATCHDOG_BPK_R_GET_DATETIME) && (bpacket->request != WATCHDOG_BPK_R_SET_DATETIME) &&
+        (bpacket->request != BPACKET_R_SUCCESS)) {
         return FALSE;
     }
 
     // Confirm the time is valid
-    wd_time_t time;
+    dt_time_t time;
     time.second = bpacket->bytes[0];
     time.minute = bpacket->bytes[1];
     time.hour   = bpacket->bytes[2];
-    if (wd_time_is_valid(&time) != TRUE) {
+    if (dt_time_is_valid(&time) != TRUE) {
         return FALSE;
     }
 
@@ -175,29 +165,9 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, wd_datetime_t* datetime) {
     datetime->time.second = time.second;
     datetime->time.minute = time.minute;
     datetime->time.hour   = time.hour;
-    datetime->day         = bpacket->bytes[3];
-    datetime->month       = bpacket->bytes[4];
-    datetime->year        = bpacket->bytes[5];
-
-    return TRUE;
-}
-
-uint8_t wd_time_is_valid(wd_time_t* time) {
-
-    // Confirm seconds are valid
-    if (time->second > 59) {
-        return FALSE;
-    }
-
-    // Confirm seconds are valid
-    if (time->minute > 59) {
-        return FALSE;
-    }
-
-    // Confirm hours are valid
-    if (time->hour > 23) {
-        return FALSE;
-    }
+    datetime->date.day    = bpacket->bytes[3];
+    datetime->date.month  = bpacket->bytes[4];
+    datetime->date.year   = bpacket->bytes[5];
 
     return TRUE;
 }
@@ -210,8 +180,8 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* 
     }
 
     // Confirm the start and end times are valid
-    if ((wd_time_is_valid(&cameraSettings->startTime) != TRUE) ||
-        (wd_time_is_valid(&cameraSettings->endTime) != TRUE)) {
+    if ((dt_time_is_valid(&cameraSettings->startTime) != TRUE) ||
+        (dt_time_is_valid(&cameraSettings->endTime) != TRUE)) {
         return FALSE;
     }
 
@@ -241,7 +211,7 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* 
 uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if (bpacket->request != WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS) {
+    if ((bpacket->request != WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS) && (bpacket->request != BPACKET_R_SUCCESS)) {
         return FALSE;
     }
 
@@ -251,12 +221,12 @@ uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* 
     }
 
     // Confirm the start and end times are valid
-    wd_time_t startTime, endTime;
+    dt_time_t startTime, endTime;
     startTime.minute = bpacket->bytes[0];
     startTime.hour   = bpacket->bytes[1];
     endTime.minute   = bpacket->bytes[2];
     endTime.hour     = bpacket->bytes[3];
-    if ((wd_time_is_valid(&startTime) != TRUE) || (wd_time_is_valid(&endTime) != TRUE)) {
+    if ((dt_time_is_valid(&startTime) != TRUE) || (dt_time_is_valid(&endTime) != TRUE)) {
         return FALSE;
     }
 
@@ -319,7 +289,7 @@ uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status) {
 uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
 
     // Confirm the request is valid
-    if (bpacket->request != WATCHDOG_BPK_R_GET_STATUS) {
+    if ((bpacket->request != WATCHDOG_BPK_R_GET_STATUS) && (bpacket->request != BPACKET_R_SUCCESS)) {
         return FALSE;
     }
 
@@ -343,4 +313,5 @@ uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
 }
 
 #endif
+
 #endif // WATCHDOG_DEFINES_H

@@ -11,7 +11,7 @@
 #ifndef BPACKET_H
 #define BPACKET_H
 
-/* Library Includes */
+/* C Library Includes */
 #include "stdint.h"
 
 #define BPACKET_START_BYTE 'A'

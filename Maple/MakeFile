@@ -12,8 +12,10 @@ Src/gui.c \
 Src/stb_image.c \
 Src/stb_image_resize.c \
 Src/com_ports.c \
+../STM32/Core/Src/watchdog_defines.c \
 ../STM32/Core/Src/Utilities/chars.c \
-../STM32/Library/Src/bpacket.c
+../STM32/Library/Src/bpacket.c \
+../STM32/Library/Src/datetime.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \

@@ -16,9 +16,12 @@
 #include "hardware_config.h"
 #include "utilities.h"
 #include "watchdog.h"
-#include "stm32_rtc.h"
 #include "log.h"
 #include "led.h"
+#include "datetime.h"
+#include "stm32_rtc.h"
+#include "bpacket.h"
+#include "watchdog_defines.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -28,43 +31,55 @@
 /* Private #defines */
 
 /* Variable Declarations */
-// UART handle
-UART_HandleTypeDef huart2;
 
 /* Function prototypes */
 void error_handler(void);
 void SystemClock_Config(void);
 
 void rtc_testing(void) {
-    date_time_t datetime;
-    datetime.year   = 23;
-    datetime.month  = 1;
-    datetime.day    = 14;
-    datetime.hour   = 13;
-    datetime.minute = 11;
-    datetime.second = 0;
+    dt_datetime_t datetime;
+    datetime.date.year   = 23;
+    datetime.date.month  = 1;
+    datetime.date.day    = 1;
+    datetime.time.hour   = 0;
+    datetime.time.minute = 0;
+    datetime.time.second = 0;
 
     // date_time_t dt;
-    // stm32_rtc_write_datetime(&datetime);
+    stm32_rtc_write_datetime(&datetime);
 
     char msg[50];
-    sprintf(msg, "PRES: %lu\r\n", RTC->PRER);
-    log_message(msg);
-
+    uint8_t halTick    = 0;
+    uint8_t halSecond  = 0;
+    uint8_t halMinute  = 0;
+    uint8_t halHour    = 0;
     uint8_t lastSecond = 0;
+
     while (1) {
 
-        while (lastSecond == datetime.second) {
-            uint8_t secondTens = (STM32_RTC->TR & RTC_TR_ST) >> RTC_TR_ST_Pos;
-            uint8_t secondOnes = (STM32_RTC->TR & RTC_TR_SU) >> RTC_TR_SU_Pos;
-            datetime.second    = (secondTens * 10) + secondOnes;
+        if (SysTick->VAL > ((halTick + 1) * 1000)) {
+            halTick++;
+            halSecond++;
+            if (halSecond > 59) {
+                halSecond = 0;
+                halMinute++;
+            }
+
+            if (halMinute > 59) {
+                halMinute = 0;
+                halHour++;
+            }
+
+            sprintf(msg, "%i:%i:%i\n", halSecond, halMinute, halHour);
+            log_message(msg);
         }
 
-        lastSecond = datetime.second;
-
         stm32_rtc_read_datetime(&datetime);
-        stm32_rtc_print_datetime(&datetime);
-        // HAL_Delay(1000);
+
+        if (lastSecond != datetime.time.second) {
+            lastSecond = datetime.time.second;
+            stm32_rtc_print_datetime(&datetime);
+        }
     }
 }
 
@@ -83,6 +98,7 @@ int main(void) {
     watchdog_init();
 
     log_message("Starting\r\n");
+    // rtc_testing();
     watchdog_update();
 
     while (1) {}

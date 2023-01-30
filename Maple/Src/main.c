@@ -32,6 +32,7 @@
 #include "bpacket.h"
 #include "com_ports.h"
 #include "gui.h"
+#include "datetime.h"
 
 #define MAPLE_MAX_ARGS 5
 
@@ -207,6 +208,7 @@ uint8_t maple_receive_camera_view(char* fileName) {
 
 void maple_print_bpacket_data(bpacket_t* bpacket) {
 
+    printf("Request: %i\n", bpacket->request);
     char data[bpacket->numBytes + 1];
 
     // Copy all the data across
@@ -256,7 +258,7 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
 
     maple_increment_packet_pending_index();
 
-    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+    if (bpacket->request != BPACKET_R_SUCCESS) {
         return FALSE;
     }
 
@@ -352,7 +354,6 @@ DWORD WINAPI maple_listen_rx(void* arg) {
                 // Very sure this is the end of a packet. Reset byte index to 0
                 packetByteIndex = 0;
                 lastChar        = c[0];
-
                 maple_increment_packet_buffer_index();
                 continue;
             }
@@ -383,9 +384,26 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    
     // Send bpacket message to get help
-    maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
-    maple_print_uart_response();
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
+    bpacket_t bpacket;
+    dt_datetime_t datetime;
+    if (maple_get_uart_single_response(&bpacket) == TRUE) {
+
+        // Convert the bpacket to datetime
+        if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
+            printf("Failed to parse datetime\r\n");
+        } else {
+            // Print out the datetime
+            printf("%i:%i:%i %i/%i/%i\n", datetime.time.second, datetime.time.minute, datetime.time.hour, datetime.date.day, datetime.date.month, datetime.date.year);
+        }
+
+    } else {
+        printf("failed to get response\n");
+        maple_print_bpacket_data(&bpacket);
+    }
+    // maple_print_uart_response();
     
     while (1) {}
     return 0;

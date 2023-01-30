@@ -500,6 +500,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
+// Just leaving this here incase we need to draw something pixel by pixel
 void draw_pixels() {
     // Loop through every pixel
     // int y;

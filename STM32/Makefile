@@ -68,14 +68,14 @@ Core/Src/Interrupts/interrupts.c
 UTILITIY_SOURCES = \
 Core/Src/Utilities/log.c \
 Core/Src/Utilities/chars.c \
-Core/Src/Utilities/stm32_rtc.c
+Core/Src/Utilities/stm32_rtc.c \
 
 RANDOM_SOURCES = \
 Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
 Core/Src/board.c \
 Core/Src/watchdog.c \
-Core/Src/comms.c
+Core/Src/comms_stm32.c
 
 LIBRARY_SOURCES = \
 Library/Src/ds18b20.c

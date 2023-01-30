@@ -2,9 +2,9 @@
 
 # Software
 - Workable GUI
-   - Set the layout for the normal mode (i.e buttons, labels and dropboxs)
-   - Set the layout for the camera view (images and buttons)
-   - Make drop boxes not editable vis typing
+   - Set the layout for the normal mode (i.e buttons, labels and dropboxs) (DONE)
+   - Set the layout for the camera view (images and buttons) (DONE)
+   - Make drop boxes not editable via typing
    - Setup the flags so information can be passed to Maple
       - Come up with protocol for sending flag and data information from GUI to Maple
       - Time and date settings for taking photos
@@ -25,8 +25,8 @@
 - Code to get the SD card working (DONE)
 - Code to create a file structure on the SD card to save data and logs (DONE)
 - Code to log operations and errors to the SD card (DONE)
-- Get the RTC working on the STM32
-- Be able to recieve flags from GUI and send to ESP32
+- Get the RTC working on the STM32 (DONE)
+- Be able to recieve flags from GUI and send to ESP32 via the STM32
       - Time and date settings for taking photos
       - Camera resolution settings
       - Settings for RTC time and date

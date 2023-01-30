@@ -160,7 +160,7 @@ HWND create_label(char* title, int startX, int startY, int width, int height, HW
 HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
                     int numberOfOptions, const char* nameOfOptions[40], int indexOfDisplayedOption) {
     HWND dropBox =
-        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
+        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
                      startY, width, height, hwnd, handle, NULL, NULL);
     for (int i = 0; i < numberOfOptions; i++) {
         SendMessage(dropBox, CB_ADDSTRING, 0, (LPARAM)nameOfOptions[i]);

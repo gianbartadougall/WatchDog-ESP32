@@ -16,4 +16,10 @@
 
 void comms_stm32_init(uint32_t* commsFlag);
 
+void comms_add_to_buffer(uint8_t byte);
+
+void comms_process_buffer(void);
+
+void comms_usart2_print_buffer(void);
+
 uint8_t comms_stm32_get_bpacket(bpacket_t* bpacket);

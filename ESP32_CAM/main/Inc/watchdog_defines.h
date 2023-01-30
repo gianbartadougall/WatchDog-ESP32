@@ -13,7 +13,6 @@
 #define WATCHDOG_DEFINES_H
 
 /* C Library Includes */
-#include "sensors.h"
 #include "bpacket.h"
 #include "utilities.h"
 
@@ -93,7 +92,9 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* 
 uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution);
 
 uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status);
-uint8_t wd_bpaacket_to_status(bpacket_t* bpacket, wd_status_t* status);
+uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status);
+
+#ifdef WATCHDOG_FUNCTIONS
 
 uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_datetime_t* datetime) {
 
@@ -314,7 +315,7 @@ uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status) {
     return TRUE;
 }
 
-uint8_t wd_bpaacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
+uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
 
     // Confirm the request is valid
     if (bpacket->request != WATCHDOG_BPK_R_GET_STATUS) {
@@ -340,4 +341,5 @@ uint8_t wd_bpaacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
     return TRUE;
 }
 
+#endif
 #endif // WATCHDOG_DEFINES_H

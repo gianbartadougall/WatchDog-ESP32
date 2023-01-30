@@ -14,7 +14,8 @@
 
 /* Private Includes */
 #include "log.h"
-#include "comms.h"
+#include "comms_stm32.h"
+#include "hardware_config.h"
 
 void USART1_IRQHandler(void) {
 
@@ -28,7 +29,7 @@ void USART1_IRQHandler(void) {
 
         // log_prints("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
-        comms_add_to_buffer(USART1, c);
+        // comms_add_to_buffer((uint8_t)c);
     }
 
     if ((USART1->ISR & USART_ISR_PE) != 0) {
@@ -56,7 +57,8 @@ void USART2_IRQHandler(void) {
         USART2->TDR = c;
 
         // Copy bit into buffer. Reading RDR automatically clears flag
-        comms_add_to_buffer(USART2, c);
+        // comms_add_to_buffer(USART2, c);
+        comms_add_to_buffer((uint8_t)c);
         return;
     }
 

@@ -60,7 +60,6 @@ void watchdog_update_camera_settings(bpacket_t* bpacket) {
     // Decode bpacket
     uint8_t cameraResolution = bpacket->bytes[0];
 
-    bpacket_t bpacket;
     if (camera_change_resolution(cameraResolution) != TRUE) {
         bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to update\0");
     } else {

@@ -37,6 +37,7 @@ uint8_t com_ports_open_connection(uint8_t pingResponse) {
     char espPortName[PORT_NAME_MAX_BYTES];
     espPortName[0]        = '\0';
     enum sp_return result = com_ports_search_ports(espPortName, pingResponse);
+
     if (result != SP_OK) {
         com_ports_check(result);
         return FALSE;
@@ -119,7 +120,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
     bpacket_t bpacket;
-    for (int i = 0; port_list[i] != NULL; i++) {
+    for (int i = 1; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
 
@@ -144,7 +145,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         bpacket_decode(&bpacket, response);
-
+        
         if (bpacket.request != BPACKET_R_SUCCESS || bpacket.bytes[0] != pingResponse) {
             sp_close(port);
             continue;

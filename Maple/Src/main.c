@@ -434,30 +434,30 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    // if (com_ports_open_connection(WATCHDOG_PING_CODE) != TRUE) {
-    //     printf("Unable to connect to Watchdog\n");
-    //     return FALSE;
-    // }
+    if (com_ports_open_connection(57) != TRUE) {
+        printf("Unable to connect to Watchdog\n");
+        return FALSE;
+    }
 
-    // HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
-    // if (!thread) {
-    //     printf("Thread failed\n");
-    //     return 0;
-    // }
+    if (!thread) {
+        printf("Thread failed\n");
+        return 0;
+    }
 
-    // // Watchdog connected. Get information from watchdog to display on the screen
-    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+    // Watchdog connected. Get information from watchdog to display on the screen
+    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
-    // // Wait until the packet is ready
-    // while (packetPendingIndex == packetBufferIndex) {}
+    // Wait until the packet is ready
+    while (packetPendingIndex == packetBufferIndex) {}
 
-    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
-    //     printf("Error recieving status!\n");
-    //     return 0;
-    // }
+    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+        printf("Error recieving status!\n");
+        return 0;
+    }
 
-    printf("Connected to STM32\r\n");
+    printf("Finished\n");
     return 0;
 
     watchdog_info_t watchdogInfo;
@@ -477,9 +477,9 @@ int main(int argc, char** argv) {
     guiInit.watchdog = &watchdogInfo;
     guiInit.flags    = &flags;
 
-    HANDLE thread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
+    HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
-    if (!thread) {
+    if (!guiThread) {
         printf("Thread failed\n");
         return 0;
     }

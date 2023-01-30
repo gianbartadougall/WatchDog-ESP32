@@ -12,14 +12,14 @@
 /* Personal Includes */
 #include "comms_stm32.h"
 #include "utilities.h"
+#include "log.h"
+#include "watchdog_defines.h"
 
-#define PACKET_BUFFER_MAX_PACKETS 6
+#define PACKET_BUFFER_SIZE 6
 
-#define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * PACKET_BUFFER_MAX_PACKETS)
-#define BYPASS         0
-#define NO_BYPASS      1
+#define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * PACKET_BUFFER_SIZE)
 
-bpacket_t packetBuffer[PACKET_BUFFER_MAX_PACKETS];
+bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
 int rxBuffer[RX_BUFFER_SIZE];
 int bufferIndex = 0;
 
@@ -29,13 +29,18 @@ int packetByteIndex   = 0;
 int startByteIndex    = 0;
 uint8_t lastByte      = 0;
 
-uint8_t packetType = NO_BYPASS;
+int processedBufferIndex = 0;
 
-int* flag;
+uint32_t* flag;
 
 uint8_t packetBufferIndex  = 0;
 uint8_t packetPendingIndex = 0;
 bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
+
+uint8_t passOnMessage = TRUE;
+
+/* Function Prototyes */
+void comms_send_byte(USART_TypeDef usart, uint8_t byte);
 
 void comms_stm32_increment_packet_buffer_index(void) {
     packetBufferIndex++;
@@ -53,32 +58,27 @@ void comms_stm32_increment_packet_pending_index(void) {
     }
 }
 
-void comms_stm32_init(int* commsFlag) {
+void comms_stm32_init(uint32_t* commsFlag) {
     flag = commsFlag;
 }
 
-void comms_process_byte(uint8_t byte) {
+// void comms_add_to_buffer(uint8_t byte) {
 
-    // uint8_t c[1];
-    // uint8_t lastChar  = BPACKET_STOP_BYTE;
-    // int numBytes      = 0;
-    // packetBufferIndex = 0;
+//     if (bufferIndex == RX_BUFFER_SIZE) {
+//         bufferIndex = 0;
+//     }
 
-    // int bufferIndex = 0;
+//     rxBuffer[bufferIndex++] = byte;
 
-    // int packetLengthFlag  = FALSE;
-    // int packetCommandFlag = FALSE;
-    // int packetByteIndex   = 0;
-    // int startByteIndex    = 0;
+// }
 
-    // // while ((numBytes = sp_blocking_read(port, c, 1, 0)) > 0) {
-    // while ((numBytes = com_ports_read(c, 1, 0)) > 0) {
+void comms_add_to_buffer(uint8_t byte) {
 
-    if (bufferIndex == RX_BUFFER_SIZE) {
-        bufferIndex = 0;
-    }
+    // if (bufferIndex == RX_BUFFER_SIZE) {
+    //     bufferIndex = 0;
+    // }
 
-    rxBuffer[bufferIndex++] = byte;
+    rxBuffer[processedBufferIndex++] = byte;
 
     if (packetLengthFlag == TRUE) {
         // Subtract 1 because this number includes the request
@@ -86,14 +86,14 @@ void comms_process_byte(uint8_t byte) {
         packetLengthFlag                         = FALSE;
         packetCommandFlag                        = TRUE;
         lastByte                                 = byte;
-        continue;
+        return;
     }
 
     if (packetCommandFlag == TRUE) {
         packetBuffer[packetBufferIndex].request = byte;
         packetCommandFlag                       = FALSE;
         lastByte                                = byte;
-        continue;
+        return;
     }
 
     if (byte == BPACKET_START_BYTE) {
@@ -120,7 +120,7 @@ void comms_process_byte(uint8_t byte) {
 
             // printf("Start byte recieved\n");
             // printf("Start byte acted upon\n");
-            continue;
+            return;
         }
     }
 
@@ -148,29 +148,64 @@ void comms_process_byte(uint8_t byte) {
 
             comms_stm32_increment_packet_buffer_index();
 
-            continue;
+            return;
         }
+    }
+
+    if (passOnMessage == TRUE) {
+        // Send byte onto uart 1
+        comms_send_byte(USART1, byte);
+
+    } else {
+        // Store byte into buffer
     }
 
     // Byte is a data byte, add to the bpacket
     packetBuffer[packetBufferIndex].bytes[packetByteIndex++] = byte;
-
-    // }
-
-    // if (numBytes < 0) {
-    //     printf("Error reading COM port\n");
-    // }
-
-    // return FALSE;
 }
 
 uint8_t comms_stm32_get_bpacket(bpacket_t* bpacket) {
 
     if (packetPendingIndex != packetBufferIndex) {
         bpacket = &packetBuffer[packetPendingIndex];
-        maple_increment_packet_pending_index();
+        comms_stm32_increment_packet_pending_index();
         return TRUE;
     }
 
     return FALSE;
+}
+
+void comms_usart2_print_buffer(void) {
+
+    char msg[100];
+    msg[0]  = '\0';
+    int i   = 0;
+    int buf = processedBufferIndex;
+
+    if (buf > bufferIndex) {
+        while (buf > bufferIndex) {
+            msg[i++] = rxBuffer[buf++];
+
+            if (buf == RX_BUFFER_SIZE) {
+                buf = 0;
+            }
+        }
+    }
+
+    while (buf < bufferIndex) {
+        msg[i++] = rxBuffer[buf++];
+    }
+
+    log_message(msg);
+}
+
+/* Generic USART Commuincation Functions */
+
+void comms_send_byte(USART_TypeDef usart, uint8_t byte) {
+
+    // Wait for USART to be ready to send a byte
+    while ((usart->ISR & USART_ISR_TXE) == 0) {};
+
+    // Send byte of usart
+    usart->TDR = byte;
 }

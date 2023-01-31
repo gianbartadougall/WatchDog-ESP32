@@ -94,7 +94,7 @@
 #define NUMBER_OF_CAM_RESOLUTIONS              7
 #define NUMBER_OF_POSSIBLE_FREQUENCIES         10
 #define NUMBER_OF_POSSIBLE_HOURS               12
-#define NUMBER_OF_POSSIBLE_TIME_INTERVAL_HOURS 7
+#define NUMBER_OF_POSSIBLE_TIME_INTERVAL_HOURS 13
 #define NUMBER_OF_POSSIBLE_MINUTES             4
 #define NUMBER_OF_POSSIBLE_AM_PM               2
 #define NUMBER_OF_POSSIBLE_DAYS                31
@@ -108,7 +108,7 @@ const char* possibleFrequencyStrings[50] = {"1 per day",        "2 per day",    
                                             "every 4 hours",    "every 3 hours",   "every 2 hours", "every hour",
                                             "every 30 minutes", "every 15 minutes"};
 const char* hourStrings[50]              = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-const char* timeIntervalHourStrings[50]  = {"0", "1", "2", "3", "4", "5", "6"};
+const char* timeIntervalHourStrings[50]  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
 const char* minuteStrings[50]            = {"00", "15", "30", "45"};
 const char* amPmStrings[50]              = {"am", "pm"};
 const char* minuteRtcStrings[50]         = {"00", "02", "04", "06", "08", "10", "12", "14", "16", "18",
@@ -128,7 +128,6 @@ HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumI
     labelSettings, labelStartTime, labelEndTime, labelTimeInterval, labelDateHeading, labelTimeInfo;
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
 HFONT hFont;
-watchdog_info_t* watchdog;
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -146,6 +145,8 @@ framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
 
 watchdog_info_t* watchdog;
 uint32_t* flags;
+bpacket_circular_buffer_t* guiToMainCircularBuffer;
+bpacket_circular_buffer_t* mainToGuiCircularBuffer;
 
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
@@ -432,6 +433,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if (LOWORD(wParam) == BUTTON_EXPORT_DATA_HANDLE) {
                 *flags |= GUI_TURN_RED_LED_OFF;
+                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
                 // printf("Exporting SD card data\n");
             }
 
@@ -549,6 +551,8 @@ DWORD WINAPI gui(void* arg) {
     gui_initalisation_t* guiInit = (gui_initalisation_t*)arg;
     watchdog                     = guiInit->watchdog;
     flags                        = guiInit->flags;
+    guiToMainCircularBuffer      = guiInit->guiToMain;
+    mainToGuiCircularBuffer      = guiInit->mainToGui;
 
     cameraViewImagePosition.startX = COL_1;
     cameraViewImagePosition.startY = ROW_2;

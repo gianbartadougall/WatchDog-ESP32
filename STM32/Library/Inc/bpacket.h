@@ -37,8 +37,9 @@
 // #define BPACKET_R_LED_RED_OFF   (11 + START)
 // #define BPACKET_R_ACKNOWLEDGE   (12 + START)
 
-#define BPACKET_REQUEST_SIZE_BYTES 1
-#define BPACKET_MAX_NUM_DATA_BYTES 31
+#define BPACKET_REQUEST_SIZE_BYTES   1
+#define BPACKET_MAX_NUM_DATA_BYTES   31
+#define BPACKET_CIRCULAR_BUFFER_SIZE 10
 
 #define BPACKET_BUFFER_NUM_START_STOP_BYTES 2 // One start and one stop byte
 #define BPACKET_NUM_INFO_BYTES              1 // This is the byte that represents the length of the data in bytes
@@ -61,6 +62,18 @@ typedef struct bpacket_char_array_t {
     uint8_t numBytes;
     char string[BPACKET_MAX_NUM_DATA_BYTES + 1]; // One extra for null character
 } bpacket_char_array_t;
+
+typedef struct bpacket_circular_buffer_t {
+    uint8_t* readIndex;  // The index that the writing end of the buffer would use to know where to put the bpacket
+    uint8_t* writeIndex; // The index that the reading end of the buffer would use to see if they are up to date with
+                         // the reading
+    bpacket_t* circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE];
+} bpacket_circular_buffer_t;
+
+void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
+
+void bpacket_create_circular_buffer(bpacket_circular_buffer_t bufferStruct, uint8_t writeIndex, uint8_t readIndex,
+                                    bpacket_t circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE]);
 
 void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 

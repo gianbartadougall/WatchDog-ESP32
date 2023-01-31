@@ -22,6 +22,24 @@
 #include "bpacket.h"
 #include "chars.h"
 
+void bpacket_create_circular_buffer(bpacket_circular_buffer_t bufferStruct, uint8_t writeIndex, uint8_t readIndex,
+                                    bpacket_t circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE]) {
+    bufferStruct.writeIndex = &writeIndex;
+    bufferStruct.readIndex  = &readIndex;
+    for (int i = 0; i < BPACKET_CIRCULAR_BUFFER_SIZE; i++) {
+        bufferStruct.circularBuffer[i] = &circularBuffer[i];
+    }
+    return;
+}
+
+void bpacket_increment_circular_buffer_index(uint8_t* writeIndex) {
+    (*writeIndex)++;
+    if (*writeIndex >= BPACKET_CIRCULAR_BUFFER_SIZE) {
+        *writeIndex = 0;
+    }
+    return;
+}
+
 void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data) {
 
     // Ensure the num bytes is no more than maximum

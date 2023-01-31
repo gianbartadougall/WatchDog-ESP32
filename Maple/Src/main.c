@@ -34,7 +34,8 @@
 #include "gui.h"
 #include "datetime.h"
 
-#define MAPLE_MAX_ARGS 5
+#define MAPLE_MAX_ARGS               5
+#define PACKET_BUFFER_SIZE           50
 
 /* Example of how to get a list of serial ports on the system.
  *
@@ -50,10 +51,19 @@ uint8_t maple_match_args(char** args, int numArgs);
 #define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 50)
 uint8_t rxBuffer[RX_BUFFER_SIZE];
 
-#define PACKET_BUFFER_SIZE 50
+bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
+uint8_t guiWriteIndex  = 0;
+uint8_t guiReadIndex   = 0;
+uint8_t mainWriteIndex = 0;
+uint8_t mainReadIndex  = 0;
+
+bpacket_t guiToMainBpackets[BPACKET_CIRCULAR_BUFFER_SIZE];
+bpacket_t mainToGuiBpackets[BPACKET_CIRCULAR_BUFFER_SIZE];
+
 uint8_t packetBufferIndex  = 0;
 uint8_t packetPendingIndex = 0;
 bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
+
 
 void maple_increment_packet_buffer_index(void) {
     packetBufferIndex++;
@@ -372,52 +382,30 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
+    if (com_ports_open_connection(57) != TRUE) {
         printf("Unable to connect to Watchdog\n");
         return FALSE;
     }
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    // // Watchdog connected. Get information from watchdog to display on the screen
+    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
-    if (!thread) {
-        printf("Thread failed\n");
-        return 0;
-    }
+    // // Wait until the packet is ready
+    // while (packetPendingIndex == packetBufferIndex) {}
 
-    
-    // Send bpacket message to get help
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
-    bpacket_t bpacket;
-    dt_datetime_t datetime;
-    if (maple_get_uart_single_response(&bpacket) == TRUE) {
+    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+    //     printf("Error recieving status!\n");
+    //     return 0;
+    // }
 
-        // Convert the bpacket to datetime
-        if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
-            printf("Failed to parse datetime\r\n");
-        } else {
-            // Print out the datetime
-            printf("%i:%i:%i %i/%i/%i\n", datetime.time.second, datetime.time.minute, datetime.time.hour, datetime.date.day, datetime.date.month, datetime.date.year);
-        }
+    // printf("Finished\n");
+    // return 0;
 
-    } else {
-        printf("failed to get response\n");
-        maple_print_bpacket_data(&bpacket);
-    }
-    // maple_print_uart_response();
-    
-    while (1) {}
-    return 0;
-    
-    // Watchdog connected. Get information from watchdog to display on the screen
-    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+    bpacket_circular_buffer_t guiToMainCircularBuffer;
+    bpacket_create_circular_buffer(guiToMainCircularBuffer, guiWriteIndex, mainReadIndex, guiToMainBpackets);
 
-    // Wait until the packet is ready
-    while (packetPendingIndex == packetBufferIndex) {}
-
-    if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
-        printf("Error recieving status!\n");
-        return 0;
-    }
+    bpacket_circular_buffer_t mainToGuiCircularBuffer;
+    bpacket_create_circular_buffer(mainToGuiCircularBuffer, mainWriteIndex, guiReadIndex, mainToGuiBpackets);
 
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
@@ -433,8 +421,10 @@ int main(int argc, char** argv) {
     uint8_t cameraView = FALSE;
 
     gui_initalisation_t guiInit;
-    guiInit.watchdog = &watchdogInfo;
-    guiInit.flags    = &flags;
+    guiInit.watchdog    = &watchdogInfo;
+    guiInit.flags       = &flags;
+    guiInit.guiToMain   = &guiToMainCircularBuffer;
+    guiInit.mainToGui   = &mainToGuiCircularBuffer;
 
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
@@ -443,8 +433,17 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    while (1) {
+    while(1) {
+        if (guiToMainCircularBuffer.readIndex != guiToMainCircularBuffer.writeIndex) {
+            printf("YOU'VE ONLY GONE AND DONE IT\n");
+            printf("write index: %i\n", guiToMainCircularBuffer.writeIndex);
+            printf("IT GETS HERE\n");
+            //bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+        }
+    }
 
+    while (1) {
+        
         if ((flags & GUI_TURN_RED_LED_ON) != 0) {
             flags &= ~(GUI_TURN_RED_LED_ON);
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);

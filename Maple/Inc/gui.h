@@ -15,6 +15,9 @@
 #include <CommCtrl.h>
 #include <stdint.h>
 
+/* C Private Includes */
+#include "bpacket.h"
+
 /* Public Marcos */
 #define SYSTEM_STATUS_ERROR 0
 #define SYSTEM_STATUS_OK    1
@@ -37,6 +40,8 @@ typedef struct watchdog_info_t {
 typedef struct gui_initalisation_t {
     watchdog_info_t* watchdog;
     uint32_t* flags;
+    bpacket_circular_buffer_t* guiToMain;
+    bpacket_circular_buffer_t* mainToGui;
 } gui_initalisation_t;
 
 void gui_init();

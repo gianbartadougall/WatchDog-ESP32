@@ -407,13 +407,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // TRY TO PUT SOMETHING IN A BPACKET
 
                 bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                 WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 0, NULL);
-
+                                 WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
             }
 
             if (LOWORD(wParam) == BUTTON_EXPORT_DATA_HANDLE) {
                 *flags |= GUI_TURN_RED_LED_OFF;
+
+                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                 WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
                 // printf("Exporting SD card data\n");
             }

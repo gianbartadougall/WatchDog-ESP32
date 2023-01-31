@@ -100,7 +100,7 @@ uint8_t camera_get_resolution(void) {
     return camera_config.frame_size;
 }
 
-uint8_t camera_change_resolution(uint8_t camRes) {
+uint8_t camera_set_resolution(uint8_t camRes) {
 
     // Deinitinalise camera so camera settings can be changed
     esp_camera_deinit();

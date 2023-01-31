@@ -32,6 +32,6 @@ uint8_t camera_get_resolution(void);
 
 // This function changes the camera resolution, possible inputs are
 // the FRAMESIZE_SETTINGS, the settings are QVGA, CIF, VGA, SVGA, XGA, SXGA, UXGA, WQXGA
-uint8_t camera_change_resolution(uint8_t cam_res);
+uint8_t camera_set_resolution(uint8_t cam_res);
 
 #endif // CAMERA_H

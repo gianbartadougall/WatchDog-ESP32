@@ -123,6 +123,16 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
         if (byte == BPACKET_STOP_BYTE) {
 
+            if (passOnMessage) {
+                if (bufferId == BUFFER_1_ID) {
+                    comms_send_byte(BUFFER_1_ID, byte);
+
+                } else {
+                    comms_send_byte(BUFFER_2_ID, byte);
+                }
+                continue;
+            }
+
             // If the data is being sent to the STM32, check whether the stop byte
             // is in the right
             // char msg[15];
@@ -160,8 +170,8 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                     case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:
                     case WATCHDOG_BPK_R_GET_DATETIME:
                     case WATCHDOG_BPK_R_SET_DATETIME:
-                    case WATCHDOG_BPK_R_LED_RED_ON:
-                    case WATCHDOG_BPK_R_LED_RED_OFF:
+                        // case WATCHDOG_BPK_R_LED_RED_ON:
+                        // case WATCHDOG_BPK_R_LED_RED_OFF:
                         passOnMessage     = FALSE;
                         bpacket->numBytes = rxBuffers1[bufferId][indexMin1] - 1;
                         bpacket->request  = byte;
@@ -171,11 +181,21 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                         break;
                     default:
                         passOnMessage = TRUE;
-                        // log_send_data(" pass msg ", 10);
+                        log_send_data(" pass msg ", 10);
                         // Send the last 3 bytes + this byte onwards
-                        comms_send_byte(bufferId, rxBuffers1[bufferId][indexMin2]);
-                        comms_send_byte(bufferId, rxBuffers1[bufferId][indexMin1]);
-                        comms_send_byte(bufferId, rxBuffers1[bufferId][rxBufProcessedIndexes[bufferId]]);
+                        if (bufferId == BUFFER_1_ID) {
+                            comms_send_byte(BUFFER_2_ID, rxBuffers1[bufferId][indexMin2]);
+                            comms_send_byte(BUFFER_2_ID, rxBuffers1[bufferId][indexMin1]);
+                            comms_send_byte(BUFFER_2_ID, rxBuffers1[bufferId][rxBufProcessedIndexes[bufferId]]);
+
+                        } else {
+                            comms_send_byte(BUFFER_1_ID, rxBuffers1[bufferId][indexMin2]);
+                            comms_send_byte(BUFFER_1_ID, rxBuffers1[bufferId][indexMin1]);
+                            comms_send_byte(BUFFER_1_ID, rxBuffers1[bufferId][rxBufProcessedIndexes[bufferId]]);
+                        }
+                        // comms_send_byte(bufferId, rxBuffers1[bufferId][indexMin2]);
+                        // comms_send_byte(bufferId, rxBuffers1[bufferId][indexMin1]);
+                        // comms_send_byte(bufferId, rxBuffers1[bufferId][rxBufProcessedIndexes[bufferId]]);
                         commms_stm32_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
                 }
 
@@ -184,17 +204,21 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             }
         }
 
-        // if (passOnMessage == TRUE) {
-        //     comms_send_byte(USART1, byte);
-        // } else {
-        bpacket->bytes[bpacketIndexes[bufferId]] = byte;
-        bpacketIndexes[bufferId]++;
+        if (passOnMessage == TRUE) {
+            if (bufferId == BUFFER_1_ID) {
+                comms_send_byte(BUFFER_1_ID, byte);
+            } else {
+                comms_send_byte(BUFFER_2_ID, byte);
+            }
+        } else {
+            bpacket->bytes[bpacketIndexes[bufferId]] = byte;
+            bpacketIndexes[bufferId]++;
+        }
         // bpacket->bytes[bpacketIndex] = byte;
         // char msg[20];
         // sprintf(msg, "(%i)", bpacketIndex);
         // log_send_data(msg, 5);
         // bpacketIndex++;
-        // }
 
         commms_stm32_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
     }

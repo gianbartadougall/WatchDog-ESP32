@@ -28,6 +28,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
 uint8_t com_ports_send_bpacket(bpacket_t* bpacket);
+void comms_port_test(void);
 
 /* Private Variables */
 struct sp_port* activePort;
@@ -142,50 +143,6 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             response[i] = 0;
         }
 
-          /* TEST CODE */
-        // uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        // bpacket_create_p(&bpacket, BPACKET_GEN_R_PING, 0, NULL);
-        // bpacket_create_p(&bpacket, 15, 0, NULL);
-        // bpacket_buffer_t packetBuffer;
-        // bpacket_to_buffer(&bpacket, &packetBuffer);
-        // uint8_t length = 6;
-        // uint8_t data[length];
-        // data[0] = BPACKET_START_BYTE;
-        // data[1] = 3;
-        // data[2] = BPACKET_GEN_R_PING;
-        // data[3] = 'G';
-        // data[4] = 'H';
-        // data[5] = BPACKET_STOP_BYTE;
-
-        // while (1) {
-            
-        //     if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 1000) < 0) {
-        //         continue;
-        //     }
-
-        //     if (sp_blocking_read(port, response, 100, 1000) < 0) {
-        //         return 0;
-        //     }
-
-        //     bpacket_buffer_decode(&bpacket, response);
-        //     // printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
-
-        //     for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-        //         printf("%c", response[i]);
-        //     }
-
-        //     if (response[0] != '\0') {
-        //         printf("\n");
-        //     }
-            
-        //     for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-        //         response[i] = '\0';
-        //     }
-            
-            
-        // } 
-        /* TEST CODE */
-
         uint8_t responseSize;
         if ((responseSize = sp_blocking_read(port, response, 6, 200)) < 0) {
             sp_close(port);
@@ -197,7 +154,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             sp_close(port);
             continue;
         }
-        
+
         bpacket_buffer_decode(&bpacket, response);
 
         if ((bpacket.request != BPACKET_R_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
@@ -212,7 +169,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
     }
 
     sp_free_port_list(port_list);
-    
+
     return SP_OK;
 }
 
@@ -254,4 +211,69 @@ uint8_t com_ports_send_bpacket(bpacket_t* bpacket) {
 
 int com_ports_read(void* buf, size_t count, unsigned int timeout_ms) {
     return sp_blocking_read(activePort, buf, count, timeout_ms);
+}
+
+void comms_port_test(void) {
+
+    struct sp_port** port_list;
+    enum sp_return result = sp_list_ports(&port_list);
+
+    if (result != SP_OK) {
+        return;
+    }
+
+    // Iterate through every port. Ping the port and check if
+    // the response matches the given target
+    bpacket_t bpacket;
+    for (int i = 1; port_list[i] != NULL; i++) {
+
+        struct sp_port* port = port_list[i];
+
+        if (com_ports_open_port(port) != SP_OK) {
+            printf("Unable to open port [%i]\n", i);
+            continue;
+        }
+
+        uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
+        bpacket_create_p(&bpacket, BPACKET_SPECIFIC_R_OFFSET + 7, 0, NULL);
+        bpacket_create_p(&bpacket, 15, 0, NULL);
+        bpacket_buffer_t packetBuffer;
+        bpacket_to_buffer(&bpacket, &packetBuffer);
+        // uint8_t length = 6;
+        // uint8_t data[length];
+        // data[0] = BPACKET_START_BYTE;
+        // data[1] = 3;
+        // data[2] = BPACKET_GEN_R_PING;
+        // data[3] = 'G';
+        // data[4] = 'H';
+        // data[5] = BPACKET_STOP_BYTE;
+
+        while (1) {
+
+            if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 1000) < 0) {
+                printf("Unable to write\n");
+                continue;
+            }
+
+            if (sp_blocking_read(port, response, 100, 1000) < 0) {
+                printf("Unbable to read\n");
+                return;
+            }
+
+            bpacket_buffer_decode(&bpacket, response);
+            // printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
+
+            for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+                printf("%c", response[i]);
+            }
+
+            if (response[0] != '\0') {
+                printf("\n");
+            }
+
+            for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+                response[i] = '\0';
+            }
+        }
+    }
 }

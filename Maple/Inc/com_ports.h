@@ -25,4 +25,5 @@ uint8_t com_ports_send_bpacket(bpacket_t* bpacket);
 
 int com_ports_read(void* buf, size_t count, unsigned int timeout_ms);
 
+void comms_port_test(void);
 #endif // COM_PORTS_H

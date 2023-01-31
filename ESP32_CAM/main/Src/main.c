@@ -34,27 +34,81 @@
 
 /* Private Function Declarations */
 
-void watchdog_send_status(void) {
+// void watchdog_send_status(void) {
 
-    uint8_t id               = 1;
-    uint8_t cameraResolution = camera_get_resolution();
-    uint16_t numImages;
-    bpacket_t response;
+//     uint8_t id               = 1;
+//     uint8_t cameraResolution = camera_get_resolution();
+//     uint16_t numImages;
+//     bpacket_t response;
 
-    if (sd_card_search_num_images(&numImages, &response) != TRUE) {
-        numImages = 5000;
+//     if (sd_card_search_num_images(&numImages, &response) != TRUE) {
+//         numImages = 5000;
+//     }
+
+//     uint8_t status = 0;
+//     bpacket_t bpacket;
+//     uint8_t data[5];
+//     data[0] = id;
+//     data[1] = cameraResolution;
+//     data[2] = numImages >> 8;
+//     data[3] = numImages & 0xFF;
+//     data[4] = status;
+//     bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 5, data);
+//     esp32_uart_send_bpacket(&bpacket);
+// }
+
+uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
+
+    // Save the address
+    uint8_t address = bpacket->address;
+
+    switch (bpacket->request) {
+        case WATCHDOG_BPK_R_TAKE_PHOTO:
+            camera_capture_and_save_image(bpacket);
+            break;
+        case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
+
+            if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
+                bpacket_create_p(bpacket, address, BPACKET_R_FAILED, 0, NULL);
+            } else {
+                bpacket_create_p(bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
+            }
+
+            esp32_uart_send_bpacket(bpacket);
+            break;
+        case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
+
+            uint8_t resolution = camera_get_resolution();
+            bpacket_create_p(bpacket, address, BPACKET_R_SUCCESS, 1, &resolution);
+            esp32_uart_send_bpacket(bpacket);
+            break;
+        case WATCHDOG_BPK_R_RECORD_DATA:
+            break;
+        default:
+            return FALSE;
     }
 
-    uint8_t status = 0;
-    bpacket_t bpacket;
-    uint8_t data[5];
-    data[0] = id;
-    data[1] = cameraResolution;
-    data[2] = numImages >> 8;
-    data[3] = numImages & 0xFF;
-    data[4] = status;
-    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 5, data);
-    esp32_uart_send_bpacket(&bpacket);
+    return TRUE;
+}
+
+uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
+
+    bpacket_char_array_t bpacketCharArray;
+
+    switch (bpacket->request) {
+        case WATCHDOG_BPK_R_LIST_DIR:
+            bpacket_data_to_string(bpacket, &bpacketCharArray);
+            sd_card_list_directory(bpacket, &bpacketCharArray);
+            break;
+        case WATCHDOG_BPK_R_COPY_FILE:
+            bpacket_data_to_string(bpacket, &bpacketCharArray);
+            sd_card_copy_file(bpacket, &bpacketCharArray);
+            break;
+        default:
+            return FALSE;
+    }
+
+    return TRUE;
 }
 
 void watchdog_system_start(void) {
@@ -68,7 +122,7 @@ void watchdog_system_start(void) {
 
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
     bpacket_t bpacket;
-    bpacket_char_array_t bpacketCharArray;
+    // bpacket_char_array_t bpacketCharArray;
 
     while (1) {
 
@@ -82,60 +136,38 @@ void watchdog_system_start(void) {
 
         bpacket_buffer_decode(&bpacket, bdata);
 
+        if ((bpacket.address == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
+            continue;
+        }
+
+        if ((bpacket.address == BPACKET_ADDRESS_MAPLE) && (esp3_match_maple_request(&bpacket) == TRUE)) {
+            continue;
+        }
+
+        // The request was a generic request that could have been sent from the stm32
+        // or from maple
+        uint8_t address = bpacket.address;
+
         switch (bpacket.request) {
-            case BPACKET_GEN_R_HELP:
-                esp32_uart_send_string(uartHelp);
-                break;
             case BPACKET_GEN_R_PING:
-                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, ping);
+                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 1, ping);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
-            case BPACKET_GET_R_STATUS:
-                watchdog_send_status();
-                break;
-            case WATCHDOG_BPK_R_LIST_DIR:
-                bpacket_data_to_string(&bpacket, &bpacketCharArray);
-                sd_card_list_directory(&bpacket, &bpacketCharArray);
-                break;
-            case WATCHDOG_BPK_R_COPY_FILE:
-                bpacket_data_to_string(&bpacket, &bpacketCharArray);
-                sd_card_copy_file(&bpacket, &bpacketCharArray);
-                break;
-            case WATCHDOG_BPK_R_TAKE_PHOTO:
-                camera_capture_and_save_image(&bpacket);
-                break;
-            case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
-
-                if (camera_set_resolution(bpacket.bytes[0]) != TRUE) {
-                    bpacket_create_p(&bpacket, BPACKET_R_FAILED, 0, NULL);
-                } else {
-                    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
-                }
-
+            case WATCHDOG_BPK_R_LED_RED_ON:
+                led_on(RED_LED);
+                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
-            case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
-
-                uint8_t resolution = camera_get_resolution();
-                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &resolution);
+            case WATCHDOG_BPK_R_LED_RED_OFF:
+                led_off(RED_LED);
+                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
                 // sd_card_write_to_file();
                 break;
-            case WATCHDOG_BPK_R_RECORD_DATA:
-                break;
-            case WATCHDOG_BPK_R_LED_RED_ON:
-                led_on(RED_LED);
-                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
-                esp32_uart_send_bpacket(&bpacket);
-                break;
-            case WATCHDOG_BPK_R_LED_RED_OFF:
-                led_off(RED_LED);
-                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
-                esp32_uart_send_bpacket(&bpacket);
-                break;
-            default:
+            default: // No request was able to be matched. Send response back to sender
+                bpacket_create_p(&bpacket, address, BPACKET_R_UNKNOWN, 0, NULL);
                 break;
         }
     }

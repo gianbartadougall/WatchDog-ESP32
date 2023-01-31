@@ -75,24 +75,32 @@ typedef struct wd_status_t {
 } wd_status_t;
 
 /* Function Prototypes */
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, dt_datetime_t* datetime);
+uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
+                               dt_datetime_t* datetime);
 uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime);
 uint8_t dt_time_is_valid(dt_time_t* time);
 
 uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_camera_settings_t* cameraSettings);
+uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
+                                      wd_camera_settings_t* cameraSettings);
 uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution);
 
-uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status);
+uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, wd_status_t* status);
 uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status);
 
 #ifdef WATCHDOG_FUNCTIONS
 
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, dt_datetime_t* datetime) {
+uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
+                               dt_datetime_t* datetime) {
 
     // Confirm the request is valid
     if ((request != WATCHDOG_BPK_R_GET_DATETIME) && (request != WATCHDOG_BPK_R_SET_DATETIME) &&
         (request != BPACKET_R_SUCCESS)) {
+        return FALSE;
+    }
+
+    if ((receiver < BPACKET_MIN_ADDRESS) || (receiver > BPACKET_MAX_ADDRESS) || (sender < BPACKET_MIN_ADDRESS) ||
+        (sender > BPACKET_MAX_ADDRESS)) {
         return FALSE;
     }
 
@@ -116,6 +124,8 @@ uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t request, dt_datetime_
         return FALSE;
     }
 
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->numBytes = 6;
     bpacket->bytes[0] = datetime->time.second;
@@ -175,11 +185,17 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime) {
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
+                                      wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
     if ((request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) && (request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION) &&
         (request != BPACKET_R_SUCCESS)) {
+        return FALSE;
+    }
+
+    if ((receiver < BPACKET_MIN_ADDRESS) || (receiver > BPACKET_MAX_ADDRESS) || (sender < BPACKET_MIN_ADDRESS) ||
+        (sender > BPACKET_MAX_ADDRESS)) {
         return FALSE;
     }
 
@@ -204,6 +220,8 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_ca
         return FALSE;
     }
 
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->numBytes = 7;
     bpacket->bytes[0] = cameraSettings->startTime.minute;
@@ -236,6 +254,7 @@ uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* 
     startTime.hour   = bpacket->bytes[1];
     endTime.minute   = bpacket->bytes[2];
     endTime.hour     = bpacket->bytes[3];
+
     if ((dt_time_is_valid(&startTime) != TRUE) || (dt_time_is_valid(&endTime) != TRUE)) {
         return FALSE;
     }
@@ -250,7 +269,6 @@ uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* 
         return FALSE;
     }
 
-    bpacket->numBytes                = 7;
     cameraSettings->startTime.minute = startTime.minute;
     cameraSettings->startTime.hour   = startTime.hour;
     cameraSettings->endTime.minute   = endTime.minute;
@@ -278,13 +296,20 @@ uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution) {
     }
 }
 
-uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status) {
+uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, wd_status_t* status) {
 
     // Confirm the status is valid
     if (status->status != WATCHDOG_BPK_R_GET_STATUS) {
         return FALSE;
     }
 
+    if ((receiver < BPACKET_MIN_ADDRESS) || (receiver > BPACKET_MAX_ADDRESS) || (sender < BPACKET_MIN_ADDRESS) ||
+        (sender > BPACKET_MAX_ADDRESS)) {
+        return FALSE;
+    }
+
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
     bpacket->request  = WATCHDOG_BPK_R_GET_STATUS;
     bpacket->numBytes = 5;
     bpacket->bytes[0] = status->id;

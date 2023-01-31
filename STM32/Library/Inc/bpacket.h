@@ -17,35 +17,47 @@
 #define BPACKET_START_BYTE 'A'
 #define BPACKET_STOP_BYTE  'B'
 
-#define START                     2 // Start at 2 so no code is the same as TRUE/FALSE
-#define BPACKET_R_FAILED          (START + 0)
-#define BPACKET_R_SUCCESS         (START + 1)
-#define BPACKET_R_UNKNOWN         (START + 2)
-#define BPACKET_R_IN_PROGRESS     (START + 3)
-#define BPACKET_GEN_R_HELP        (START + 4)
-#define BPACKET_GEN_R_PING        (START + 5)
-#define BPACKET_GET_R_STATUS      (START + 6)
-#define BPACKET_SPECIFIC_R_OFFSET (START + 7) // This is the offset applied to specific projects
+#define BPACKET_MIN_REQUEST_INDEX 2 // Start at 2 so no code is the same as TRUE/FALSE
+#define BPACKET_R_FAILED          (BPACKET_MIN_REQUEST_INDEX + 0)
+#define BPACKET_R_SUCCESS         (BPACKET_MIN_REQUEST_INDEX + 1)
+#define BPACKET_R_UNKNOWN         (BPACKET_MIN_REQUEST_INDEX + 2)
+#define BPACKET_R_IN_PROGRESS     (BPACKET_MIN_REQUEST_INDEX + 3)
+#define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 4)
+#define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 5)
+#define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 6)
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 7) // This is the offset applied to specific projects
+
+#define BPACKET_ADDRESS_1 1
+#define BPACKET_ADDRESS_2 2
+#define BPACKET_ADDRESS_3 3
+#define BPACKET_ADDRESS_4 4
+#define BPACKET_ADDRESS_5 5
+
+#define BPACKET_MIN_ADDRESS BPACKET_ADDRESS_1
+#define BPACKET_MAX_ADDRESS BPACKET_ADDRESS_5
 
 // These represent the addresses of each system in the project. Sending a bpacket
 // requires you to supply an address so the reciever knows whether the bpacket
 // is for them or if they are supposed to pass the bpacket on
-#define BPACKET_ADDRESS_ESP32 23
-#define BPACKET_ADDRESS_STM32 47
-#define BPACKET_ADDRESS_MAPLE 73
+#define BPACKET_ADDRESS_ESP32 BPACKET_ADDRESS_1
+#define BPACKET_ADDRESS_STM32 BPACKET_ADDRESS_2
+#define BPACKET_ADDRESS_MAPLE BPACKET_ADDRESS_3
 
-#define BPACKET_REQUEST_SIZE_BYTES   1
-#define BPACKET_MAX_NUM_DATA_BYTES   31
+#define BPACKET_BUFFER_LENGTH_BYTES 128
+#define BPACKET_NUM_START_BYTES     1
+#define BPACKET_NUM_ADDRESS_BYTES   2
+#define BPACKET_NUM_REQUEST_BYTES   1
+#define BPACKET_NUM_INFO_BYTES      1 // Number of bytes used to indicated the number of data bytes in bpacket
+#define BPACKET_NUM_STOP_BYTES      1
+#define BPACKET_NUM_NON_DATA_BYTES  6
+#define BPACKET_MAX_NUM_DATA_BYTES  (BPACKET_BUFFER_LENGTH_BYTES - BPACKET_NUM_NON_DATA_BYTES)
+
 #define BPACKET_CIRCULAR_BUFFER_SIZE 10
 
-#define BPACKET_BUFFER_NUM_START_STOP_BYTES 2 // One start and one stop byte
-#define BPACKET_NUM_INFO_BYTES              1 // This is the byte that represents the length of the data in bytes
-#define BPACKET_BUFFER_NUM_NON_DATA_BYTES   BPACKET_BUFFER_NUM_START_STOP_BYTES + BPACKET_NUM_INFO_BYTES
-#define BPACKET_BUFFER_LENGTH_BYTES \
-    (BPACKET_MAX_NUM_DATA_BYTES + BPACKET_REQUEST_SIZE_BYTES + BPACKET_BUFFER_NUM_NON_DATA_BYTES)
-
 typedef struct bpacket_t {
-    uint8_t numBytes;
+    uint8_t receiver;
+    uint8_t sender;
+    uint8_t numBytes; // The number of bytes in the bytes array
     uint8_t request;
     uint8_t bytes[BPACKET_MAX_NUM_DATA_BYTES]; // Minus 1 because this includes request
 } bpacket_t;
@@ -74,9 +86,10 @@ void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uin
 
 void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
-void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data);
+void bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t numDataBytes,
+                      uint8_t* data);
 
-void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string);
+void bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, char* string);
 
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer);
 

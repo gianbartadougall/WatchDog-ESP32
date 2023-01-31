@@ -72,7 +72,7 @@ void watchdog_init(void) {
     cameraSettings.resolution   = WD_CAM_RES_1024x768;
 
     // Turn the ESP32 on
-    watchdog_esp32_on();
+    // watchdog_esp32_on();
 }
 
 void watchdog_send_string(char* string) {
@@ -117,7 +117,7 @@ void watchdog_send_string(char* string) {
 void watchdog_report_error(char* errorMsg) {
 
     bpacket_t bpacket;
-    bpacket_create_sp(&bpacket, BPACKET_R_FAILED, errorMsg);
+    bpacket_create_sp(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_R_FAILED, errorMsg);
 
     bpacket_buffer_t packetBuffer;
     bpacket_to_buffer(&bpacket, &packetBuffer);
@@ -128,7 +128,7 @@ void watchdog_report_error(char* errorMsg) {
 void watchdog_report_success(void) {
 
     bpacket_t bpacket;
-    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    bpacket_create_p(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_R_SUCCESS, 0, NULL);
 
     bpacket_buffer_t packetBuffer;
     bpacket_to_buffer(&bpacket, &packetBuffer);
@@ -158,131 +158,143 @@ void watchdog_update(void) {
     /* TEMPERATURE CONVERSION CODE */
 
     // Wait for STM32 to receive a bpacket
-    bpacket_t mapleBpacket, esp32Bpacket;
+    bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
     wd_camera_settings_t cameraSettings;
 
     while (1) {
 
-        while (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) != TRUE) {};
+        // Process anything the ESP32 sends to the STM32
+        // if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket) == TRUE) {
+        // TODO: Process bpacket
+        // }
+
+        // Process anything Maple sends to the STM32
+        if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket) == TRUE) {
+            // TODO: Process bpacket
+            log_send_data(" TRUE ", 6);
+            bpacket_print(&bpacket);
+        };
 
         // bpacket_print(&mapleBpacket);
         // continue;
 
-        switch (mapleBpacket.request) {
-            case BPACKET_GEN_R_PING:;
+        // switch (mapleBpacket.request) {
+        //     case BPACKET_GEN_R_PING:;
 
-                // Create bpacket with STM32 ping code and send back
-                uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
-                bpacket_create_p(&mapleBpacket, BPACKET_R_SUCCESS, 1, &pingCode);
-                bpacket_to_buffer(&mapleBpacket, &packetBuffer);
-                comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
-                break;
-            case BPACKET_GET_R_STATUS:
+        //         // Create bpacket with STM32 ping code and send back
+        //         uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
+        //         bpacket_create_p(&mapleBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_R_SUCCESS, 1, &pingCode);
+        //         bpacket_to_buffer(&mapleBpacket, &packetBuffer);
+        //         comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+        //         break;
+        //     case BPACKET_GET_R_STATUS:
 
-                break;
-            case BPACKET_GEN_R_HELP:
-                watchdog_send_string(uartHelp);
-                break;
-            case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:;
+        //         break;
+        //     case BPACKET_GEN_R_HELP:
+        //         watchdog_send_string(uartHelp);
+        //         break;
+        //     case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:;
 
-                // Confirm the camera settings are valid
-                wd_camera_settings_t camTempSettings;
-                if (wd_bpacket_to_camera_settings(&mapleBpacket, &camTempSettings) != TRUE) {
-                    watchdog_report_error("Invalid camera settings\0");
-                } else {
-                    // Send bpacket to esp32 to update camera resolution
-                    bpacket_create_p(&mapleBpacket, WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION, 1,
-                                     &camTempSettings.resolution);
-                    bpacket_to_buffer(&mapleBpacket, &packetBuffer);
-                    comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+        //         // Confirm the camera settings are valid
+        //         wd_camera_settings_t camTempSettings;
+        //         if (wd_bpacket_to_camera_settings(&mapleBpacket, &camTempSettings) != TRUE) {
+        //             watchdog_report_error("Invalid camera settings\0");
+        //         } else {
+        //             // Send bpacket to esp32 to update camera resolution
+        //             bpacket_create_p(&mapleBpacket, BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION, 1,
+        //                              &camTempSettings.resolution);
+        //             bpacket_to_buffer(&mapleBpacket, &packetBuffer);
+        //             comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 
-                    while (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) != TRUE) {}
+        //             while (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) != TRUE) {}
 
-                    if (esp32Bpacket.request == BPACKET_R_FAILED) {
-                        watchdog_report_error("Failed to set camera res\0");
-                    } else {
-                        cameraSettings.resolution = mapleBpacket.bytes[0];
-                        watchdog_report_success();
+        //             if (esp32Bpacket.request == BPACKET_R_FAILED) {
+        //                 watchdog_report_error("Failed to set camera res\0");
+        //             } else {
+        //                 cameraSettings.resolution = mapleBpacket.bytes[0];
+        //                 watchdog_report_success();
 
-                        cameraSettings.startTime.second = camTempSettings.startTime.second;
-                        cameraSettings.startTime.minute = camTempSettings.startTime.minute;
-                        cameraSettings.startTime.hour   = camTempSettings.startTime.hour;
-                        cameraSettings.endTime.second   = camTempSettings.endTime.second;
-                        cameraSettings.endTime.minute   = camTempSettings.endTime.minute;
-                        cameraSettings.endTime.hour     = camTempSettings.endTime.hour;
-                        cameraSettings.intervalHour     = camTempSettings.intervalHour;
-                        cameraSettings.intervalMinute   = camTempSettings.intervalMinute;
-                        cameraSettings.resolution       = camTempSettings.resolution;
-                    }
-                }
+        //                 cameraSettings.startTime.second = camTempSettings.startTime.second;
+        //                 cameraSettings.startTime.minute = camTempSettings.startTime.minute;
+        //                 cameraSettings.startTime.hour   = camTempSettings.startTime.hour;
+        //                 cameraSettings.endTime.second   = camTempSettings.endTime.second;
+        //                 cameraSettings.endTime.minute   = camTempSettings.endTime.minute;
+        //                 cameraSettings.endTime.hour     = camTempSettings.endTime.hour;
+        //                 cameraSettings.intervalHour     = camTempSettings.intervalHour;
+        //                 cameraSettings.intervalMinute   = camTempSettings.intervalMinute;
+        //                 cameraSettings.resolution       = camTempSettings.resolution;
+        //             }
+        //         }
 
-                break;
-            case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:
+        //         break;
+        //     case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:
 
-                // Convert camera resolution settings to bpacket
-                if (wd_camera_settings_to_bpacket(&mapleBpacket, BPACKET_R_SUCCESS, &cameraSettings) != TRUE) {
-                    // TODO: Handle error
-                } else {
+        //         // Convert camera resolution settings to bpacket
+        //         if (wd_camera_settings_to_bpacket(&mapleBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_R_SUCCESS,
+        //                                           &cameraSettings) != TRUE) {
+        //             // TODO: Handle error
+        //         } else {
 
-                    // Transmit camera resolution settings
-                    bpacket_to_buffer(&mapleBpacket, &packetBuffer);
-                    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
-                }
+        //             // Transmit camera resolution settings
+        //             bpacket_to_buffer(&mapleBpacket, &packetBuffer);
+        //             comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+        //         }
 
-                break;
-            case WATCHDOG_BPK_R_GET_DATETIME:;
+        //         break;
+        //     case WATCHDOG_BPK_R_GET_DATETIME:;
 
-                // Get the current datetime of the RTC
-                stm32_rtc_read_datetime(&datetime);
-                if (wd_datetime_to_bpacket(&mapleBpacket, BPACKET_R_SUCCESS, &datetime) == TRUE) {
-                    bpacket_to_buffer(&mapleBpacket, &packetBuffer);
-                    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
-                } else {
-                    watchdog_report_error("Invalid RTC datetime\0");
-                }
+        //         // Get the current datetime of the RTC
+        //         stm32_rtc_read_datetime(&datetime);
+        //         if (wd_datetime_to_bpacket(&mapleBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_R_SUCCESS, &datetime) ==
+        //             TRUE) {
+        //             bpacket_to_buffer(&mapleBpacket, &packetBuffer);
+        //             comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+        //         } else {
+        //             watchdog_report_error("Invalid RTC datetime\0");
+        //         }
 
-                break;
-            case WATCHDOG_BPK_R_SET_DATETIME:
+        //         break;
+        //     case WATCHDOG_BPK_R_SET_DATETIME:
 
-                // Convert the bacpacket to a datetime
-                if (wd_bpacket_to_datetime(&mapleBpacket, &datetime) != TRUE) {
-                    // TODO: Return error
-                } else {
-                    // Update the RTC with the current datetime
-                    stm32_rtc_write_datetime(&datetime);
-                }
+        //         // Convert the bacpacket to a datetime
+        //         if (wd_bpacket_to_datetime(&mapleBpacket, &datetime) != TRUE) {
+        //             // TODO: Return error
+        //         } else {
+        //             // Update the RTC with the current datetime
+        //             stm32_rtc_write_datetime(&datetime);
+        //         }
 
-                break;
-            case WATCHDOG_BPK_R_LED_RED_ON:
-            case WATCHDOG_BPK_R_LED_RED_OFF:
-                watchdog_report_error("Here\0");
-                // Pass message straight back to ESP32
-                bpacket_to_buffer(&mapleBpacket, &packetBuffer);
-                comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
-                uint32_t currentTick = SysTick->VAL;
-                uint8_t timeout      = 0;
-                while (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) != TRUE) {
-                    if ((SysTick->VAL - currentTick) > 1000) {
-                        timeout = 1;
-                        break;
-                    }
-                }
+        //         break;
+        //     case WATCHDOG_BPK_R_LED_RED_ON:
+        //     case WATCHDOG_BPK_R_LED_RED_OFF:
 
-                // if (timeout) {
-                //     watchdog_report_error("Timeout from ESP32\0");
-                // } else if (esp32Bpacket.request == BPACKET_R_FAILED) {
-                //     watchdog_report_error("Failed to update LED\0");
-                // } else {
-                // }
+        //         // Pass message straight back to ESP32
+        //         bpacket_to_buffer(&mapleBpacket, &packetBuffer);
+        //         comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+        //         uint32_t currentTick = SysTick->VAL;
+        //         uint8_t timeout      = 0;
+        //         while (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) != TRUE) {
+        //             if ((SysTick->VAL - currentTick) > 1000) {
+        //                 timeout = 1;
+        //                 break;
+        //             }
+        //         }
 
-                break;
-            default:
-                // TODO: Return failed unknown request
+        //         // if (timeout) {
+        //         //     watchdog_report_error("Timeout from ESP32\0");
+        //         // } else if (esp32Bpacket.request == BPACKET_R_FAILED) {
+        //         //     watchdog_report_error("Failed to update LED\0");
+        //         // } else {
+        //         // }
 
-                watchdog_report_error("Unknown request\0");
-                break;
-        }
+        //         break;
+        //     default:
+        //         // TODO: Return failed unknown request
+
+        //         watchdog_report_error("Unknown request\0");
+        //         break;
+        // }
     }
 }
 

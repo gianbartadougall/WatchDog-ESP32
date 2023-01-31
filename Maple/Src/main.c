@@ -43,8 +43,9 @@
 
 int check(enum sp_return result);
 void maple_print_bpacket_data(bpacket_t* bpacket);
-void maple_create_and_send_bpacket(uint8_t request, uint8_t numDataBytes, uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
-void maple_create_and_send_sbpacket(uint8_t request, char* string);
+void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
+                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
+void maple_create_and_send_sbpacket(uint8_t address, uint8_t request, char* string);
 void maple_print_uart_response(void);
 uint8_t maple_match_args(char** args, int numArgs);
 
@@ -80,17 +81,18 @@ void maple_increment_packet_pending_index(void) {
     }
 }
 
-void maple_create_and_send_bpacket(uint8_t request, uint8_t numDataBytes, uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
+void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
+                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
     bpacket_t bpacket;
-    bpacket_create_p(&bpacket, request, numDataBytes, data);
+    bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, numDataBytes, data);
     if (com_ports_send_bpacket(&bpacket) != TRUE) {
         return;
     }
 }
 
-void maple_create_and_send_sbpacket(uint8_t request, char* string) {
+void maple_create_and_send_sbpacket(uint8_t address, uint8_t request, char* string) {
     bpacket_t bpacket;
-    bpacket_create_sp(&bpacket, request, string);
+    bpacket_create_sp(&bpacket, address, BPACKET_ADDRESS_MAPLE, request, string);
     if (com_ports_send_bpacket(&bpacket) != TRUE) {
         return;
     }
@@ -122,7 +124,7 @@ uint8_t maple_copy_file(char* filePath, char* cpyFileName) {
     }
 
     // Send command to copy file. Keeping reading until no more data to send across
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
+    maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
 
     int packetsFinished = FALSE;
     int count           = 0;
@@ -381,9 +383,9 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    // comms_port_test();
+    comms_port_test();
 
-    if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
+    if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");
         return FALSE;
     }
@@ -505,7 +507,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
     if (numArgs == 1) {
 
         if (chars_same(args[0], "help\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, 0, NULL);
+            maple_create_and_send_bpacket(BPACKET_ADDRESS_STM32, BPACKET_GEN_R_HELP, 0, NULL);
             maple_print_uart_response();
             return TRUE;
         }
@@ -516,13 +518,13 @@ uint8_t maple_match_args(char** args, int numArgs) {
         }
 
         if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, "\0");
+            maple_create_and_send_sbpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LIST_DIR, "\0");
             maple_print_uart_response();
             return TRUE;
         }
 
         if (chars_same(args[0], "photo\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
+            maple_create_and_send_bpacket(BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
             maple_print_uart_response();
             return TRUE;
         }
@@ -531,7 +533,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
     if (numArgs == 2) {
 
         if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, args[1]);
+            maple_create_and_send_sbpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LIST_DIR, args[1]);
             maple_print_uart_response();
             return TRUE;
         }
@@ -541,13 +543,13 @@ uint8_t maple_match_args(char** args, int numArgs) {
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "on\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+            maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
             return TRUE;
         }
 
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "off\0") == TRUE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+            maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
             return TRUE;
         }
 

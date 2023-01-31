@@ -24,7 +24,7 @@
 uint8_t com_ports_close_connection(void);
 uint8_t com_ports_configure_port(struct sp_port* port);
 enum sp_return com_ports_open_port(struct sp_port* port);
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t pingResponse);
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address, uint8_t pingResponse);
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
 uint8_t com_ports_send_bpacket(bpacket_t* bpacket);
@@ -33,11 +33,11 @@ void comms_port_test(void);
 /* Private Variables */
 struct sp_port* activePort;
 
-uint8_t com_ports_open_connection(uint8_t pingResponse) {
+uint8_t com_ports_open_connection(uint8_t address, uint8_t pingResponse) {
 
     char espPortName[PORT_NAME_MAX_BYTES];
     espPortName[0]        = '\0';
-    enum sp_return result = com_ports_search_ports(espPortName, pingResponse);
+    enum sp_return result = com_ports_search_ports(espPortName, address, pingResponse);
 
     if (result != SP_OK) {
         com_ports_check(result);
@@ -106,7 +106,7 @@ enum sp_return com_ports_open_port(struct sp_port* port) {
     return SP_OK;
 }
 
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t pingResponse) {
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address, uint8_t pingResponse) {
     portName[0] = '\0';
 
     // Create a struct to hold all the COM ports currently in use
@@ -130,7 +130,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         // Ping port
-        bpacket_create_p(&bpacket, BPACKET_GEN_R_PING, 0, NULL);
+        bpacket_create_p(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, 0, NULL);
         bpacket_buffer_t packetBuffer;
         bpacket_to_buffer(&bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
@@ -235,10 +235,12 @@ void comms_port_test(void) {
         }
 
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        bpacket_create_p(&bpacket, BPACKET_SPECIFIC_R_OFFSET + 7, 0, NULL);
-        bpacket_create_p(&bpacket, 15, 0, NULL);
+        // uint8_t data = 9;
+        bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, 0, NULL);
         bpacket_buffer_t packetBuffer;
         bpacket_to_buffer(&bpacket, &packetBuffer);
+        // printf("packet buffer length: %i\n", packetBuffer.numBytes);
+
         // uint8_t length = 6;
         // uint8_t data[length];
         // data[0] = BPACKET_START_BYTE;

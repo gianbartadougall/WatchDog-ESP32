@@ -20,14 +20,14 @@ uint8_t hardware_config(bpacket_t* bpacket) {
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD Card failed to init\0");
+        bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_R_FAILED, "SD Card failed to init\0");
         return FALSE;
     }
 
     // Configure Camera
     sd_card_log(SYSTEM_LOG_FILE, "Configuring Camera\0");
     if (camera_init() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to init\0");
+        bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_R_FAILED, "Camera failed to init\0");
         return FALSE;
     }
 

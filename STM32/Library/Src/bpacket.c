@@ -40,13 +40,16 @@ void bpacket_increment_circular_buffer_index(uint8_t* writeIndex) {
     return;
 }
 
-void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data) {
+void bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t numDataBytes,
+                      uint8_t* data) {
 
     // Ensure the num bytes is no more than maximum
     if (numDataBytes > BPACKET_MAX_NUM_DATA_BYTES) {
         return;
     }
 
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->numBytes = numDataBytes;
 
@@ -58,13 +61,15 @@ void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes,
     }
 }
 
-void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string) {
+void bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, char* string) {
 
     // Ensure the message is small enough to fit in the packet
     if (chars_get_num_bytes(string) > BPACKET_MAX_NUM_DATA_BYTES) {
         return;
     }
 
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->numBytes = chars_get_num_bytes(string);
 
@@ -77,42 +82,52 @@ void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string) {
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer) {
 
     packetBuffer->buffer[0] = BPACKET_START_BYTE;
-    packetBuffer->buffer[1] = bpacket->numBytes + BPACKET_REQUEST_SIZE_BYTES;
-    packetBuffer->buffer[2] = bpacket->request;
+    packetBuffer->buffer[1] = bpacket->receiver;
+    packetBuffer->buffer[2] = bpacket->sender;
+    packetBuffer->buffer[3] = bpacket->request;
+    packetBuffer->buffer[4] = bpacket->numBytes;
 
     // Copy data into buffer
     int i;
     for (i = 0; i < bpacket->numBytes; i++) {
-        packetBuffer->buffer[i + 3] = bpacket->bytes[i];
+        packetBuffer->buffer[i + 5] = bpacket->bytes[i];
     }
 
-    packetBuffer->buffer[i + 3] = BPACKET_STOP_BYTE;
+    packetBuffer->buffer[i + 5] = BPACKET_STOP_BYTE;
 
-    packetBuffer->numBytes = bpacket->numBytes + BPACKET_REQUEST_SIZE_BYTES + BPACKET_BUFFER_NUM_NON_DATA_BYTES;
+    packetBuffer->numBytes = bpacket->numBytes + BPACKET_NUM_NON_DATA_BYTES;
 }
 
 void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
 
     // Confirm first 3 bytes are not null
-    if (data[0] == '\0' || data[1] == '\0' || data[2] == '\0') {
-        bpacket->request  = BPACKET_R_UNKNOWN;
-        bpacket->numBytes = 0;
+    if (data[0] != BPACKET_START_BYTE) {
         return;
     }
 
-    // Confirm the num of bytes specified is valid
-    if ((data[1] - BPACKET_REQUEST_SIZE_BYTES) > BPACKET_MAX_NUM_DATA_BYTES) {
-        bpacket->numBytes = 0;
+    bpacket->receiver = BPACKET_R_UNKNOWN;
+    bpacket->sender   = BPACKET_R_UNKNOWN;
+    if ((data[1] < BPACKET_MIN_ADDRESS) || (data[1] > BPACKET_MAX_ADDRESS) || (data[2] < BPACKET_MIN_ADDRESS) ||
+        (data[2] > BPACKET_MAX_ADDRESS)) {
         return;
     }
 
-    // Extract the number of data bytes and the command from the data
-    bpacket->numBytes = data[1] - BPACKET_REQUEST_SIZE_BYTES;
-    bpacket->request  = data[2];
+    bpacket->receiver = data[1];
+    bpacket->sender   = data[2];
+    if (data[2] < BPACKET_MIN_REQUEST_INDEX) {
+        return;
+    }
 
-    // Copy the data to the packet.
+    bpacket->request = data[2];
+    if (data[3] > BPACKET_MAX_NUM_DATA_BYTES) {
+        return;
+    }
+
+    bpacket->numBytes = data[3];
+
+    // Copy the data to the packet
     for (int i = 0; i < bpacket->numBytes; i++) {
-        bpacket->bytes[i] = data[i + 3]; // The data starts on the 4th byte thus adding 3 (starting from 1)
+        bpacket->bytes[i] = data[i + 5]; // The data starts on the 5th byte thus adding 4 (starting from 1)
     }
 }
 

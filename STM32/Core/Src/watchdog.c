@@ -24,8 +24,11 @@
 #include "stm32_rtc.h"
 #include "watchdog_defines.h"
 
+/* Private Macros */
+
 /* Private Variables */
 dt_datetime_t datetime;
+wd_camera_settings_t cameraSettings;
 
 /* Function Prototypes */
 void watchdog_esp32_on(void);
@@ -60,8 +63,14 @@ void watchdog_init(void) {
     datetime.time.second = 0;
     stm32_rtc_write_datetime(&datetime);
 
+    // By deafult, camera takes two photos per day. Once at 9am and once at 3pm
+    dt_time_init(&cameraSettings.startTime, 0, 0, 9);
+    dt_time_init(&cameraSettings.endTime, 0, 0, 15);
+    cameraSettings.intervalHour = 6;
+    cameraSettings.resolution   = WD_CAM_RES_1024x768;
+
     // Turn the ESP32 on
-    // watchdog_esp32_on();
+    watchdog_esp32_on();
 }
 
 void watchdog_send_string(char* string) {
@@ -95,6 +104,34 @@ void watchdog_send_string(char* string) {
             comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
         }
     }
+}
+
+/**
+ * @brief Send message over uart to connected computer where the request is fail
+ * and message is error message.
+ *
+ * @param errorMsg
+ */
+void watchdog_report_error(char* errorMsg) {
+
+    bpacket_t bpacket;
+    bpacket_create_sp(&bpacket, BPACKET_R_FAILED, errorMsg);
+
+    bpacket_buffer_t packetBuffer;
+    bpacket_to_buffer(&bpacket, &packetBuffer);
+
+    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+}
+
+void watchdog_report_success(void) {
+
+    bpacket_t bpacket;
+    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
+
+    bpacket_buffer_t packetBuffer;
+    bpacket_to_buffer(&bpacket, &packetBuffer);
+
+    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_update(void) {
@@ -150,6 +187,7 @@ void watchdog_update(void) {
     // Wait for STM32 to receive a bpacket
     bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
+    wd_camera_settings_t cameraSettings;
     char text[] = {"Hello!\0"};
     while (1) {
 
@@ -162,14 +200,40 @@ void watchdog_update(void) {
                 uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
                 bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &pingCode);
                 bpacket_to_buffer(&bpacket, &packetBuffer);
-                comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+                comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
                 break;
             case BPACKET_GET_R_STATUS:
                 break;
             case BPACKET_GEN_R_HELP:
                 watchdog_send_string(text);
                 break;
-            case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
+            case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:
+
+                // Confirm the camera settings are valid
+                if (wd_bpacket_to_camera_settings(&bpacket, &cameraSettings) != TRUE) {
+                    // TODO: Handle error
+                } else {
+                    // Send bpacket to esp32 to update camera resolution
+                    bpacket_create_p(&bpacket, WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION, 1, &cameraSettings.resolution);
+                    bpacket_to_buffer(&bpacket, &packetBuffer);
+                    comms_transmit(UART_ESP32, packetBuffer.buffer, packetBuffer.numBytes);
+
+                    // TODO: Get response back from ESP32 to confirm resolution change was succesful
+                }
+
+                break;
+            case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:
+
+                // Convert camera resolution settings to bpacket
+                if (wd_camera_settings_to_bpacket(&bpacket, BPACKET_R_SUCCESS, &cameraSettings) != TRUE) {
+                    // TODO: Handle error
+                } else {
+
+                    // Transmit camera resolution settings
+                    bpacket_to_buffer(&bpacket, &packetBuffer);
+                    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+                }
+
                 break;
             case WATCHDOG_BPK_R_GET_DATETIME:;
 
@@ -177,17 +241,32 @@ void watchdog_update(void) {
                 stm32_rtc_read_datetime(&datetime);
                 if (wd_datetime_to_bpacket(&bpacket, BPACKET_R_SUCCESS, &datetime) == TRUE) {
                     bpacket_to_buffer(&bpacket, &packetBuffer);
-                    comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+                    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
                 } else {
-                    bpacket_create_sp(&bpacket, BPACKET_R_FAILED, "Invalid RTC datetime\0");
-                    bpacket_to_buffer(&bpacket, &packetBuffer);
-                    comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+                    watchdog_report_error("Invalid RTC datetime\0");
                 }
 
                 break;
             case WATCHDOG_BPK_R_SET_DATETIME:
+
+                // Convert the bacpacket to a datetime
+                if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
+                    // TODO: Return error
+                } else {
+                    // Update the RTC with the current datetime
+                    stm32_rtc_write_datetime(&datetime);
+                }
+
                 break;
+            case WATCHDOG_BPK_R_LED_RED_ON:
+            case WATCHDOG_BPK_R_LED_RED_OFF:
+
+                // Pass message straight back to ESP32
+                bpacket_to_buffer(&bpacket, &packetBuffer);
+                comms_transmit(UART_ESP32, packetBuffer.buffer, packetBuffer.numBytes);
+
             default:
+                // TODO: Return failed unknown request
                 break;
         }
     }

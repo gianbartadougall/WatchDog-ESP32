@@ -390,6 +390,7 @@ int main(int argc, char** argv) {
     // // Watchdog connected. Get information from watchdog to display on the screen
     // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
+<<<<<<< Updated upstream
     // // Wait until the packet is ready
     // while (packetPendingIndex == packetBufferIndex) {}
 
@@ -400,6 +401,36 @@ int main(int argc, char** argv) {
 
     // printf("Finished\n");
     // return 0;
+=======
+    // Send bpacket to turn LED on
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+
+    // Send bpacket message to get help
+    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
+    // bpacket_t bpacket;
+    // dt_datetime_t datetime;
+    // if (maple_get_uart_single_response(&bpacket) == TRUE) {
+
+    //     // Convert the bpacket to datetime
+    //     if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
+    //         printf("Failed to parse datetime\r\n");
+    //     } else {
+    //         // Print out the datetime
+    //         printf("%i:%i:%i %i/%i/%i\n", datetime.time.second, datetime.time.minute, datetime.time.hour, datetime.date.day, datetime.date.month, datetime.date.year);
+    //     }
+
+    // } else {
+    //     printf("failed to get response\n");
+    //     maple_print_bpacket_data(&bpacket);
+    // }
+    // maple_print_uart_response();
+    
+    while (1) {}
+    return 0;
+    
+    // Watchdog connected. Get information from watchdog to display on the screen
+    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+>>>>>>> Stashed changes
 
     bpacket_circular_buffer_t guiToMainCircularBuffer;
     bpacket_create_circular_buffer(guiToMainCircularBuffer, guiWriteIndex, mainReadIndex, guiToMainBpackets);
@@ -442,85 +473,92 @@ int main(int argc, char** argv) {
         }
     }
 
+<<<<<<< Updated upstream
     while (1) {
         
         if ((flags & GUI_TURN_RED_LED_ON) != 0) {
             flags &= ~(GUI_TURN_RED_LED_ON);
             maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
         }
+=======
+        // if ((flags & GUI_TURN_RED_LED_ON) != 0) {
+        //     flags &= ~(GUI_TURN_RED_LED_ON);
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+        // }
+>>>>>>> Stashed changes
 
-        if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
-            flags &= ~(GUI_TURN_RED_LED_OFF);
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-        }
+        // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
+        //     flags &= ~(GUI_TURN_RED_LED_OFF);
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+        // }
 
         // Flag for fetching time and date
-        if ((flags & WATCHDOG_BPK_R_GET_DATETIME) != 0) {
-            flags &= ~(WATCHDOG_BPK_R_GET_DATETIME);
+        // if ((flags & WATCHDOG_BPK_R_GET_DATETIME) != 0) {
+        //     flags &= ~(WATCHDOG_BPK_R_GET_DATETIME);
 
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
 
-            // Wait for response from ESP32
-            bpacket_t response;
-            if (maple_get_uart_single_response(&response) != TRUE) {
-                // Error getting datetime from STM32
-            }
+        //     // Wait for response from ESP32
+        //     bpacket_t response;
+        //     if (maple_get_uart_single_response(&response) != TRUE) {
+        //         // Error getting datetime from STM32
+        //     }
 
-            // Send response to GUI to be displayed
-        }
+        //     // Send response to GUI to be displayed
+        // }
 
         // Flag for setting datetime on STM32
-        if ((flags & 1) != 0) {
-            flags &= ~(1);
+        // if ((flags & 1) != 0) {
+        //     flags &= ~(1);
 
-            // Get date time from GUI and put datetime into bpacket
+        //     // Get date time from GUI and put datetime into bpacket
 
-            // Set the datetime on the STM32
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_SET_DATETIME, 0, NULL);
+        //     // Set the datetime on the STM32
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_SET_DATETIME, 0, NULL);
 
-            // Wait for response from ESP32
-            bpacket_t response;
-            if (maple_get_uart_single_response(&response) != TRUE) {
-                // Error occured setting the datetime
-            }
-        }
+        //     // Wait for response from ESP32
+        //     bpacket_t response;
+        //     if (maple_get_uart_single_response(&response) != TRUE) {
+        //         // Error occured setting the datetime
+        //     }
+        // }
 
-        if ((cameraView == FALSE) && ((flags & GUI_CAMERA_VIEW_STATE) != 0)) {
+        // if ((cameraView == FALSE) && ((flags & GUI_CAMERA_VIEW_STATE) != 0)) {
 
-            // Set the camera resolution to be the lowest resolution
-            bpacket_t bpacket;
-            bpacket_buffer_t data;
-            // data.buffer[1] = WD_CAM_RES_320x240;
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS, 1, data.buffer);
+        //     // Set the camera resolution to be the lowest resolution
+        //     bpacket_t bpacket;
+        //     bpacket_buffer_t data;
+        //     // data.buffer[1] = WD_CAM_RES_320x240;
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS, 1, data.buffer);
 
-            // Confirm changing the camera resolution worked
-            if (maple_get_uart_single_response(&bpacket) == TRUE) {
-                cameraView = TRUE;
-            } else {
-                // TODO: Handle error
-            }
-        }
+        //     // Confirm changing the camera resolution worked
+        //     if (maple_get_uart_single_response(&bpacket) == TRUE) {
+        //         cameraView = TRUE;
+        //     } else {
+        //         // TODO: Handle error
+        //     }
+        // }
 
-        if ((cameraView == TRUE) && ((flags & GUI_CAMERA_VIEW_STATE) == 0)) {
+        // if ((cameraView == TRUE) && ((flags & GUI_CAMERA_VIEW_STATE) == 0)) {
 
-            // Restore the camera to it's original resolution
-        }
+        //     // Restore the camera to it's original resolution
+        // }
 
-        if (cameraView == TRUE) {
+        // if (cameraView == TRUE) {
 
-            // Request image from watchdog
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_CAMERA_VIEW, 0, NULL);
+        //     // Request image from watchdog
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_CAMERA_VIEW, 0, NULL);
 
-            // Wait for watchdog to transmit photo over UART
+        //     // Wait for watchdog to transmit photo over UART
 
-            if (maple_receive_camera_view(CAMERA_VIEW_FILENAME) == TRUE) {
-                flags |= GUI_UPDATE_CAMERA_VIEW;
-            }
-        }
+        //     if (maple_receive_camera_view(CAMERA_VIEW_FILENAME) == TRUE) {
+        //         flags |= GUI_UPDATE_CAMERA_VIEW;
+        //     }
+        // }
 
-        if ((flags & GUI_CLOSE) != 0) {
-            break;
-        }
+        // if ((flags & GUI_CLOSE) != 0) {
+        //     break;
+        // }
     }
 
     return 0;

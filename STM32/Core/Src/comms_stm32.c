@@ -128,7 +128,8 @@ uint8_t comms_process_rxbuffer(bpacket_t* bpacket) {
                     case BPACKET_GEN_R_PING:
                     case BPACKET_GET_R_STATUS:
                     case BPACKET_GEN_R_HELP:
-                    case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
+                    case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:
+                    case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:
                     case WATCHDOG_BPK_R_GET_DATETIME:
                     case WATCHDOG_BPK_R_SET_DATETIME:
                         passOnMessage     = FALSE;

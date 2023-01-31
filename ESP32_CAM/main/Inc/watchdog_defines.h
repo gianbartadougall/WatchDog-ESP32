@@ -37,18 +37,21 @@
 #define WD_CAM_RES_1600x1200 13 // FRAMESIZE_UXGA
 
 // UART Packet codes
-#define WATCHDOG_BPK_R_LIST_DIR               (BPACKET_SPECIFIC_R_OFFSET + 0)
-#define WATCHDOG_BPK_R_COPY_FILE              (BPACKET_SPECIFIC_R_OFFSET + 1)
-#define WATCHDOG_BPK_R_TAKE_PHOTO             (BPACKET_SPECIFIC_R_OFFSET + 2)
-#define WATCHDOG_BPK_R_WRITE_TO_FILE          (BPACKET_SPECIFIC_R_OFFSET + 3)
-#define WATCHDOG_BPK_R_RECORD_DATA            (BPACKET_SPECIFIC_R_OFFSET + 4)
-#define WATCHDOG_BPK_R_LED_RED_ON             (BPACKET_SPECIFIC_R_OFFSET + 6)
-#define WATCHDOG_BPK_R_LED_RED_OFF            (BPACKET_SPECIFIC_R_OFFSET + 7)
-#define WATCHDOG_BPK_R_CAMERA_VIEW            (BPACKET_SPECIFIC_R_OFFSET + 8)
-#define WATCHDOG_BPK_R_GET_DATETIME           (BPACKET_SPECIFIC_R_OFFSET + 9)
-#define WATCHDOG_BPK_R_SET_DATETIME           (BPACKET_SPECIFIC_R_OFFSET + 10)
-#define WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS (BPACKET_SPECIFIC_R_OFFSET + 11)
-#define WATCHDOG_BPK_R_GET_STATUS             (BPACKET_SPECIFIC_R_OFFSET + 12)
+#define WATCHDOG_BPK_R_LIST_DIR              (BPACKET_SPECIFIC_R_OFFSET + 0)
+#define WATCHDOG_BPK_R_COPY_FILE             (BPACKET_SPECIFIC_R_OFFSET + 1)
+#define WATCHDOG_BPK_R_TAKE_PHOTO            (BPACKET_SPECIFIC_R_OFFSET + 2)
+#define WATCHDOG_BPK_R_WRITE_TO_FILE         (BPACKET_SPECIFIC_R_OFFSET + 3)
+#define WATCHDOG_BPK_R_RECORD_DATA           (BPACKET_SPECIFIC_R_OFFSET + 4)
+#define WATCHDOG_BPK_R_LED_RED_ON            (BPACKET_SPECIFIC_R_OFFSET + 6)
+#define WATCHDOG_BPK_R_LED_RED_OFF           (BPACKET_SPECIFIC_R_OFFSET + 7)
+#define WATCHDOG_BPK_R_CAMERA_VIEW           (BPACKET_SPECIFIC_R_OFFSET + 8)
+#define WATCHDOG_BPK_R_GET_DATETIME          (BPACKET_SPECIFIC_R_OFFSET + 9)
+#define WATCHDOG_BPK_R_SET_DATETIME          (BPACKET_SPECIFIC_R_OFFSET + 10)
+#define WATCHDOG_BPK_R_GET_CAMERA_SETTINGS   (BPACKET_SPECIFIC_R_OFFSET + 11)
+#define WATCHDOG_BPK_R_SET_CAMERA_SETTINGS   (BPACKET_SPECIFIC_R_OFFSET + 12)
+#define WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 13)
+#define WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 14)
+#define WATCHDOG_BPK_R_GET_STATUS            (BPACKET_SPECIFIC_R_OFFSET + 15)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
@@ -77,7 +80,7 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime);
 uint8_t dt_time_is_valid(dt_time_t* time);
 
 uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
+uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_camera_settings_t* cameraSettings);
 uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution);
 
 uint8_t wd_status_to_bpacket(bpacket_t* bpacket, wd_status_t* status);
@@ -172,7 +175,13 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime) {
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t request, wd_camera_settings_t* cameraSettings) {
+
+    // Confirm the request is valid
+    if ((request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) && (request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION) &&
+        (request != BPACKET_R_SUCCESS)) {
+        return FALSE;
+    }
 
     // Confirm the resolution is valid
     if (wd_camera_resolution_is_valid(cameraSettings->resolution) != TRUE) {
@@ -195,7 +204,7 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* 
         return FALSE;
     }
 
-    bpacket->request  = WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS;
+    bpacket->request  = request;
     bpacket->numBytes = 7;
     bpacket->bytes[0] = cameraSettings->startTime.minute;
     bpacket->bytes[1] = cameraSettings->startTime.hour;
@@ -211,7 +220,8 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, wd_camera_settings_t* 
 uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((bpacket->request != WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS) && (bpacket->request != BPACKET_R_SUCCESS)) {
+    if ((bpacket->request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) &&
+        (bpacket->request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION) && (bpacket->request != BPACKET_R_SUCCESS)) {
         return FALSE;
     }
 

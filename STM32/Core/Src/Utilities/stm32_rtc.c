@@ -21,6 +21,11 @@
 
 void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
 
+    uint16_t originalYear = datetime->date.year;
+    if (datetime->date.year > 2000) {
+        datetime->date.year -= 2000;
+    }
+
     // Most of the RTC registers are write protected. To unlock the registers
     // write 0xCA followed by 0x53 into the RTC_WPR
     STM32_RTC->WPR = 0xCA;
@@ -76,6 +81,9 @@ void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
 
     while ((STM32_RTC->ISR & RTC_ISR_RSF) == 0) {}
 
+    // Set the datetime back to the original year
+    datetime->date.year = originalYear;
+
     // char msg[50];
     // sprintf(msg, "TR: %lu\r\nDR: %lu\r\n%i %i %i %i %i %i", STM32_RTC->TR, STM32_RTC->DR, datetime->time.second,
     //         datetime->time.minute, datetime->time.hour, datetime->date.day, datetime->date.month,
@@ -110,6 +118,9 @@ void stm32_rtc_read_datetime(dt_datetime_t* datetime) {
     uint8_t secondTens    = (STM32_RTC->TR & RTC_TR_ST) >> RTC_TR_ST_Pos;
     uint8_t secondOnes    = (STM32_RTC->TR & RTC_TR_SU) >> RTC_TR_SU_Pos;
     datetime->time.second = (secondTens * 10) + secondOnes;
+
+    // The year of the date include just that tens digits so adding the extra 2000
+    datetime->date.year += 2000;
 }
 
 void stm32_rtc_print_datetime(dt_datetime_t* datetime) {

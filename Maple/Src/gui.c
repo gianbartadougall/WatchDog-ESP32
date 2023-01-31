@@ -406,8 +406,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // printf("Displaying SD card data\n");
                 // TRY TO PUT SOMETHING IN A BPACKET
 
-                bpacket_create_p(&guiToMainCircularBuffer->circularBuffer[0], WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 0,
-                                 NULL);
+                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                 WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 0, NULL);
 
                 bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
             }

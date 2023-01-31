@@ -382,15 +382,14 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    if (com_ports_open_connection(57) != TRUE) {
-        printf("Unable to connect to Watchdog\n");
-        return FALSE;
-    }
+    // if (com_ports_open_connection(57) != TRUE) {
+    //     printf("Unable to connect to Watchdog\n");
+    //     return FALSE;
+    // }
 
     // // Watchdog connected. Get information from watchdog to display on the screen
     // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
-<<<<<<< Updated upstream
     // // Wait until the packet is ready
     // while (packetPendingIndex == packetBufferIndex) {}
 
@@ -401,7 +400,6 @@ int main(int argc, char** argv) {
 
     // printf("Finished\n");
     // return 0;
-=======
     // Send bpacket to turn LED on
     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
 
@@ -425,12 +423,8 @@ int main(int argc, char** argv) {
     // }
     // maple_print_uart_response();
     
-    while (1) {}
-    return 0;
-    
     // Watchdog connected. Get information from watchdog to display on the screen
     maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
->>>>>>> Stashed changes
 
     bpacket_circular_buffer_t guiToMainCircularBuffer;
     bpacket_create_circular_buffer(guiToMainCircularBuffer, guiWriteIndex, mainReadIndex, guiToMainBpackets);
@@ -449,7 +443,7 @@ int main(int argc, char** argv) {
     // packetPendingIndex++;
 
     uint32_t flags     = 0;
-    uint8_t cameraView = FALSE;
+    //uint8_t cameraView = FALSE;
 
     gui_initalisation_t guiInit;
     guiInit.watchdog    = &watchdogInfo;
@@ -465,28 +459,17 @@ int main(int argc, char** argv) {
     }
 
     while(1) {
-        if (guiToMainCircularBuffer.readIndex != guiToMainCircularBuffer.writeIndex) {
-            printf("YOU'VE ONLY GONE AND DONE IT\n");
-            printf("write index: %i\n", guiToMainCircularBuffer.writeIndex);
-            printf("IT GETS HERE\n");
-            //bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
-        }
+        // if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
+        //     printf("YOU'VE ONLY GONE AND DONE IT\n");
+        //     printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
+        //     printf("IT GETS HERE\n");
+        //     //bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+        //     Sleep(1000);
+        // }
     }
 
-<<<<<<< Updated upstream
     while (1) {
         
-        if ((flags & GUI_TURN_RED_LED_ON) != 0) {
-            flags &= ~(GUI_TURN_RED_LED_ON);
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-        }
-=======
-        // if ((flags & GUI_TURN_RED_LED_ON) != 0) {
-        //     flags &= ~(GUI_TURN_RED_LED_ON);
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-        // }
->>>>>>> Stashed changes
-
         // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
         //     flags &= ~(GUI_TURN_RED_LED_OFF);
         //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);

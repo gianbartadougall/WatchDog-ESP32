@@ -25,6 +25,8 @@
 #include "watchdog_defines.h"
 
 /* Private Macros */
+#define ESP32_UART BUFFER_1_ID
+#define MAPLE_UART BUFFER_2_ID
 
 /* Private Variables */
 dt_datetime_t datetime;
@@ -36,7 +38,7 @@ void watchdog_esp32_off(void);
 
 void bpacket_print(bpacket_t* bpacket) {
     char msg[BPACKET_BUFFER_LENGTH_BYTES + 2];
-    sprintf(msg, "R: %i ", bpacket->request);
+    sprintf(msg, "heelo R: %i ", bpacket->request);
     log_message(msg);
 
     if (bpacket->numBytes > 0) {
@@ -93,7 +95,7 @@ void watchdog_send_string(char* string) {
             bpacket.numBytes = j;
             j                = 0;
             bpacket_to_buffer(&bpacket, &packetBuffer);
-            comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+            comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
             continue;
         }
 
@@ -101,7 +103,7 @@ void watchdog_send_string(char* string) {
             bpacket.numBytes = j;
             bpacket.request  = BPACKET_R_SUCCESS;
             bpacket_to_buffer(&bpacket, &packetBuffer);
-            comms_transmit(USART2, packetBuffer.buffer, packetBuffer.numBytes);
+            comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
         }
     }
 }
@@ -120,7 +122,7 @@ void watchdog_report_error(char* errorMsg) {
     bpacket_buffer_t packetBuffer;
     bpacket_to_buffer(&bpacket, &packetBuffer);
 
-    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_report_success(void) {
@@ -131,7 +133,7 @@ void watchdog_report_success(void) {
     bpacket_buffer_t packetBuffer;
     bpacket_to_buffer(&bpacket, &packetBuffer);
 
-    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_update(void) {
@@ -155,43 +157,14 @@ void watchdog_update(void) {
     // log_message(msg);
     /* TEMPERATURE CONVERSION CODE */
 
-    /* TURN ESP32 ON AND OFF USING BJT */
-    // Power test
-    // Turn the BJT on
-    // ESP32_POWER_PORT->ODR |= (0x01 << ESP32_POWER_PIN);
-    // LED_GREEN_PORT->ODR |= (0x01 << LED_GREEN_PIN);
-    // log_message("Power on\r\n");
-
-    // char msg[50];
-    // // Wait for 30 seconds
-    // for (int i = 30; i > 0; i--) {
-    //     HAL_Delay(1000);
-    //     sprintf(msg, "%i seconds left before shutdown\r\n", i);
-    //     log_message(msg);
-    // }
-
-    // // Turn the BJT off
-    // ESP32_POWER_PORT->ODR &= ~(0x01 << ESP32_POWER_PIN);
-    // LED_GREEN_PORT->ODR &= ~(0x01 << LED_GREEN_PIN);
-
-    // log_message("Power off\r\n");
-
-    // // Wait for 30 seconds
-    // for (int i = 30; i > 0; i--) {
-    //     HAL_Delay(1000);
-    //     sprintf(msg, "%i seconds left before Restart\r\n", i);
-    //     log_message(msg);
-    // }
-    /* TURN ESP32 ON AND OFF USING BJT */
-
     // Wait for STM32 to receive a bpacket
     bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
     wd_camera_settings_t cameraSettings;
-    char text[] = {"Hello!\0"};
+    uint8_t s = 0;
     while (1) {
 
-        while (comms_process_rxbuffer(&bpacket) != TRUE) {};
+        while (comms_process_rxbuffer(BUFFER_2_ID, &bpacket) != TRUE) {};
 
         switch (bpacket.request) {
             case BPACKET_GEN_R_PING:;
@@ -200,12 +173,13 @@ void watchdog_update(void) {
                 uint8_t pingCode = WATCHDOG_PING_CODE_STM32;
                 bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &pingCode);
                 bpacket_to_buffer(&bpacket, &packetBuffer);
-                comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+                comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
                 break;
             case BPACKET_GET_R_STATUS:
+
                 break;
             case BPACKET_GEN_R_HELP:
-                watchdog_send_string(text);
+                watchdog_send_string(uartHelp);
                 break;
             case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:
 
@@ -216,7 +190,7 @@ void watchdog_update(void) {
                     // Send bpacket to esp32 to update camera resolution
                     bpacket_create_p(&bpacket, WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION, 1, &cameraSettings.resolution);
                     bpacket_to_buffer(&bpacket, &packetBuffer);
-                    comms_transmit(UART_ESP32, packetBuffer.buffer, packetBuffer.numBytes);
+                    comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 
                     // TODO: Get response back from ESP32 to confirm resolution change was succesful
                 }
@@ -231,7 +205,7 @@ void watchdog_update(void) {
 
                     // Transmit camera resolution settings
                     bpacket_to_buffer(&bpacket, &packetBuffer);
-                    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+                    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
                 }
 
                 break;
@@ -241,7 +215,7 @@ void watchdog_update(void) {
                 stm32_rtc_read_datetime(&datetime);
                 if (wd_datetime_to_bpacket(&bpacket, BPACKET_R_SUCCESS, &datetime) == TRUE) {
                     bpacket_to_buffer(&bpacket, &packetBuffer);
-                    comms_transmit(UART_LOG, packetBuffer.buffer, packetBuffer.numBytes);
+                    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
                 } else {
                     watchdog_report_error("Invalid RTC datetime\0");
                 }
@@ -263,8 +237,8 @@ void watchdog_update(void) {
 
                 // Pass message straight back to ESP32
                 bpacket_to_buffer(&bpacket, &packetBuffer);
-                comms_transmit(UART_ESP32, packetBuffer.buffer, packetBuffer.numBytes);
-
+                comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+                break;
             default:
                 // TODO: Return failed unknown request
                 break;

@@ -17,6 +17,7 @@
 /* Personal Includes */
 #include "gui.h"
 #include "utilities.h"
+#include "watchdog_defines.h"
 
 // #define STB_IMAGE_IMPLEMENTATION // Required for stb_image
 #include "stb_image.h"
@@ -39,6 +40,9 @@
 #define DROP_BOX_WIDTH       200
 #define DROP_BOX_THIRD_WIDTH 60
 #define DROP_BOX_HEIGHT      300
+
+#define TEXT_BOX_WIDTH  95
+#define TEXT_BOX_HEIGHT 30
 
 // #define WINDOW_WIDTH  (RIGHT_MARGIN + LABEL_WIDTH + (GAP_WIDTH * 3))
 // #define WINDOW_HEIGHT ((LABEL_HEIGHT * 2) + TOP_MARGIN + 300)
@@ -72,6 +76,7 @@
 
 #define COL_1           10
 #define COL_1_ONE_THIRD (COL_1 + 70)
+#define COL_1_ONE_HALF  (COL_1 + 105)
 #define COL_1_TWO_THIRD (COL_1 + 140)
 #define COL_2           (COL_1 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_2_ONE_THIRD (COL_2 + 70)
@@ -89,43 +94,25 @@
 #define BUTTON_RUN_TEST_HANDLE            4
 #define BUTTON_NORMAL_VIEW_HANDLE         5
 #define DROP_BOX_CAMERA_RESOLUTION_HANDLE 6
-#define DROP_BOX_PHOTO_FREQUENCY_HANDLE   7
+#define TEXT_BOX_START_TIME_HANDLE        7
+#define TEXT_BOX_END_TIME_HANDLE          8
+#define TEXT_BOX_TIME_INTERVAL_HANDLE     9
+#define TEXT_BOX_RTC_DATE_HANDLE          10
+#define TEXT_BOX_RTC_TIME_HANDLE          11
 
-#define NUMBER_OF_CAM_RESOLUTIONS              7
-#define NUMBER_OF_POSSIBLE_FREQUENCIES         10
-#define NUMBER_OF_POSSIBLE_HOURS               12
-#define NUMBER_OF_POSSIBLE_TIME_INTERVAL_HOURS 13
-#define NUMBER_OF_POSSIBLE_MINUTES             4
-#define NUMBER_OF_POSSIBLE_AM_PM               2
-#define NUMBER_OF_POSSIBLE_DAYS                31
-#define NUMBER_OF_POSSIBLE_MINUTES_RTC         30
-#define NUMBER_OF_MONTHS_OF_THE_YEAR           12
-#define NUMBER_OF_POSSIBLE_YEARS               8
+#define MIN_YEAR 2022
+#define MAX_YEAR 2100
 
-const char* cameraResolutionStrings[50]  = {"320x240",  "352x288",   "640x480",  "800x600",
+#define NUMBER_OF_CAM_RESOLUTIONS 7
+
+const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
                                            "1024x768", "1280x1024", "1600x1200"};
-const char* possibleFrequencyStrings[50] = {"1 per day",        "2 per day",       "3 per day",     "4 per day",
-                                            "every 4 hours",    "every 3 hours",   "every 2 hours", "every hour",
-                                            "every 30 minutes", "every 15 minutes"};
-const char* hourStrings[50]              = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-const char* timeIntervalHourStrings[50]  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-const char* minuteStrings[50]            = {"00", "15", "30", "45"};
-const char* amPmStrings[50]              = {"am", "pm"};
-const char* minuteRtcStrings[50]         = {"00", "02", "04", "06", "08", "10", "12", "14", "16", "18",
-                                    "20", "22", "24", "26", "28", "30", "32", "34", "36", "38",
-                                    "40", "42", "44", "46", "48", "50", "52", "54", "56", "58"};
-const char* daysOfTheMonthStrings[50]    = {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
-                                         "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22",
-                                         "23", "24", "25", "26", "27", "28", "29", "30", "31"};
-const char* monthsOfTheYearStrings[50]   = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-const char* yearStrings[50]              = {"2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"};
 
-HWND dropDownCameraResolution, dropDownStartHour, dropDownStartMinute, dropDownStartAmPm, dropDownEndHour,
-    dropDownEndMinute, dropDownEndAmPm, dropDownIntervalHour, dropDownIntervalMinute, dropDownRtcHour,
-    dropDownRtcMinute, dropDownRtcAmPm, dropDownRtcDay, dropDownRtcMonth, dropDownRtcYear;
-HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumImages, labelDate, labelSetUp, labelData,
-    labelSettings, labelStartTime, labelEndTime, labelTimeInterval, labelDateHeading, labelTimeInfo;
+HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval, textBoxRtcDate, textBoxRtcDate, textBoxRtcTime;
+HWND dropDownCameraResolution;
+HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumImages, labelDateRtc, labelTimeRtc,
+    labelSetUp, labelData, labelSettings, labelStartTime, labelEndTime, labelTimeInterval, labelDateHeading,
+    labelTimeInfo;
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
 HFONT hFont;
 typedef struct rectangle_t {
@@ -161,7 +148,9 @@ HWND create_label(char* title, int startX, int startY, int width, int height, HW
 HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
                     int numberOfOptions, const char* nameOfOptions[40], int indexOfDisplayedOption) {
     HWND dropBox =
-        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
+        // CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED |
+        // WS_VISIBLE, startX,
+        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
                      startY, width, height, hwnd, handle, NULL, NULL);
     for (int i = 0; i < numberOfOptions; i++) {
         SendMessage(dropBox, CB_ADDSTRING, 0, (LPARAM)nameOfOptions[i]);
@@ -170,26 +159,24 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
     return dropBox;
 }
 
+HWND create_textbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
+    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY, width,
+                          height, hwnd, handle, GetModuleHandle(NULL), NULL);
+}
+
 int cameraViewOn = FALSE;
 
 void gui_set_camera_view(HWND hwnd) {
 
+    // Show all the text boxes
+    ShowWindow(textBoxStartTime, SW_HIDE);
+    ShowWindow(textBoxEndTime, SW_HIDE);
+    ShowWindow(textBoxTimeInterval, SW_HIDE);
+    ShowWindow(textBoxRtcDate, SW_HIDE);
+    ShowWindow(textBoxRtcTime, SW_HIDE);
+
     // Hide all the drop downs
     ShowWindow(dropDownCameraResolution, SW_HIDE);
-    ShowWindow(dropDownStartHour, SW_HIDE);
-    ShowWindow(dropDownStartMinute, SW_HIDE);
-    ShowWindow(dropDownStartAmPm, SW_HIDE);
-    ShowWindow(dropDownEndHour, SW_HIDE);
-    ShowWindow(dropDownEndMinute, SW_HIDE);
-    ShowWindow(dropDownEndAmPm, SW_HIDE);
-    ShowWindow(dropDownIntervalMinute, SW_HIDE);
-    ShowWindow(dropDownIntervalHour, SW_HIDE);
-    ShowWindow(dropDownRtcHour, SW_HIDE);
-    ShowWindow(dropDownRtcMinute, SW_HIDE);
-    ShowWindow(dropDownRtcAmPm, SW_HIDE);
-    ShowWindow(dropDownRtcDay, SW_HIDE);
-    ShowWindow(dropDownRtcMonth, SW_HIDE);
-    ShowWindow(dropDownRtcYear, SW_HIDE);
 
     // Hide all the labels
     ShowWindow(labelCameraResolution, SW_HIDE);
@@ -197,7 +184,8 @@ void gui_set_camera_view(HWND hwnd) {
     ShowWindow(labelStatus, SW_HIDE);
     ShowWindow(labelID, SW_HIDE);
     ShowWindow(labelNumImages, SW_HIDE);
-    ShowWindow(labelDate, SW_HIDE);
+    ShowWindow(labelDateRtc, SW_HIDE);
+    ShowWindow(labelTimeRtc, SW_HIDE);
     ShowWindow(labelSetUp, SW_HIDE);
     ShowWindow(labelData, SW_HIDE);
     ShowWindow(labelSettings, SW_HIDE);
@@ -220,22 +208,15 @@ void gui_set_camera_view(HWND hwnd) {
 
 void gui_set_normal_view(HWND hwnd) {
 
+    // Show all the text boxes
+    ShowWindow(textBoxStartTime, SW_SHOW);
+    ShowWindow(textBoxEndTime, SW_SHOW);
+    ShowWindow(textBoxTimeInterval, SW_SHOW);
+    ShowWindow(textBoxRtcDate, SW_SHOW);
+    ShowWindow(textBoxRtcTime, SW_SHOW);
+
     // Show all the drop downs
     ShowWindow(dropDownCameraResolution, SW_SHOW);
-    ShowWindow(dropDownStartHour, SW_SHOW);
-    ShowWindow(dropDownStartMinute, SW_SHOW);
-    ShowWindow(dropDownStartAmPm, SW_SHOW);
-    ShowWindow(dropDownEndHour, SW_SHOW);
-    ShowWindow(dropDownEndMinute, SW_SHOW);
-    ShowWindow(dropDownEndAmPm, SW_SHOW);
-    ShowWindow(dropDownIntervalMinute, SW_SHOW);
-    ShowWindow(dropDownIntervalHour, SW_SHOW);
-    ShowWindow(dropDownRtcHour, SW_SHOW);
-    ShowWindow(dropDownRtcMinute, SW_SHOW);
-    ShowWindow(dropDownRtcAmPm, SW_SHOW);
-    ShowWindow(dropDownRtcDay, SW_SHOW);
-    ShowWindow(dropDownRtcMonth, SW_SHOW);
-    ShowWindow(dropDownRtcHour, SW_SHOW);
 
     // Show all the labels
     ShowWindow(labelCameraResolution, SW_SHOW);
@@ -243,7 +224,8 @@ void gui_set_normal_view(HWND hwnd) {
     ShowWindow(labelStatus, SW_SHOW);
     ShowWindow(labelID, SW_SHOW);
     ShowWindow(labelNumImages, SW_SHOW);
-    ShowWindow(labelDate, SW_SHOW);
+    ShowWindow(labelDateRtc, SW_SHOW);
+    ShowWindow(labelTimeRtc, SW_SHOW);
     ShowWindow(labelSetUp, SW_SHOW);
     ShowWindow(labelData, SW_SHOW);
     ShowWindow(labelSettings, SW_SHOW);
@@ -265,12 +247,62 @@ void gui_set_normal_view(HWND hwnd) {
     // make the changes
     UpdateWindow(hwnd);
 }
+#include <stdio.h>
+#include <string.h>
+
+int is_leap_year(int year) {
+    return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0);
+}
+
+int is_valid_date(char* date) {
+    int day, month, year;
+    if (sscanf(date, "%d/%d/%d", &day, &month, &year) != 3) {
+        return 0;
+    }
+    if (month < 1 || month > 12) {
+        return 0;
+    }
+    if (day < 1 || day > 31) {
+        return 0;
+    }
+    if ((month == 2) && (day > 29)) {
+        return 0;
+    }
+    if ((month == 2) && (day == 29) && (!is_leap_year(year))) {
+        return 0;
+    }
+    if ((month == 4 || month == 6 || month == 9 || month == 11) && (day > 30)) {
+        return 0;
+    }
+    if (year < MIN_YEAR || year > MAX_YEAR) {
+        return 0;
+    }
+    return 1;
+}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+
         case WM_CREATE:;
 
             char text[150];
+
+            // TEXT BOXES
+
+            textBoxStartTime = create_textbox("Title", COL_2, ROW_9, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
+                                              (HMENU)TEXT_BOX_START_TIME_HANDLE);
+
+            textBoxEndTime = create_textbox("Title", COL_2, ROW_10, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
+                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
+
+            textBoxTimeInterval = create_textbox("Title", COL_2, ROW_11, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
+                                                 (HMENU)TEXT_BOX_START_TIME_HANDLE);
+
+            textBoxRtcDate = create_textbox("Title", COL_2, ROW_15, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
+                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
+
+            textBoxRtcTime = create_textbox("Title", COL_2, ROW_16, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
+                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
 
             // DROP BOXES
 
@@ -278,67 +310,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             dropDownCameraResolution =
                 create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX,
                                NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings, 0);
-
-            // Drop down box to change the hours of the start time
-            dropDownStartHour = create_dropbox("Title", COL_2, ROW_9, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                               (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_HOURS, hourStrings, 0);
-
-            // Drop down box to change the minutes of the start time
-            dropDownStartMinute =
-                create_dropbox("Title", COL_2_ONE_THIRD, ROW_9, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                               (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_MINUTES, minuteStrings, 0);
-
-            // Drop down box to change the am and pm of the start time
-            dropDownStartAmPm = create_dropbox("Title", COL_2_TWO_THIRD, ROW_9, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT,
-                                               hwnd, (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_AM_PM, amPmStrings, 0);
-
-            // Drop down box to change the hours of the end time
-            dropDownEndHour = create_dropbox("Title", COL_2, ROW_10, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                             (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_HOURS, hourStrings, 0);
-
-            // Drop down box to change the minutes of the end time
-            dropDownEndMinute = create_dropbox("Title", COL_2_ONE_THIRD, ROW_10, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT,
-                                               hwnd, (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_MINUTES, minuteStrings, 0);
-
-            // Drop down box to change the am and pm of the end time
-            dropDownEndAmPm = create_dropbox("Title", COL_2_TWO_THIRD, ROW_10, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT,
-                                             hwnd, (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_AM_PM, amPmStrings, 0);
-
-            // Drop down box to change the hours of the time interval
-            dropDownIntervalHour =
-                create_dropbox("Title", COL_2, ROW_11, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX,
-                               NUMBER_OF_POSSIBLE_TIME_INTERVAL_HOURS, timeIntervalHourStrings, 0);
-
-            // Drop down box to change the minutes of the time interval
-            dropDownIntervalMinute =
-                create_dropbox("Title", COL_2_ONE_THIRD, ROW_11, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                               (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_MINUTES, minuteStrings, 0);
-
-            // Drop down box to change the hours of the real time clock
-            dropDownRtcHour = create_dropbox("Title", COL_1, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                             (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_HOURS, hourStrings, 0);
-
-            // Drop down box to change the minutes of the real time clock
-            dropDownRtcMinute =
-                create_dropbox("Title", COL_1_ONE_THIRD, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT * 2, hwnd,
-                               (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_MINUTES_RTC, minuteRtcStrings, 0);
-
-            // Drop down box to change the am and pm of the real time clock
-            dropDownRtcAmPm = create_dropbox("Title", COL_1_TWO_THIRD, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT,
-                                             hwnd, (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_AM_PM, amPmStrings, 0);
-
-            // Drop down box to change the day of the real time clock
-            dropDownRtcDay = create_dropbox("Title", COL_2, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT * 2, hwnd,
-                                            (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_DAYS, daysOfTheMonthStrings, 0);
-
-            // Drop down box to change the month of the real time clock
-            dropDownRtcMonth =
-                create_dropbox("Title", COL_2_ONE_THIRD, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                               (HMENU)IDC_COMBOBOX, NUMBER_OF_MONTHS_OF_THE_YEAR, monthsOfTheYearStrings, 0);
-
-            // Drop down box to change the year of the real time clock
-            dropDownRtcYear = create_dropbox("Title", COL_2_TWO_THIRD, ROW_16, DROP_BOX_THIRD_WIDTH, DROP_BOX_HEIGHT,
-                                             hwnd, (HMENU)IDC_COMBOBOX, NUMBER_OF_POSSIBLE_YEARS, yearStrings, 0);
 
             // BUTTONS
 
@@ -382,9 +353,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             sprintf(text, " %i Image%s Taken", watchdog->numImages, watchdog->numImages == 1 ? "" : "s");
             labelNumImages = create_label(text, COL_6, ROW_3, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
-            // Label to show the current date time on the system
-            sprintf(text, " %s", watchdog->datetime);
-            labelDate = create_label(text, COL_1, ROW_15, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
+            // Label for the current date of the system
+            sprintf(text, " Current Date     (dd/mm/yyyy)");
+            labelDateRtc = create_label(text, COL_1, ROW_15, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
+
+            // Label for the current time of the system
+            sprintf(text, " Current Time    (hh:mm am) ");
+            labelTimeRtc = create_label(text, COL_1, ROW_16, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
             // Label "Set Up" above the camera view and test system button
             sprintf(text, " SET UP");
@@ -407,15 +382,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             labelCameraResolution = create_label(text, COL_1, ROW_8, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
             // Label "Start Time"
-            sprintf(text, " Start Time");
+            sprintf(text, " Start Time            (hh:mm am)");
             labelStartTime = create_label(text, COL_1, ROW_9, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
             // Label "End Time"
-            sprintf(text, " End Time");
+            sprintf(text, " End Time             (hh:mm am)");
             labelEndTime = create_label(text, COL_1, ROW_10, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
             // Label "Time Interval"
-            sprintf(text, " Time Interval");
+            sprintf(text, " Time Interval       (hh:mm)");
             labelTimeInterval = create_label(text, COL_1, ROW_11, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
 
             // Label "Time Interval"
@@ -429,6 +404,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (LOWORD(wParam) == BUTTON_OPEN_SD_CARD_HANDLE) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // printf("Displaying SD card data\n");
+                // TRY TO PUT SOMETHING IN A BPACKET
+
+                bpacket_create_p(&guiToMainCircularBuffer->circularBuffer[0], WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 0,
+                                 NULL);
+
+                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
             }
 
             if (LOWORD(wParam) == BUTTON_EXPORT_DATA_HANDLE) {
@@ -472,7 +453,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
 
             if ((HWND)lParam == dropDownCameraResolution) {
-                // Sends multiple messages but we only want to check for when the message is the change box message
+                // Sends multiple messages but we only want to check for when the message is the change box
+                // message
                 if (HIWORD(wParam) == CBN_SELCHANGE) {
                     // handle drop-down menu selection
                     int itemIndex = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);

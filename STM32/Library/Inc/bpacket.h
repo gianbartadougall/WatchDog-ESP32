@@ -72,8 +72,8 @@ typedef struct bpacket_circular_buffer_t {
 
 void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 
-void bpacket_create_circular_buffer(bpacket_circular_buffer_t bufferStruct, uint8_t writeIndex, uint8_t readIndex,
-                                    bpacket_t circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE]);
+void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
+                                    bpacket_t* circularBuffer);
 
 void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 

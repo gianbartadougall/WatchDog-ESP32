@@ -22,12 +22,13 @@
 #define SYSTEM_STATUS_ERROR 0
 #define SYSTEM_STATUS_OK    1
 
-#define GUI_TURN_RED_LED_ON    (0x01 << 0)
-#define GUI_TURN_RED_LED_OFF   (0x01 << 1)
-#define GUI_CLOSE              (0x01 << 2)
-#define GUI_CAMERA_VIEW_STATE  (0x01 << 3)
-#define GUI_UPDATE_CAMERA_VIEW (0x01 << 4)
-#define CAMERA_VIEW_FILENAME   ("cameraView.jpg\0")
+#define MAX_CHARACTER_INPUT_TO_TEXT_BOX 20
+#define GUI_TURN_RED_LED_ON             (0x01 << 0)
+#define GUI_TURN_RED_LED_OFF            (0x01 << 1)
+#define GUI_CLOSE                       (0x01 << 2)
+#define GUI_CAMERA_VIEW_STATE           (0x01 << 3)
+#define GUI_UPDATE_CAMERA_VIEW          (0x01 << 4)
+#define CAMERA_VIEW_FILENAME            ("cameraView.jpg\0")
 
 typedef struct watchdog_info_t {
     uint8_t cameraResolution;
@@ -45,6 +46,8 @@ typedef struct gui_initalisation_t {
 } gui_initalisation_t;
 
 void gui_init();
+
+int is_valid_date(char* date);
 
 void gui_update();
 

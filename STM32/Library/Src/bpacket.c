@@ -22,12 +22,12 @@
 #include "bpacket.h"
 #include "chars.h"
 
-void bpacket_create_circular_buffer(bpacket_circular_buffer_t bufferStruct, uint8_t writeIndex, uint8_t readIndex,
-                                    bpacket_t circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE]) {
-    bufferStruct.writeIndex = &writeIndex;
-    bufferStruct.readIndex  = &readIndex;
+void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
+                                    bpacket_t* circularBuffer) {
+    bufferStruct->writeIndex = writeIndex;
+    bufferStruct->readIndex  = readIndex;
     for (int i = 0; i < BPACKET_CIRCULAR_BUFFER_SIZE; i++) {
-        bufferStruct.circularBuffer[i] = &circularBuffer[i];
+        bufferStruct->circularBuffer[i] = (circularBuffer + i);
     }
     return;
 }

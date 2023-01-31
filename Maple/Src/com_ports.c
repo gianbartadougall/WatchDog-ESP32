@@ -187,7 +187,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         /* TEST CODE */
 
         uint8_t responseSize;
-        if ((responseSize = sp_blocking_read(port, response, 6, 2000)) < 0) {
+        if ((responseSize = sp_blocking_read(port, response, 6, 200)) < 0) {
             sp_close(port);
             printf("res < 0\n");
             continue;

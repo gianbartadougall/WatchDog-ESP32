@@ -91,11 +91,17 @@ void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer) {
     packetBuffer->numBytes = bpacket->numBytes + BPACKET_REQUEST_SIZE_BYTES + BPACKET_BUFFER_NUM_NON_DATA_BYTES;
 }
 
-void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
+void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
 
     // Confirm first 3 bytes are not null
     if (data[0] == '\0' || data[1] == '\0' || data[2] == '\0') {
         bpacket->request  = BPACKET_R_UNKNOWN;
+        bpacket->numBytes = 0;
+        return;
+    }
+
+    // Confirm the num of bytes specified is valid
+    if ((data[1] - BPACKET_REQUEST_SIZE_BYTES) > BPACKET_MAX_NUM_DATA_BYTES) {
         bpacket->numBytes = 0;
         return;
     }

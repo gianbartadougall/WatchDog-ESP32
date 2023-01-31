@@ -14,17 +14,26 @@
 
 /* Personal Includes */
 #include "bpacket.h"
+#include "hardware_config.h"
 
-#define COMMS_STM32_BPACKET_READY (0x01 << 0)
+#define NUM_BUFFERS 2
 
-void comms_add_to_buffer(uint8_t byte);
+#define BUFFER_1_ID 0
+#define BUFFER_2_ID 1
+#define BUFFER_3_ID 3
 
-uint8_t comms_process_rxbuffer(bpacket_t* bpacket);
+#define BUFFER_1 UART_ESP32
+#define BUFFER_2 UART_LOG
+// #define BUFFER_3
 
-void comms_usart2_print_buffer(void);
+void comms_add_to_buffer(uint8_t bufferId, uint8_t byte);
+
+uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket);
+
+void comms_print_buffer(uint8_t bufferId);
 
 void comms_stm32_init(void);
 
 uint8_t comms_stm32_get_bpacket(bpacket_t* bpacket);
 
-void comms_transmit(USART_TypeDef* usart, uint8_t* data, uint16_t numBytes);
+void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes);

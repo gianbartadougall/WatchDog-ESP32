@@ -54,9 +54,8 @@ uint8_t com_ports_open_connection(uint8_t pingResponse) {
         return FALSE;
     }
 
-    if (com_ports_check(com_ports_open_port(activePort)) != SP_OK) {
-        printf("Could not open ESP port\n");
-        return FALSE;
+    if (sp_open(activePort, SP_MODE_READ_WRITE) != SP_OK) {
+        printf("Unable to open port port %s\n", espPortName);
     }
 
     printf("Connection made to port %s\n", sp_get_port_name(activePort));
@@ -125,6 +124,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         struct sp_port* port = port_list[i];
 
         if (com_ports_open_port(port) != SP_OK) {
+            printf("Unable to open port [%i]\n", i);
             continue;
         }
 
@@ -133,39 +133,42 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         bpacket_buffer_t packetBuffer;
         bpacket_to_buffer(&bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
+            printf("Unable to write\n");
             continue;
         }
 
-        // printf("Here 1\n");
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        if (sp_blocking_read(port, response, 6, 1500) < 0) {
-            sp_close(port);
-            continue;
+        for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+            response[i] = 0;
         }
-        // printf("Here 2\n");
-        /* TEST CODE */
+
+          /* TEST CODE */
         // uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
         // bpacket_create_p(&bpacket, BPACKET_GEN_R_PING, 0, NULL);
+        // bpacket_create_p(&bpacket, 15, 0, NULL);
         // bpacket_buffer_t packetBuffer;
         // bpacket_to_buffer(&bpacket, &packetBuffer);
         // uint8_t length = 6;
         // uint8_t data[length];
         // data[0] = BPACKET_START_BYTE;
         // data[1] = 3;
-        // data[2] = 19;
+        // data[2] = BPACKET_GEN_R_PING;
         // data[3] = 'G';
         // data[4] = 'H';
         // data[5] = BPACKET_STOP_BYTE;
 
         // while (1) {
             
-        //     if (sp_blocking_write(port, data, length, 1000) < 0) {
+        //     if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 1000) < 0) {
         //         continue;
         //     }
 
         //     if (sp_blocking_read(port, response, 100, 1000) < 0) {
         //         return 0;
         //     }
+
+        //     bpacket_buffer_decode(&bpacket, response);
+        //     // printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
 
         //     for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
         //         printf("%c", response[i]);
@@ -183,20 +186,33 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         // } 
         /* TEST CODE */
 
-        bpacket_decode(&bpacket, response);
-        // printf("Here 3\n");
-        if (bpacket.request != BPACKET_R_SUCCESS || bpacket.bytes[0] != pingResponse) {
+        uint8_t responseSize;
+        if ((responseSize = sp_blocking_read(port, response, 6, 2000)) < 0) {
+            sp_close(port);
+            printf("res < 0\n");
+            continue;
+        }
+
+        if (responseSize < 0) {
             sp_close(port);
             continue;
         }
-        // printf("Here 4\n");
+        
+        bpacket_buffer_decode(&bpacket, response);
+
+        if ((bpacket.request != BPACKET_R_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
+            sp_close(port);
+            printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
+            continue;
+        }
+
         sprintf(portName, "%s", sp_get_port_name(port));
         sp_close(port);
         break;
     }
 
     sp_free_port_list(port_list);
-
+    
     return SP_OK;
 }
 

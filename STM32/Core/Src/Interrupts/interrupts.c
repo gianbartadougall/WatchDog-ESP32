@@ -29,7 +29,7 @@ void USART1_IRQHandler(void) {
 
         // log_prints("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
-        // comms_add_to_buffer((uint8_t)c);
+        comms_add_to_buffer(BUFFER_1_ID, (uint8_t)c);
     }
 
     if ((USART1->ISR & USART_ISR_PE) != 0) {
@@ -55,7 +55,7 @@ void USART2_IRQHandler(void) {
 
         // Copy bit into buffer. Reading RDR automatically clears flag
         // comms_add_to_buffer(USART2, c);
-        comms_add_to_buffer((uint8_t)c);
+        comms_add_to_buffer(BUFFER_2_ID, (uint8_t)c);
         return;
     }
 

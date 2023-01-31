@@ -75,7 +75,7 @@ void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 void bpacket_create_circular_buffer(bpacket_circular_buffer_t bufferStruct, uint8_t writeIndex, uint8_t readIndex,
                                     bpacket_t circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE]);
 
-void bpacket_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
+void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
 void bpacket_create_p(bpacket_t* bpacket, uint8_t request, uint8_t numDataBytes, uint8_t* data);
 

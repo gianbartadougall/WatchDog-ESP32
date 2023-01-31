@@ -382,12 +382,19 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    // if (com_ports_open_connection(57) != TRUE) {
-    //     printf("Unable to connect to Watchdog\n");
-    //     return FALSE;
-    // }
+    if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
+        printf("Unable to connect to Watchdog\n");
+        return FALSE;
+    }
 
-    // // Watchdog connected. Get information from watchdog to display on the screen
+    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+
+    if (!thread) {
+        printf("Thread failed\n");
+        return 0;
+    }
+
+    // Watchdog connected. Get information from watchdog to display on the screen
     // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
     // // Wait until the packet is ready
@@ -401,7 +408,23 @@ int main(int argc, char** argv) {
     // printf("Finished\n");
     // return 0;
     // Send bpacket to turn LED on
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+    printf("Starting updating state\n");
+    uint8_t state = 0;
+    bpacket_t bpacket;
+    while (1) {
+
+        if (state == FALSE) {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+        } else {
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+        }
+
+        state = 1 - state;
+    
+        Sleep(1000);
+    }
+
+    return 0;
 
     // Send bpacket message to get help
     // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);

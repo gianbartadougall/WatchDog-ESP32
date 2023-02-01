@@ -383,7 +383,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    comms_port_test();
+    // comms_port_test();
 
     if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");
@@ -433,21 +433,14 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        // Pass bpacket request onto STM32
-        // printf("Sent data\n");
-
-        printf("Request: %i\n", guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex]->request);
-        com_ports_send_bpacket(guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex]);
+        bpacket_t* bpacket = guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex];
         bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
 
-        // if (maple_get_uart_single_response(&bpacket) == FALSE) {
-        //     printf("Failed to execute command\n");
-        //     maple_print_bpacket_data(&bpacket);
-        // }
-
-        // printf("YOU'VE ONLY GONE AND DONE IT\n");
-        // printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
-        // printf("IT GETS HERE\n");
+        switch (bpacket->request) {
+            default:
+                printf("Request: %i\n", bpacket->request);
+                com_ports_send_bpacket(bpacket);
+        }
     }
 
     return 0;

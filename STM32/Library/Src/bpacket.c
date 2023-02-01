@@ -82,18 +82,17 @@ void bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uin
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer) {
 
     packetBuffer->buffer[0] = BPACKET_START_BYTE;
-    packetBuffer->buffer[1] = bpacket->receiver;
-    packetBuffer->buffer[2] = bpacket->sender;
-    packetBuffer->buffer[3] = bpacket->request;
-    packetBuffer->buffer[4] = bpacket->numBytes;
+    packetBuffer->buffer[1] = BPACKET_SENDER_RECEIVER_TO_BYTE(bpacket->sender, bpacket->receiver);
+    packetBuffer->buffer[2] = bpacket->request;
+    packetBuffer->buffer[3] = bpacket->numBytes;
 
     // Copy data into buffer
     int i;
     for (i = 0; i < bpacket->numBytes; i++) {
-        packetBuffer->buffer[i + 5] = bpacket->bytes[i];
+        packetBuffer->buffer[i + 4] = bpacket->bytes[i];
     }
 
-    packetBuffer->buffer[i + 5] = BPACKET_STOP_BYTE;
+    packetBuffer->buffer[i + 4] = BPACKET_STOP_BYTE;
 
     packetBuffer->numBytes = bpacket->numBytes + BPACKET_NUM_NON_DATA_BYTES;
 }
@@ -107,13 +106,12 @@ void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGT
 
     bpacket->receiver = BPACKET_R_UNKNOWN;
     bpacket->sender   = BPACKET_R_UNKNOWN;
-    if ((data[1] < BPACKET_MIN_ADDRESS) || (data[1] > BPACKET_MAX_ADDRESS) || (data[2] < BPACKET_MIN_ADDRESS) ||
-        (data[2] > BPACKET_MAX_ADDRESS)) {
+    if (((data[1] >> 4) > BPACKET_MAX_ADDRESS) || ((data[1] & 0x0F) > BPACKET_MAX_ADDRESS)) {
         return;
     }
 
-    bpacket->receiver = data[1];
-    bpacket->sender   = data[2];
+    bpacket->receiver = BPACKET_BYTE_TO_RECEIVER(data[1]);
+    bpacket->sender   = BPACKET_BYTE_TO_SENDER(data[1]);
     if (data[2] < BPACKET_MIN_REQUEST_INDEX) {
         return;
     }
@@ -127,7 +125,7 @@ void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGT
 
     // Copy the data to the packet
     for (int i = 0; i < bpacket->numBytes; i++) {
-        bpacket->bytes[i] = data[i + 5]; // The data starts on the 5th byte thus adding 4 (starting from 1)
+        bpacket->bytes[i] = data[i + 4]; // The data starts on the 5th byte thus adding 4 (starting from 1)
     }
 }
 

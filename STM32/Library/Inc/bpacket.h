@@ -27,14 +27,36 @@
 #define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 6)
 #define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 7) // This is the offset applied to specific projects
 
-#define BPACKET_ADDRESS_1 1
-#define BPACKET_ADDRESS_2 2
-#define BPACKET_ADDRESS_3 3
-#define BPACKET_ADDRESS_4 4
-#define BPACKET_ADDRESS_5 5
+/**
+ * @brief The address byte in the bpacket is one byte.
+ * The byte is split up into the receiver (first four
+ * bits) and the sender address (last four bits). Thus
+ * the maxiumum address a sender or receiver can have
+ * is 15 because 2^4 - 1 = 15
+ */
+#define BPACKET_ADDRESS_0  0x00
+#define BPACKET_ADDRESS_1  0x01
+#define BPACKET_ADDRESS_2  0x02
+#define BPACKET_ADDRESS_3  0x03
+#define BPACKET_ADDRESS_4  0x04
+#define BPACKET_ADDRESS_5  0x05
+#define BPACKET_ADDRESS_6  0x06
+#define BPACKET_ADDRESS_7  0x07
+#define BPACKET_ADDRESS_8  0x08
+#define BPACKET_ADDRESS_9  0x09
+#define BPACKET_ADDRESS_10 0x0A
+#define BPACKET_ADDRESS_11 0x0B
+#define BPACKET_ADDRESS_12 0x0C
+#define BPACKET_ADDRESS_13 0x0D
+#define BPACKET_ADDRESS_14 0x0E
+#define BPACKET_ADDRESS_15 0x0F
 
-#define BPACKET_MIN_ADDRESS BPACKET_ADDRESS_1
-#define BPACKET_MAX_ADDRESS BPACKET_ADDRESS_5
+#define BPACKET_MIN_ADDRESS BPACKET_ADDRESS_0
+#define BPACKET_MAX_ADDRESS BPACKET_ADDRESS_15
+
+#define BPACKET_BYTE_TO_RECEIVER(byte)                    (byte & 0x0F)
+#define BPACKET_BYTE_TO_SENDER(byte)                      (byte >> 4)
+#define BPACKET_SENDER_RECEIVER_TO_BYTE(sender, receiver) ((sender << 4) | receiver)
 
 // These represent the addresses of each system in the project. Sending a bpacket
 // requires you to supply an address so the reciever knows whether the bpacket
@@ -43,14 +65,14 @@
 #define BPACKET_ADDRESS_STM32 BPACKET_ADDRESS_2
 #define BPACKET_ADDRESS_MAPLE BPACKET_ADDRESS_3
 
-#define BPACKET_BUFFER_LENGTH_BYTES 128
+#define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 255 as the max number that can fit into one byte is 255
 #define BPACKET_NUM_START_BYTES     1
-#define BPACKET_NUM_ADDRESS_BYTES   2
+#define BPACKET_NUM_ADDRESS_BYTES   1 // The address bytes contain the sender and reciever information
 #define BPACKET_NUM_REQUEST_BYTES   1
-#define BPACKET_NUM_INFO_BYTES      1 // Number of bytes used to indicated the number of data bytes in bpacket
+#define BPACKET_NUM_INFO_BYTES      1 // Indicateds number of data bytes (0 - max number of data bytes allowed)
 #define BPACKET_NUM_STOP_BYTES      1
-#define BPACKET_NUM_NON_DATA_BYTES  6
-#define BPACKET_MAX_NUM_DATA_BYTES  (BPACKET_BUFFER_LENGTH_BYTES - BPACKET_NUM_NON_DATA_BYTES)
+#define BPACKET_NUM_NON_DATA_BYTES  5
+#define BPACKET_BUFFER_LENGTH_BYTES (BPACKET_MAX_NUM_DATA_BYTES + BPACKET_NUM_NON_DATA_BYTES)
 
 #define BPACKET_CIRCULAR_BUFFER_SIZE 10
 

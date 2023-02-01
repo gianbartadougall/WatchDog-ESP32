@@ -72,7 +72,7 @@ void watchdog_init(void) {
     cameraSettings.resolution   = WD_CAM_RES_1024x768;
 
     // Turn the ESP32 on
-    // watchdog_esp32_on();
+    watchdog_esp32_on();
 }
 
 void watchdog_send_string(char* string) {
@@ -136,6 +136,42 @@ void watchdog_report_success(void) {
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
+void process_watchdog_stm32_request(bpacket_t* bpacket) {
+
+    bpacket_t wdBpacket;
+    bpacket_buffer_t packetBuffer;
+
+    switch (bpacket->request) {
+        case WATCHDOG_BPK_R_LED_RED_ON:;
+
+            bpacket_create_p(&wdBpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_LED_RED_ON, 0,
+                             NULL);
+            bpacket_to_buffer(&wdBpacket, &packetBuffer);
+            comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+            break;
+        case WATCHDOG_BPK_R_LED_RED_OFF:;
+
+            bpacket_create_p(&wdBpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_LED_RED_OFF, 0,
+                             NULL);
+            bpacket_to_buffer(&wdBpacket, &packetBuffer);
+            comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+            break;
+        case BPACKET_GEN_R_PING:;
+
+            uint8_t ping = WATCHDOG_PING_CODE_STM32;
+            bpacket_create_p(&wdBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_R_SUCCESS, 1, &ping);
+            bpacket_to_buffer(&wdBpacket, &packetBuffer);
+            comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+            break;
+        case BPACKET_R_SUCCESS:
+            watchdog_report_success();
+            break;
+        default:
+            watchdog_report_error("Unknown request\0");
+            return;
+    }
+}
+
 void watchdog_update(void) {
 
     /* TEMPERATURE CONVERSION CODE */
@@ -158,23 +194,22 @@ void watchdog_update(void) {
     /* TEMPERATURE CONVERSION CODE */
 
     // Wait for STM32 to receive a bpacket
-    bpacket_t bpacket;
+    bpacket_t mapleBpacket, esp32Bpacket;
     bpacket_buffer_t packetBuffer;
     wd_camera_settings_t cameraSettings;
 
     while (1) {
 
         // Process anything the ESP32 sends to the STM32
-        // if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket) == TRUE) {
-        // TODO: Process bpacket
-        // }
+        if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
+            // TODO: Process bpacket
+            process_watchdog_stm32_request(&esp32Bpacket);
+        }
 
         // Process anything Maple sends to the STM32
-        if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket) == TRUE) {
-            // TODO: Process bpacket
-            log_send_data(" TRUE ", 6);
-            bpacket_print(&bpacket);
-        };
+        if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
+            process_watchdog_stm32_request(&mapleBpacket);
+        }
 
         // bpacket_print(&mapleBpacket);
         // continue;

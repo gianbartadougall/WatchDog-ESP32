@@ -235,11 +235,11 @@ void comms_port_test(void) {
         }
 
         uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        // uint8_t data = 9;
-        bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, 0, NULL);
+        uint8_t data = 68;
+        bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, 15, 0, NULL);
         bpacket_buffer_t packetBuffer;
         bpacket_to_buffer(&bpacket, &packetBuffer);
-        // printf("packet buffer length: %i\n", packetBuffer.numBytes);
+        printf("packet buffer length: %i\n", packetBuffer.numBytes);
 
         // uint8_t length = 6;
         // uint8_t data[length];

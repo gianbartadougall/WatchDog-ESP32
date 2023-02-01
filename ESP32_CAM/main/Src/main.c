@@ -60,7 +60,8 @@
 uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
     // Save the address
-    uint8_t address = bpacket->address;
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
 
     switch (bpacket->request) {
         case WATCHDOG_BPK_R_TAKE_PHOTO:
@@ -69,9 +70,9 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
 
             if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-                bpacket_create_p(bpacket, address, BPACKET_R_FAILED, 0, NULL);
+                bpacket_create_p(bpacket, sender, receiver, BPACKET_R_FAILED, 0, NULL);
             } else {
-                bpacket_create_p(bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
             }
 
             esp32_uart_send_bpacket(bpacket);
@@ -79,7 +80,7 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
 
             uint8_t resolution = camera_get_resolution();
-            bpacket_create_p(bpacket, address, BPACKET_R_SUCCESS, 1, &resolution);
+            bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 1, &resolution);
             esp32_uart_send_bpacket(bpacket);
             break;
         case WATCHDOG_BPK_R_RECORD_DATA:
@@ -136,38 +137,40 @@ void watchdog_system_start(void) {
 
         bpacket_buffer_decode(&bpacket, bdata);
 
-        if ((bpacket.address == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
+        if ((bpacket.receiver == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
             continue;
         }
 
-        if ((bpacket.address == BPACKET_ADDRESS_MAPLE) && (esp3_match_maple_request(&bpacket) == TRUE)) {
+        if ((bpacket.receiver == BPACKET_ADDRESS_MAPLE) && (esp3_match_maple_request(&bpacket) == TRUE)) {
             continue;
         }
 
         // The request was a generic request that could have been sent from the stm32
         // or from maple
-        uint8_t address = bpacket.address;
+        uint8_t receiver = bpacket.receiver;
+        uint8_t sender   = bpacket.sender;
 
         switch (bpacket.request) {
             case BPACKET_GEN_R_PING:
-                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 1, ping);
+                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 1, ping);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_ON:
                 led_on(RED_LED);
-                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_OFF:
                 led_off(RED_LED);
-                bpacket_create_p(&bpacket, address, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
                 // sd_card_write_to_file();
                 break;
             default: // No request was able to be matched. Send response back to sender
-                bpacket_create_p(&bpacket, address, BPACKET_R_UNKNOWN, 0, NULL);
+                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_UNKNOWN, 0, NULL);
+                esp32_uart_send_bpacket(&bpacket);
                 break;
         }
     }

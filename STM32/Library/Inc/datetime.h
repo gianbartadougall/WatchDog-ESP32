@@ -40,4 +40,10 @@ uint8_t dt_time_init(dt_time_t* time, uint8_t second, uint8_t minute, uint8_t ho
 
 uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year);
 
+uint8_t dt_is_valid_date(char* date);
+
+uint8_t dt_is_valid_hour_min(char* time);
+
+uint8_t dt_is_valid_hour_min_period(char* time);
+
 #endif // DATETIME_H

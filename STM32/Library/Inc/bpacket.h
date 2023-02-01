@@ -27,15 +27,12 @@
 #define BPACKET_GET_R_STATUS      (START + 6)
 #define BPACKET_SPECIFIC_R_OFFSET (START + 7) // This is the offset applied to specific projects
 
-// #define BPACKET_R_LIST_DIR      (4 + START)
-// #define BPACKET_R_COPY_FILE     (5 + START)
-// #define BPACKET_R_TAKE_PHOTO    (6 + START)
-// #define BPACKET_R_WRITE_TO_FILE (7 + START)
-// #define BPACKET_R_RECORD_DATA   (8 + START)
-// #define BPACKET_R_PING          (9 + START)
-// #define BPACKET_R_LED_RED_ON    (10 + START)
-// #define BPACKET_R_LED_RED_OFF   (11 + START)
-// #define BPACKET_R_ACKNOWLEDGE   (12 + START)
+// These represent the addresses of each system in the project. Sending a bpacket
+// requires you to supply an address so the reciever knows whether the bpacket
+// is for them or if they are supposed to pass the bpacket on
+#define BPACKET_ADDRESS_ESP32 23
+#define BPACKET_ADDRESS_STM32 47
+#define BPACKET_ADDRESS_MAPLE 73
 
 #define BPACKET_REQUEST_SIZE_BYTES   1
 #define BPACKET_MAX_NUM_DATA_BYTES   31
@@ -84,5 +81,7 @@ void bpacket_create_sp(bpacket_t* bpacket, uint8_t request, char* string);
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer);
 
 void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);
+
+void bpacket_print_bytes(bpacket_t* bpacket);
 
 #endif // BPACKET_H

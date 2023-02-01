@@ -27,14 +27,14 @@
 - Code to log operations and errors to the SD card (DONE)
 - Get the RTC working on the STM32 (DONE)
 - Be able to recieve flags from GUI and send to ESP32 via the STM32
-      - Time and date settings for taking photos
-      - Camera resolution settings
-      - Settings for RTC time and date
-      - Transfering data from ESP32 to computer
-      - Tunning a test
-      - Streaming photos from ESP32 to GUI
+   - Time and date settings for taking photos
+   - Camera resolution settings
+   - Settings for RTC time and date
+   - Transfering data from ESP32 to computer
+   - Tunning a test
+   - Streaming photos from ESP32 to GUI
  - ESP32 recieve all of the above and change those settings
-      - Save all these settings on SD card on the ESP32
+   - Save all these settings on SD card on the ESP32
  - Get the STM32 working in deep sleep mode
  - Change the names of the images to a hex ID with a text file that relates ids to the date and time and temperature data
  - Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning

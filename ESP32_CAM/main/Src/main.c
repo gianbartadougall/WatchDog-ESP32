@@ -40,9 +40,11 @@ void watchdog_send_status(void) {
     uint8_t cameraResolution = camera_get_resolution();
     uint16_t numImages;
     bpacket_t response;
+
     if (sd_card_search_num_images(&numImages, &response) != TRUE) {
         numImages = 5000;
     }
+
     uint8_t status = 0;
     bpacket_t bpacket;
     uint8_t data[5];
@@ -53,20 +55,6 @@ void watchdog_send_status(void) {
     data[4] = status;
     bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 5, data);
     esp32_uart_send_bpacket(&bpacket);
-}
-
-void watchdog_update_camera_settings(bpacket_t* bpacket) {
-
-    // Decode bpacket
-    uint8_t cameraResolution = bpacket->bytes[0];
-
-    if (camera_change_resolution(cameraResolution) != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Camera failed to update\0");
-    } else {
-        bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
-    }
-
-    esp32_uart_send_bpacket(bpacket);
 }
 
 void watchdog_system_start(void) {
@@ -92,7 +80,7 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        bpacket_decode(&bpacket, bdata);
+        bpacket_buffer_decode(&bpacket, bdata);
 
         switch (bpacket.request) {
             case BPACKET_GEN_R_HELP:
@@ -116,8 +104,21 @@ void watchdog_system_start(void) {
             case WATCHDOG_BPK_R_TAKE_PHOTO:
                 camera_capture_and_save_image(&bpacket);
                 break;
-            case WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS:
-                watchdog_update_camera_settings(&bpacket);
+            case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
+
+                if (camera_set_resolution(bpacket.bytes[0]) != TRUE) {
+                    bpacket_create_p(&bpacket, BPACKET_R_FAILED, 0, NULL);
+                } else {
+                    bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
+                }
+
+                esp32_uart_send_bpacket(&bpacket);
+                break;
+            case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
+
+                uint8_t resolution = camera_get_resolution();
+                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 1, &resolution);
+                esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
                 // sd_card_write_to_file();
@@ -126,9 +127,13 @@ void watchdog_system_start(void) {
                 break;
             case WATCHDOG_BPK_R_LED_RED_ON:
                 led_on(RED_LED);
+                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
+                esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_OFF:
                 led_off(RED_LED);
+                bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 0, NULL);
+                esp32_uart_send_bpacket(&bpacket);
                 break;
             default:
                 break;

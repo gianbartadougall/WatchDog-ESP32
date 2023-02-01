@@ -34,8 +34,8 @@
 #include "gui.h"
 #include "datetime.h"
 
-#define MAPLE_MAX_ARGS               5
-#define PACKET_BUFFER_SIZE           50
+#define MAPLE_MAX_ARGS     5
+#define PACKET_BUFFER_SIZE 50
 
 /* Example of how to get a list of serial ports on the system.
  *
@@ -63,7 +63,6 @@ bpacket_t mainToGuiBpackets[BPACKET_CIRCULAR_BUFFER_SIZE];
 uint8_t packetBufferIndex  = 0;
 uint8_t packetPendingIndex = 0;
 bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
-
 
 void maple_increment_packet_buffer_index(void) {
     packetBufferIndex++;
@@ -382,6 +381,8 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
+    // comms_port_test();
+
     if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");
         return FALSE;
@@ -394,66 +395,11 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // Watchdog connected. Get information from watchdog to display on the screen
-    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
-
-    // // Wait until the packet is ready
-    // while (packetPendingIndex == packetBufferIndex) {}
-
-    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
-    //     printf("Error recieving status!\n");
-    //     return 0;
-    // }
-
-    // printf("Finished\n");
-    // return 0;
-    // Send bpacket to turn LED on
-    printf("Starting updating state\n");
-    uint8_t state = 0;
-    bpacket_t bpacket;
-    while (1) {
-
-        if (state == FALSE) {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-        } else {
-            maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-        }
-
-        state = 1 - state;
-    
-        Sleep(1000);
-    }
-
-    return 0;
-
-    // Send bpacket message to get help
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
-    // bpacket_t bpacket;
-    // dt_datetime_t datetime;
-    // if (maple_get_uart_single_response(&bpacket) == TRUE) {
-
-    //     // Convert the bpacket to datetime
-    //     if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
-    //         printf("Failed to parse datetime\r\n");
-    //     } else {
-    //         // Print out the datetime
-    //         printf("%i:%i:%i %i/%i/%i\n", datetime.time.second, datetime.time.minute, datetime.time.hour, datetime.date.day, datetime.date.month, datetime.date.year);
-    //     }
-
-    // } else {
-    //     printf("failed to get response\n");
-    //     maple_print_bpacket_data(&bpacket);
-    // }
-    // maple_print_uart_response();
-    
-    // Watchdog connected. Get information from watchdog to display on the screen
-    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
-
     bpacket_circular_buffer_t guiToMainCircularBuffer;
-    bpacket_create_circular_buffer(guiToMainCircularBuffer, guiWriteIndex, mainReadIndex, guiToMainBpackets);
+    bpacket_create_circular_buffer(&guiToMainCircularBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
 
     bpacket_circular_buffer_t mainToGuiCircularBuffer;
-    bpacket_create_circular_buffer(mainToGuiCircularBuffer, mainWriteIndex, guiReadIndex, mainToGuiBpackets);
+    bpacket_create_circular_buffer(&mainToGuiCircularBuffer, &mainWriteIndex, &guiReadIndex, &mainToGuiBpackets[0]);
 
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
@@ -463,16 +409,12 @@ int main(int argc, char** argv) {
     watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
     sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
-    // packetPendingIndex++;
-
-    uint32_t flags     = 0;
-    //uint8_t cameraView = FALSE;
-
+    uint32_t flags;
     gui_initalisation_t guiInit;
-    guiInit.watchdog    = &watchdogInfo;
-    guiInit.flags       = &flags;
-    guiInit.guiToMain   = &guiToMainCircularBuffer;
-    guiInit.mainToGui   = &mainToGuiCircularBuffer;
+    guiInit.watchdog  = &watchdogInfo;
+    guiInit.flags     = &flags;
+    guiInit.guiToMain = &guiToMainCircularBuffer;
+    guiInit.mainToGui = &mainToGuiCircularBuffer;
 
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
@@ -481,90 +423,29 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    while(1) {
-        // if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
-        //     printf("YOU'VE ONLY GONE AND DONE IT\n");
-        //     printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
-        //     printf("IT GETS HERE\n");
-        //     //bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
-        //     Sleep(1000);
-        // }
-    }
-
+    bpacket_t bpacket;
     while (1) {
-        
-        // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
-        //     flags &= ~(GUI_TURN_RED_LED_OFF);
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+
+        // Check if
+        if (*guiToMainCircularBuffer.readIndex == *guiToMainCircularBuffer.writeIndex) {
+            continue;
+        }
+
+        // Pass bpacket request onto STM32
+        // printf("Sent data\n");
+
+        printf("Request: %i\n", guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex]->request);
+        com_ports_send_bpacket(guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex]);
+        bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+
+        // if (maple_get_uart_single_response(&bpacket) == FALSE) {
+        //     printf("Failed to execute command\n");
+        //     maple_print_bpacket_data(&bpacket);
         // }
 
-        // Flag for fetching time and date
-        // if ((flags & WATCHDOG_BPK_R_GET_DATETIME) != 0) {
-        //     flags &= ~(WATCHDOG_BPK_R_GET_DATETIME);
-
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
-
-        //     // Wait for response from ESP32
-        //     bpacket_t response;
-        //     if (maple_get_uart_single_response(&response) != TRUE) {
-        //         // Error getting datetime from STM32
-        //     }
-
-        //     // Send response to GUI to be displayed
-        // }
-
-        // Flag for setting datetime on STM32
-        // if ((flags & 1) != 0) {
-        //     flags &= ~(1);
-
-        //     // Get date time from GUI and put datetime into bpacket
-
-        //     // Set the datetime on the STM32
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_SET_DATETIME, 0, NULL);
-
-        //     // Wait for response from ESP32
-        //     bpacket_t response;
-        //     if (maple_get_uart_single_response(&response) != TRUE) {
-        //         // Error occured setting the datetime
-        //     }
-        // }
-
-        // if ((cameraView == FALSE) && ((flags & GUI_CAMERA_VIEW_STATE) != 0)) {
-
-        //     // Set the camera resolution to be the lowest resolution
-        //     bpacket_t bpacket;
-        //     bpacket_buffer_t data;
-        //     // data.buffer[1] = WD_CAM_RES_320x240;
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_UPDATE_CAMERA_SETTINGS, 1, data.buffer);
-
-        //     // Confirm changing the camera resolution worked
-        //     if (maple_get_uart_single_response(&bpacket) == TRUE) {
-        //         cameraView = TRUE;
-        //     } else {
-        //         // TODO: Handle error
-        //     }
-        // }
-
-        // if ((cameraView == TRUE) && ((flags & GUI_CAMERA_VIEW_STATE) == 0)) {
-
-        //     // Restore the camera to it's original resolution
-        // }
-
-        // if (cameraView == TRUE) {
-
-        //     // Request image from watchdog
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_CAMERA_VIEW, 0, NULL);
-
-        //     // Wait for watchdog to transmit photo over UART
-
-        //     if (maple_receive_camera_view(CAMERA_VIEW_FILENAME) == TRUE) {
-        //         flags |= GUI_UPDATE_CAMERA_VIEW;
-        //     }
-        // }
-
-        // if ((flags & GUI_CLOSE) != 0) {
-        //     break;
-        // }
+        // printf("YOU'VE ONLY GONE AND DONE IT\n");
+        // printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
+        // printf("IT GETS HERE\n");
     }
 
     return 0;

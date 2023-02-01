@@ -383,8 +383,6 @@ int main(int argc, char** argv) {
 
     // comms_port_test();
 
-    // comms_port_test();
-
     // if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
     //     printf("Unable to connect to Watchdog\n");
     //     return FALSE;
@@ -485,16 +483,31 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // put an example bpacket into the packet buffer
+    uint8_t number = 10;
+    bpacket_create_p(&packetBuffer[packetBufferIndex], 10, 1, &number);
+    maple_increment_packet_buffer_index();
+
     while (1) {
+        // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
-            printf("YOU'VE ONLY GONE AND DONE IT\n");
-            printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
-            printf("IT GETS HERE\n");
+
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
-            Sleep(1000);
+        }
+
+        // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular buffer
+        if (packetBufferIndex != packetPendingIndex) {
+
+            *mainToGuiCircularBuffer.circularBuffer[*guiToMainCircularBuffer.writeIndex] =
+                packetBuffer[packetPendingIndex];
+
+            // Increase packet pending index so code it is know that the incoming data was dealt with
+            maple_increment_packet_pending_index();
+            // Increae write index of the main to gui circular buffer so that it can be parsed to
+            // the GUI
+            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer.writeIndex);
         }
     }
-
     while (1) {
 
         // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {

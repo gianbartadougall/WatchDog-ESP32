@@ -497,6 +497,7 @@ void gui_update() {
     }
 }
 
+// This function is called in the main.c as a new thread, so this is basically the main of GUI
 DWORD WINAPI gui(void* arg) {
 
     gui_initalisation_t* guiInit = (gui_initalisation_t*)arg;
@@ -534,8 +535,9 @@ DWORD WINAPI gui(void* arg) {
     }
 
     // Create the window
-    hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "Watchdog", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-                          CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
+    // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT
+    hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "Watchdog", WS_OVERLAPPEDWINDOW, 0, 0, WINDOW_WIDTH,
+                          WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
 
     if (hwnd == NULL) {
         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -554,6 +556,16 @@ DWORD WINAPI gui(void* arg) {
         // Check flag from maple
         if ((*flags & GUI_UPDATE_CAMERA_VIEW) != 0) {
             // draw_image(hwnd, cameraViewFileName, &cameraViewImagePosition);
+        }
+
+        // If a Bpacket is recieved from main, deal with it in here
+        if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+            printf("The number is: %i",
+                   *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes);
+            if (10 == *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes) {
+                printf("EASY");
+            }
+            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
         }
     }
 

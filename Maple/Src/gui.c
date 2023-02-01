@@ -100,9 +100,6 @@
 #define TEXT_BOX_RTC_DATE_HANDLE          10
 #define TEXT_BOX_RTC_TIME_HANDLE          11
 
-#define MIN_YEAR 2022
-#define MAX_YEAR 2100
-
 #define NUMBER_OF_CAM_RESOLUTIONS 7
 
 const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
@@ -249,36 +246,6 @@ void gui_set_normal_view(HWND hwnd) {
 }
 #include <stdio.h>
 #include <string.h>
-
-int is_leap_year(int year) {
-    return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0);
-}
-
-int is_valid_date(char* date) {
-    int day, month, year;
-    if (sscanf(date, "%d/%d/%d", &day, &month, &year) != 3) {
-        return 0;
-    }
-    if (month < 1 || month > 12) {
-        return 0;
-    }
-    if (day < 1 || day > 31) {
-        return 0;
-    }
-    if ((month == 2) && (day > 29)) {
-        return 0;
-    }
-    if ((month == 2) && (day == 29) && (!is_leap_year(year))) {
-        return 0;
-    }
-    if ((month == 4 || month == 6 || month == 9 || month == 11) && (day > 30)) {
-        return 0;
-    }
-    if (year < MIN_YEAR || year > MAX_YEAR) {
-        return 0;
-    }
-    return 1;
-}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {

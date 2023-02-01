@@ -383,17 +383,75 @@ int main(int argc, char** argv) {
 
     // comms_port_test();
 
-    if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
-        printf("Unable to connect to Watchdog\n");
-        return FALSE;
-    }
+    // comms_port_test();
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    // if (com_ports_open_connection(WATCHDOG_PING_CODE_STM32) != TRUE) {
+    //     printf("Unable to connect to Watchdog\n");
+    //     return FALSE;
+    // }
 
-    if (!thread) {
-        printf("Thread failed\n");
-        return 0;
-    }
+    // // HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+
+    // if (!thread) {
+    //     printf("Thread failed\n");
+    //     return 0;
+    // }
+
+    // Watchdog connected. Get information from watchdog to display on the screen
+    // maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
+
+    // // Wait until the packet is ready
+    // while (packetPendingIndex == packetBufferIndex) {}
+
+    // if (packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+    //     printf("Error recieving status!\n");
+    //     return 0;
+    // }
+
+    // printf("Finished\n");
+    // return 0;
+    // Send bpacket to turn LED on
+    // printf("Starting updating state\n");
+    // uint8_t state = 0;
+    // bpacket_t bpacket;
+    // while (1) {
+
+    //     if (state == FALSE) {
+    //         maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+    //     } else {
+    //         maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+    //     }
+
+    //     state = 1 - state;
+
+    //     Sleep(1000);
+    // }
+
+    // return 0;
+
+    // Send bpacket message to get help
+    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, 0, NULL);
+    // bpacket_t bpacket;
+    // dt_datetime_t datetime;
+    // if (maple_get_uart_single_response(&bpacket) == TRUE) {
+
+    //     // Convert the bpacket to datetime
+    //     if (wd_bpacket_to_datetime(&bpacket, &datetime) != TRUE) {
+    //         printf("Failed to parse datetime\r\n");
+    //     } else {
+    //         // Print out the datetime
+    //         printf("%i:%i:%i %i/%i/%i\n", datetime.time.second, datetime.time.minute, datetime.time.hour,
+    //         datetime.date.day, datetime.date.month, datetime.date.year);
+    //     }
+
+    // } else {
+    //     printf("failed to get response\n");
+    //     maple_print_bpacket_data(&bpacket);
+    // }
+    // maple_print_uart_response();
+
+    // Watchdog connected. Get information from watchdog to display on the screen
+    maple_create_and_send_bpacket(BPACKET_GET_R_STATUS, 0, NULL);
 
     bpacket_circular_buffer_t guiToMainCircularBuffer;
     bpacket_create_circular_buffer(&guiToMainCircularBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
@@ -409,7 +467,11 @@ int main(int argc, char** argv) {
     watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
     sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
-    uint32_t flags;
+    // packetPendingIndex++;
+
+    uint32_t flags = 0;
+    // uint8_t cameraView = FALSE;
+
     gui_initalisation_t guiInit;
     guiInit.watchdog  = &watchdogInfo;
     guiInit.flags     = &flags;
@@ -423,13 +485,22 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    bpacket_t bpacket;
+    while (1) {
+        if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
+            printf("YOU'VE ONLY GONE AND DONE IT\n");
+            printf("write index: %i\n", *guiToMainCircularBuffer.writeIndex);
+            printf("IT GETS HERE\n");
+            bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+            Sleep(1000);
+        }
+    }
+
     while (1) {
 
-        // Check if
-        if (*guiToMainCircularBuffer.readIndex == *guiToMainCircularBuffer.writeIndex) {
-            continue;
-        }
+        // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
+        //     flags &= ~(GUI_TURN_RED_LED_OFF);
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+        // }
 
         // Pass bpacket request onto STM32
         // printf("Sent data\n");

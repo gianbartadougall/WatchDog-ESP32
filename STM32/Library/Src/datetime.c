@@ -150,23 +150,18 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     int hour, min;
     char period[3];
     if (chars_get_num_bytes(time) > 8) {
-        printf("LENGTH");
         return FALSE;
     }
     if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
-        printf("SSCANF");
         return FALSE;
     }
     if ((min < 0) || min >= 60) {
-        printf("MINUTES");
         return FALSE;
     }
     if ((hour <= 0) || hour > 12) {
-        printf("HOURS");
         return FALSE;
     }
     if (chars_same(period, "am") != 0 && chars_same(period, "pm") != 0) {
-        printf("PERIOD");
         return FALSE;
     }
     return TRUE;

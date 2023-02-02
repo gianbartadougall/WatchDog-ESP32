@@ -84,7 +84,7 @@ void maple_increment_packet_pending_index(void) {
 void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
                                    uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
     bpacket_t bpacket;
-    bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, numDataBytes, data);
+    bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, numDataBytes, data);
     if (com_ports_send_bpacket(&bpacket) != TRUE) {
         return;
     }
@@ -92,7 +92,7 @@ void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t nu
 
 void maple_create_and_send_sbpacket(uint8_t address, uint8_t request, char* string) {
     bpacket_t bpacket;
-    bpacket_create_sp(&bpacket, address, BPACKET_ADDRESS_MAPLE, request, string);
+    bpacket_create_sp(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, string);
     if (com_ports_send_bpacket(&bpacket) != TRUE) {
         return;
     }
@@ -143,14 +143,14 @@ uint8_t maple_copy_file(char* filePath, char* cpyFileName) {
             count++;
         }
 
-        if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
-            packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+        if (packetBuffer[packetPendingIndex].request != BPACKET_CODE_IN_PROGRESS &&
+            packetBuffer[packetPendingIndex].request != BPACKET_CODE_SUCCESS) {
             printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
             fclose(target);
             return FALSE;
         }
 
-        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
             packetsFinished = TRUE;
         }
 
@@ -194,14 +194,14 @@ uint8_t maple_receive_camera_view(char* fileName) {
             count++;
         }
 
-        if (packetBuffer[packetPendingIndex].request != BPACKET_R_IN_PROGRESS &&
-            packetBuffer[packetPendingIndex].request != BPACKET_R_SUCCESS) {
+        if (packetBuffer[packetPendingIndex].request != BPACKET_CODE_IN_PROGRESS &&
+            packetBuffer[packetPendingIndex].request != BPACKET_CODE_SUCCESS) {
             printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
             fclose(target);
             return FALSE;
         }
 
-        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
             packetsFinished = TRUE;
         }
 
@@ -245,7 +245,7 @@ void maple_print_uart_response(void) {
             printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
         }
 
-        if (packetBuffer[packetPendingIndex].request == BPACKET_R_SUCCESS) {
+        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
             packetsFinished = TRUE;
         }
 
@@ -269,7 +269,7 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
 
     maple_increment_packet_pending_index();
 
-    if (bpacket->request != BPACKET_R_SUCCESS) {
+    if (bpacket->request != BPACKET_CODE_SUCCESS) {
         return FALSE;
     }
 
@@ -383,7 +383,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    // comms_port_test();
+    comms_port_test();
 
     if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");

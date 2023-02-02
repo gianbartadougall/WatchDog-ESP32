@@ -17,15 +17,43 @@
 #define BPACKET_START_BYTE 'A'
 #define BPACKET_STOP_BYTE  'B'
 
+/**
+ * @brief BPacket codes. These gives context to the
+ * request in a bpacket.
+ *
+ * E.g if you receive a bpacket with the code
+ * BPACKET_CODE_ERROR then this states the sender
+ * of the bpacket failed to execute the request.
+ *
+ * If you receive a bpacket with the code
+ * BPACKET_CODE_IN_PROGRESS then the sender of the
+ * bpacket is stil processing the request
+ */
+#define BPACKET_CODE_ERROR        0
+#define BPACKET_CODE_SUCCESS      1
+#define BPACKET_CODE_IN_PROGRESS  2
+#define BPACKET_CODE_UNKNOWN      3
+#define BPACKET_CODE_EXECUTE      4
+#define BPACKET_CODE_EMPTY_1      5 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_2      6 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_3      7 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_4      8 // Free spot for code to be added in future if needed
+#define BPACKET_MAX_CODE_VALUE    8
+#define BPACKET_MAX_REQUEST_VALUE 31
+
+#define BPACKET_BYTE_TO_CODE(byte)                  (byte & 0x07)
+#define BPACKET_BYTE_TO_REQUEST(byte)               (byte >> 3)
+#define BPACKET_REQUEST_CODE_TO_BYTE(request, code) ((request << 3) | code)
+
 #define BPACKET_MIN_REQUEST_INDEX 2 // Start at 2 so no code is the same as TRUE/FALSE
-#define BPACKET_R_FAILED          (BPACKET_MIN_REQUEST_INDEX + 0)
-#define BPACKET_R_SUCCESS         (BPACKET_MIN_REQUEST_INDEX + 1)
-#define BPACKET_R_UNKNOWN         (BPACKET_MIN_REQUEST_INDEX + 2)
-#define BPACKET_R_IN_PROGRESS     (BPACKET_MIN_REQUEST_INDEX + 3)
-#define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 4)
-#define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 5)
-#define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 6)
-#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 7) // This is the offset applied to specific projects
+#define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 1)
+#define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 2)
+#define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 3)
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 4) // This is the offset applied to specific projects
+
+#define BPACKET_CODE_IS_INVALID(code)       ((code > BPACKET_CODE_EXECUTE) == TRUE)
+#define BPACKET_ADDRESS_IS_INVALID(address) ((address > BPACKET_ADDRESS_15) == TRUE)
+#define BPACKET_REQUEST_IS_INVALID(request) ((request > 31) == TRUE) // Max value for request is 31
 
 /**
  * @brief The address byte in the bpacket is one byte.
@@ -76,11 +104,63 @@
 
 #define BPACKET_CIRCULAR_BUFFER_SIZE 10
 
+// Bpacket Errors
+#define BPACKET_ERR_OFFSET                 2 // Offset so no error code = TRUE/FALSE
+#define BPACKET_ERR_INVALID_RECEIVER       (BPACKET_ERR_OFFSET + 0)
+#define BPACKET_ERR_INVALID_SENDER         (BPACKET_ERR_OFFSET + 1)
+#define BPACKET_ERR_INVALID_REQUEST        (BPACKET_ERR_OFFSET + 2)
+#define BPACKET_ERR_INVALID_CODE           (BPACKET_ERR_OFFSET + 3)
+#define BPACKET_ERR_INVALID_NUM_DATA_BYTES (BPACKET_ERR_OFFSET + 4)
+#define BPACKET_ERR_INVALID_START_BYTE     (BPACKET_ERR_OFFSET + 5)
+
+#define BPACKET_ASSERT_VALID_ADDRESS(address)    \
+    do {                                         \
+        if (address > BPACKET_MAX_ADDRESS) {     \
+            return BPACKET_ERR_INVALID_RECEIVER; \
+        }                                        \
+    } while (0)
+
+#define BPACKET_ASSERT_VALID_REQUEST(request)   \
+    do {                                        \
+        if (request > BPACKET_MAX_ADDRESS) {    \
+            return BPACKET_ERR_INVALID_REQUEST; \
+        }                                       \
+    } while (0)
+
+#define BPACKET_ASSERT_VALID_CODE(code)      \
+    do {                                     \
+        if (code > BPACKET_MAX_CODE_VALUE) { \
+            return BPACKET_ERR_INVALID_CODE; \
+        }                                    \
+    } while (0)
+
+#define BPACKET_ASSERT_VALID_NUM_BYTES(numBytes)       \
+    do {                                               \
+        if (numBytes > BPACKET_MAX_NUM_DATA_BYTES) {   \
+            return BPACKET_ERR_INVALID_NUM_DATA_BYTES; \
+        }                                              \
+    } while (0)
+
+#define BPACKET_ASSERT_VALID_START_BYTE(startByte) \
+    do {                                           \
+        if (startByte != BPACKET_START_BYTE) {     \
+            return BPACKET_ERR_INVALID_START_BYTE; \
+        }                                          \
+    } while (0)
+
 typedef struct bpacket_t {
     uint8_t receiver;
     uint8_t sender;
     uint8_t numBytes; // The number of bytes in the bytes array
     uint8_t request;
+    /**
+     * @brief The code gives context to the request. IF you receive a request
+     * and the code is BPACKET_CODE_EXECUTE then the bpacket is asking for
+     * the receiver to execute the request. If the code is BPACKET_CODE_ERROR
+     * then the bpacket is a response stating the request it tried to exute
+     * failed
+     */
+    uint8_t code;
     uint8_t bytes[BPACKET_MAX_NUM_DATA_BYTES]; // Minus 1 because this includes request
 } bpacket_t;
 
@@ -106,17 +186,20 @@ void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
                                     bpacket_t* circularBuffer);
 
-void bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
+uint8_t bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
-void bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t numDataBytes,
-                      uint8_t* data);
+uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                         uint8_t numDataBytes, uint8_t* data);
 
-void bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, char* string);
+uint8_t bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                          char* string);
 
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer);
 
 void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);
 
 void bpacket_print_bytes(bpacket_t* bpacket);
+
+void bpacket_get_error(uint8_t bpacketError, char* errorMsg);
 
 #endif // BPACKET_H

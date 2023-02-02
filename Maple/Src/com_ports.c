@@ -17,6 +17,10 @@
 #include "com_ports.h"
 #include "utilities.h"
 
+// For testng only
+#include "datetime.h"
+#include "watchdog_defines.h"
+
 /* Private Macros */
 #define PORT_NAME_MAX_BYTES 50
 
@@ -130,7 +134,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         // Ping port
-        bpacket_create_p(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, 0, NULL);
+        bpacket_create_p(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_buffer_t packetBuffer;
         bpacket_to_buffer(&bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
@@ -157,7 +161,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
 
         bpacket_buffer_decode(&bpacket, response);
 
-        if ((bpacket.request != BPACKET_R_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
+        if ((bpacket.request != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
             sp_close(port);
             printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
             continue;
@@ -234,12 +238,15 @@ void comms_port_test(void) {
             continue;
         }
 
-        uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-        uint8_t data = 68;
-        bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, 15, 0, NULL);
-        bpacket_buffer_t packetBuffer;
-        bpacket_to_buffer(&bpacket, &packetBuffer);
-        printf("packet buffer length: %i\n", packetBuffer.numBytes);
+        bpacket_t getRTCTime, setRTCTime;
+        bpacket_buffer_t getPacketBuffer, setPacketBuffer;
+
+        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_DATETIME,
+                         BPACKET_CODE_EXECUTE, 0, NULL);
+        bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
+
+        // printf("packet buffer length: %i %i %i\n", getPacketBuffer.numBytes, getPacketBuffer.request,
+        // getRTCTime.code);
 
         // uint8_t length = 6;
         // uint8_t data[length];
@@ -249,32 +256,88 @@ void comms_port_test(void) {
         // data[3] = 'G';
         // data[4] = 'H';
         // data[5] = BPACKET_STOP_BYTE;
-
+        printf("Starting\n");
         while (1) {
 
-            if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 1000) < 0) {
+            if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
                 printf("Unable to write\n");
                 continue;
             }
 
+            uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
             if (sp_blocking_read(port, response, 100, 1000) < 0) {
                 printf("Unbable to read\n");
                 return;
             }
 
-            bpacket_buffer_decode(&bpacket, response);
-            // printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
+            uint8_t result = bpacket_buffer_decode(&getRTCTime, response);
 
-            for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-                printf("%c", response[i]);
+            if (result != TRUE) {
+                char errMsg[50];
+                bpacket_get_error(result, errMsg);
+                printf(errMsg);
+                printf("%s\n", response);
+                continue;
             }
 
-            if (response[0] != '\0') {
-                printf("\n");
-            }
+            if (getRTCTime.code == BPACKET_CODE_SUCCESS) {
+                printf("%i:%i:%i %i/%i/%i\n", getRTCTime.bytes[0], getRTCTime.bytes[1], getRTCTime.bytes[2],
+                       getRTCTime.bytes[3], getRTCTime.bytes[4], (getRTCTime.bytes[5] << 8) | getRTCTime.bytes[6]);
 
-            for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-                response[i] = '\0';
+                if (getRTCTime.bytes[0] >= 15) {
+
+                    // Reset the RTC
+                    dt_datetime_t datetime;
+                    wd_bpacket_to_datetime(&getRTCTime, &datetime);
+                    datetime.time.second = 0;
+                    datetime.time.minute = 0;
+
+                    result = wd_datetime_to_bpacket(&setRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                                    WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &datetime);
+                    if (result != TRUE) {
+                        char errMsg[50];
+                        bpacket_get_error(result, errMsg);
+                        printf(errMsg);
+                        continue;
+                    }
+
+                    bpacket_to_buffer(&setRTCTime, &setPacketBuffer);
+
+                    if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes, 1000) < 0) {
+                        printf("Unable to set the date\n");
+                        continue;
+                    }
+
+                    if (sp_blocking_read(port, response, 100, 1000) < 0) {
+                        printf("Unbable to read\n");
+                        return;
+                    }
+
+                    result = bpacket_buffer_decode(&getRTCTime, response);
+
+                    if (result != TRUE) {
+                        char errMsg[50];
+                        bpacket_get_error(result, errMsg);
+                        printf(errMsg);
+                        continue;
+                    }
+
+                    printf("Request: [%i] with code: [%i]\n", getRTCTime.request, getRTCTime.code);
+
+                    // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+                    //     printf("%c", response[i]);
+                    // }
+
+                    // if (response[0] != '\0') {
+                    //     printf("\n");
+                    // }
+
+                    // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+                    //     response[i] = '\0';
+                    // }
+                }
+            } else {
+                printf("Return code not success %i\n", getRTCTime.code);
             }
         }
     }

@@ -9,8 +9,6 @@ LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 C_SOURCES = \
 Src/main.c \
 Src/gui.c \
-Src/stb_image.c \
-Src/stb_image_resize.c \
 Src/com_ports.c \
 ../STM32/Core/Src/watchdog_defines.c \
 ../STM32/Core/Src/Utilities/chars.c \
@@ -27,9 +25,14 @@ C_INCLUDES = \
 -IInc
 
 LIB_SP_SOURCES = \
+Src/stb_image.c \
+Src/stb_image_resize.c \
 serialport.c \
 timing.c \
 windows.c
+
+FILES_NO_DIR = $(foreach D, $(C_SOURCES), $(notdir $(D)))
+FILES_TO_CLEAN = $(patsubst %.c, "$(BUILD_DIR)\\%.o", $(FILES_NO_DIR)) $(patsubst %.c, "$(BUILD_DIR)\\%.d", $(FILES_NO_DIR))
 
 # The Windows/System32 include is required for the LibSerialPort setupapi.dll file
 LIB_SP_INCLUDES = \
@@ -45,6 +48,7 @@ LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir
 OPT = -Og
 C_COMPILER=gcc
 DEBUG_MODE=-g
+
 
 # Ensures .cpp files are recompiled if header files are edited 
 DEPENDENCY_FLAGS = -MP -MD
@@ -75,7 +79,7 @@ $(BUILD_DIR):
 
 # Delete build directory
 clean:
-	@rmdir /s /q $(BUILD_DIR)
+	del $(FILES_TO_CLEAN)
 
 run:
 	.\$(BUILD_DIR)/$(EXECUTABLE_NAME)

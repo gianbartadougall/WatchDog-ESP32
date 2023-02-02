@@ -159,12 +159,16 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
                 // Pretty sure this is the request byte. Check whether the packet needs to
                 // be diverted or not
+
                 if (divertBytes == TRUE) {
                     // log_send_data(" req passed ", 12);
                     comms_send_byte(divertedBytesBufferId, byte);
                 } else {
                     // log_send_data(" req added ", 11);
-                    bpacket->request = byte;
+                    uint8_t request  = BPACKET_BYTE_TO_REQUEST(byte);
+                    uint8_t code     = BPACKET_BYTE_TO_CODE(byte);
+                    bpacket->request = request;
+                    bpacket->code    = code;
                 }
                 commms_stm32_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
                 update_past_bytes();

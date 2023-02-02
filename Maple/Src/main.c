@@ -429,11 +429,6 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // put an example bpacket into the packet buffer
-    uint8_t number = 10;
-    bpacket_create_p(&packetBuffer[packetBufferIndex], 10, 1, &number);
-    maple_increment_packet_buffer_index();
-
     while (1) {
         // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {

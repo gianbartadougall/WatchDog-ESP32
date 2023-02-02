@@ -228,7 +228,6 @@ void comms_port_test(void) {
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    bpacket_t bpacket;
     for (int i = 1; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
@@ -241,7 +240,7 @@ void comms_port_test(void) {
         bpacket_t getRTCTime, setRTCTime;
         bpacket_buffer_t getPacketBuffer, setPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_DATETIME,
+        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
                          BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
 
@@ -258,6 +257,8 @@ void comms_port_test(void) {
         // data[5] = BPACKET_STOP_BYTE;
         printf("Starting\n");
         while (1) {
+
+            for (int i = 0; i < 1000000000; i++) {}
 
             if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
                 printf("Unable to write\n");
@@ -281,36 +282,59 @@ void comms_port_test(void) {
             }
 
             if (getRTCTime.code == BPACKET_CODE_SUCCESS) {
-                printf("%i:%i:%i %i/%i/%i\n", getRTCTime.bytes[0], getRTCTime.bytes[1], getRTCTime.bytes[2],
-                       getRTCTime.bytes[3], getRTCTime.bytes[4], (getRTCTime.bytes[5] << 8) | getRTCTime.bytes[6]);
 
-                if (getRTCTime.bytes[0] >= 15) {
+                printf("Start time: %i:%i End time: %i:%i Interval time: %i:%i Resolution: %i\n", getRTCTime.bytes[0],
+                       getRTCTime.bytes[1], getRTCTime.bytes[2], getRTCTime.bytes[3], getRTCTime.bytes[4],
+                       getRTCTime.bytes[5], getRTCTime.bytes[6]);
 
-                    // Reset the RTC
-                    dt_datetime_t datetime;
-                    wd_bpacket_to_datetime(&getRTCTime, &datetime);
-                    datetime.time.second = 0;
-                    datetime.time.minute = 0;
+                wd_camera_settings_t cameraSettings;
+                cameraSettings.startTime.second    = 0;
+                cameraSettings.startTime.minute    = getRTCTime.bytes[0];
+                cameraSettings.startTime.hour      = getRTCTime.bytes[1];
+                cameraSettings.endTime.second      = 0;
+                cameraSettings.endTime.minute      = getRTCTime.bytes[2];
+                cameraSettings.endTime.hour        = getRTCTime.bytes[3];
+                cameraSettings.intervalTime.second = 0;
+                cameraSettings.intervalTime.minute = getRTCTime.bytes[4];
+                cameraSettings.intervalTime.hour   = getRTCTime.bytes[5];
+                cameraSettings.resolution          = getRTCTime.bytes[6];
 
-                    result = wd_datetime_to_bpacket(&setRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                                    WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &datetime);
+                result = wd_bpacket_to_camera_settings(&getRTCTime, &cameraSettings);
+
+                if (result == TRUE) {
+
+                    if (cameraSettings.startTime.hour < 12) {
+                        cameraSettings.startTime.hour++;
+                    } else {
+                        cameraSettings.startTime.hour = 3;
+                    }
+
+                    result = wd_camera_settings_to_bpacket(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                                           WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE,
+                                                           &cameraSettings);
+
                     if (result != TRUE) {
                         char errMsg[50];
-                        bpacket_get_error(result, errMsg);
+                        wd_get_error(result, errMsg);
                         printf(errMsg);
                         continue;
                     }
 
-                    bpacket_to_buffer(&setRTCTime, &setPacketBuffer);
+                    bpacket_to_buffer(&getRTCTime, &setPacketBuffer);
 
                     if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes, 1000) < 0) {
                         printf("Unable to set the date\n");
                         continue;
                     }
 
-                    if (sp_blocking_read(port, response, 100, 1000) < 0) {
+                    uint32_t bytesRead = 0;
+                    if ((bytesRead = sp_blocking_read(port, response, 100, 1000)) < 0) {
                         printf("Unbable to read\n");
                         return;
+                    }
+
+                    if (bytesRead == 0) {
+                        continue;
                     }
 
                     result = bpacket_buffer_decode(&getRTCTime, response);
@@ -323,7 +347,6 @@ void comms_port_test(void) {
                     }
 
                     printf("Request: [%i] with code: [%i]\n", getRTCTime.request, getRTCTime.code);
-
                     // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
                     //     printf("%c", response[i]);
                     // }
@@ -335,9 +358,23 @@ void comms_port_test(void) {
                     // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
                     //     response[i] = '\0';
                     // }
+                } else {
+                    if (result != TRUE) {
+                        char errMsg[50];
+                        wd_get_error(result, errMsg);
+                        printf(errMsg);
+                        printf("here\n");
+                        continue;
+                    }
                 }
+
+                continue;
             } else {
                 printf("Return code not success %i\n", getRTCTime.code);
+                bpacket_char_array_t msg;
+                bpacket_data_to_string(&getRTCTime, &msg);
+                printf(msg.string);
+                printf("\n");
             }
         }
     }

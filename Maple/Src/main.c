@@ -383,7 +383,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    // comms_port_test();
+    comms_port_test();
 
     if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");

@@ -120,11 +120,11 @@
         }                                        \
     } while (0)
 
-#define BPACKET_ASSERT_VALID_REQUEST(request)   \
-    do {                                        \
-        if (request > BPACKET_MAX_ADDRESS) {    \
-            return BPACKET_ERR_INVALID_REQUEST; \
-        }                                       \
+#define BPACKET_ASSERT_VALID_REQUEST(request)      \
+    do {                                           \
+        if (request > BPACKET_MAX_REQUEST_VALUE) { \
+            return BPACKET_ERR_INVALID_REQUEST;    \
+        }                                          \
     } while (0)
 
 #define BPACKET_ASSERT_VALID_CODE(code)      \

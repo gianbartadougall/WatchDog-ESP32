@@ -33,7 +33,7 @@
 #define IMG_NUM_START_INDEX    3
 #define IMG_NUM_END_CHARACTER  '-'
 
-#define MAX_PATH_LENGTH 50
+#define MAX_PATH_LENGTH 280
 
 static const char* SD_CARD_TAG = "SD CARD:";
 
@@ -59,15 +59,19 @@ uint8_t sd_card_check_directory_exists(char* directory);
 
 uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
 
+    // Save the address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     // Try open the SD card
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\n");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "SD card could not open\n");
         return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Folder path > 50 characters\n");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Folder path > 50 characters\n");
         return FALSE;
     }
 
@@ -96,7 +100,7 @@ uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
                 FILE* file = fopen(directory, "w");
 
                 if (file == NULL) {
-                    bpacket_create_sp(bpacket, BPACKET_R_FAILED, "File could not be made\n");
+                    bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "File could not be made\n");
                     return FALSE;
                 }
 
@@ -105,7 +109,7 @@ uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
 
             // Error if the directory does not exist and a new one could not be made
             if (stat(directory, &st) != 0 && mkdir(directory, 0700) != 0) {
-                bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Dir could not be made\n");
+                bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Dir could not be made\n");
                 return FALSE;
             }
 
@@ -113,24 +117,28 @@ uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
         }
     }
 
-    bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
     return TRUE;
 }
 
 uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
 
+    // Save address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     char* folderPath = bpacketCharArray->string;
 
     // Try open the SD card
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "SD card could not open\0");
         esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Folder path > 50 chars\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Folder path > 50 chars\0");
         esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
@@ -142,7 +150,7 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     DIR* directory;
     directory = opendir(path);
     if (directory == NULL) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Filepath could not open\0");
         esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
@@ -158,6 +166,8 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     rewinddir(directory);
 
     int i             = 0;
+    bpacket->receiver = sender;
+    bpacket->sender   = receiver;
     bpacket->request  = BPACKET_R_IN_PROGRESS;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
     int in            = FALSE; // Variable just to know whether there was anything or not
@@ -198,7 +208,7 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     }
 
     if (in == FALSE) {
-        bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+        bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
         esp32_uart_send_bpacket(bpacket);
     }
 
@@ -210,15 +220,19 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
 
 uint8_t sd_card_write_to_file(char* filePath, char* string, bpacket_t* bpacket) {
 
+    // Save the address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     // Try open the SD card
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD Card could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "SD Card could not open\0");
         return FALSE;
     }
 
     // Validate the path length
     if (chars_get_num_bytes(filePath) > MAX_PATH_LENGTH) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath > 50 characters\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Filepath > 50 characters\0");
         return FALSE;
     }
 
@@ -234,18 +248,22 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, bpacket_t* bpacket) 
     FILE* file = fopen(directory, "a+");
 
     if (file == NULL) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Filepath could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Filepath could not open\0");
         return FALSE;
     }
 
     fprintf(file, string);
     fclose(file);
 
-    bpacket_create_p(bpacket, BPACKET_R_SUCCESS, 0, NULL);
+    bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
     return TRUE;
 }
 
 uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket) {
+
+    // Save the address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
 
     // Try open the SD card
     if (sd_card_open() != TRUE) {
@@ -261,7 +279,7 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket) {
     DIR* directory;
     directory = opendir(ROOT_IMAGE_DATA_FOLDER);
     if (directory == NULL) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Img dir could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Img dir could not open\0");
         return FALSE;
     }
 
@@ -295,6 +313,10 @@ uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb) {
 
 uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpacket) {
 
+    // Save the address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     // Try open the SD card
     if (sd_card_open() != TRUE) {
         return FALSE;
@@ -311,7 +333,7 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
 
     FILE* imageFile = fopen(filePath, "wb");
     if (imageFile == NULL) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "Image file failed to open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Image file failed to open\0");
         return FALSE;
     }
 
@@ -337,9 +359,13 @@ uint8_t sd_card_init(bpacket_t* bpacket) {
 
 void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
 
+    // Save the address
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "SD card failed to open\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "SD card failed to open\0");
         esp32_uart_send_bpacket(bpacket);
         // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, , "\0");
         return;
@@ -356,20 +382,18 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     // Return an error if there was no specified file
     if (filePath[0] == '\0') {
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, "No file specified\0");
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "No file specified\0");
         esp32_uart_send_bpacket(bpacket);
         // uart_comms_create_packet(responsePacket, UART_ERROR_REQUEST_FAILED, "No file was specified", "\0");
         return;
     }
 
-    char fullPath[50];
+    char fullPath[MAX_PATH_LENGTH];
     sprintf(fullPath, "%s/%s", MOUNT_POINT_PATH, filePath);
     FILE* file = fopen(fullPath, "rb"); // read binary file
 
     if (file == NULL) {
-        char msg[27];
-        sprintf(msg, fullPath);
-        bpacket_create_sp(bpacket, BPACKET_R_FAILED, strerror(errno));
+        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, strerror(errno));
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -406,17 +430,6 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 }
 
 /* GOOD FUNCTIONS */
-
-void sd_card_status(char* statusString) {
-
-    /**
-     * @brief The data that will be put into the status string includes
-     * Number of images on the SD Card:
-     * Amount of free space on the SD Card:
-     * If there have been any errors
-     *
-     */
-}
 
 uint8_t sd_card_open(void) {
 

@@ -25,8 +25,8 @@ C_INCLUDES = \
 -IInc
 
 LIB_SP_SOURCES = \
-Src/stb_image_resize.c \
 Src/stb_image.c \
+Src/stb_image_resize.c \
 serialport.c \
 timing.c \
 windows.c
@@ -50,6 +50,7 @@ LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir
 OPT = -Og
 C_COMPILER=gcc
 DEBUG_MODE=-g
+
 
 # Ensures .cpp files are recompiled if header files are edited 
 DEPENDENCY_FLAGS = -MP -MD
@@ -80,7 +81,6 @@ $(BUILD_DIR):
 
 # Delete build directory
 clean:
-
 	del $(FILES_TO_CLEAN)
 
 run:

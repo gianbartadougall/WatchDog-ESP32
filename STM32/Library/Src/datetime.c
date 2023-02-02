@@ -36,7 +36,7 @@
 
 const uint8_t daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour);
+/* Function Prototypes */
 
 uint8_t dt_time_is_valid(dt_time_t* time) {
     return dt_time_valid(time->second, time->minute, time->hour);
@@ -57,6 +57,23 @@ uint8_t dt_time_init(dt_time_t* time, uint8_t second, uint8_t minute, uint8_t ho
 
 uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year) {
 
+    if (dt_date_valid(day, month, year) != TRUE) {
+        return FALSE;
+    }
+
+    date->day   = day;
+    date->month = month;
+    date->year  = year;
+
+    return TRUE;
+}
+
+uint8_t dt_date_is_valid(dt_date_t* date) {
+    return dt_date_valid(date->day, date->month, date->year);
+}
+
+uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year) {
+
     if ((day == 0) || (month == 0) || (year == 0) || (month > 12)) {
         return FALSE;
     }
@@ -70,10 +87,6 @@ uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year)
         return FALSE;
     }
 
-    date->day   = day;
-    date->month = month;
-    date->year  = year;
-
     return TRUE;
 }
 
@@ -84,7 +97,7 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour) {
         return FALSE;
     }
 
-    // Confirm seconds are valid
+    // Confirm minuytes are valid
     if (minute > 59) {
         return FALSE;
     }

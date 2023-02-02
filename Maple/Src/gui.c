@@ -100,10 +100,18 @@
 #define TEXT_BOX_RTC_DATE_HANDLE          10
 #define TEXT_BOX_RTC_TIME_HANDLE          11
 
+#define TEXT_BOX_START_TIME_FLAG    (0x01 << 0)
+#define TEXT_BOX_END_TIME_FLAG      (0x01 << 1)
+#define TEXT_BOX_TIME_INTERVAL_FLAG (0x01 << 2)
+#define TEXT_BOX_RTC_DATE_FLAG      (0x01 << 3)
+#define TEXT_BOX_RTC_TIME_FLAG      (0x01 << 4)
+
 #define NUMBER_OF_CAM_RESOLUTIONS 7
 
 const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
                                            "1024x768", "1280x1024", "1600x1200"};
+
+uint32_t textBoxFlags = 0;
 
 HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval, textBoxRtcDate, textBoxRtcDate, textBoxRtcTime;
 HWND dropDownCameraResolution;
@@ -260,16 +268,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                                               (HMENU)TEXT_BOX_START_TIME_HANDLE);
 
             textBoxEndTime = create_textbox("Title", COL_2, ROW_10, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
+                                            (HMENU)TEXT_BOX_END_TIME_HANDLE);
 
             textBoxTimeInterval = create_textbox("Title", COL_2, ROW_11, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                                 (HMENU)TEXT_BOX_START_TIME_HANDLE);
+                                                 (HMENU)TEXT_BOX_TIME_INTERVAL_HANDLE);
 
             textBoxRtcDate = create_textbox("Title", COL_2, ROW_15, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
+                                            (HMENU)TEXT_BOX_RTC_DATE_HANDLE);
 
             textBoxRtcTime = create_textbox("Title", COL_2, ROW_16, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_START_TIME_HANDLE);
+                                            (HMENU)TEXT_BOX_RTC_TIME_HANDLE);
 
             // DROP BOXES
 
@@ -367,7 +375,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
 
         case WM_COMMAND:
-            // handle button clicks
+
+            // Handle button clicks
             if (LOWORD(wParam) == BUTTON_OPEN_SD_CARD_HANDLE) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // printf("Displaying SD card data\n");
@@ -421,6 +430,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 printf("Testing system\n");
             }
 
+            // Handle drop down box
             if ((HWND)lParam == dropDownCameraResolution) {
                 // Sends multiple messages but we only want to check for when the message is the change box
                 // message
@@ -432,6 +442,69 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     printf("Selected item %i: %s\n", itemIndex, buffer);
                     // NEED TO UPDATE THE FLAG HERE
                 }
+            }
+
+            // Handle the text boxes here
+
+            if (LOWORD(wParam) == TEXT_BOX_START_TIME_HANDLE) {
+                textBoxFlags |= TEXT_BOX_START_TIME_FLAG;
+            }
+
+            if (LOWORD(wParam) == TEXT_BOX_END_TIME_HANDLE) {
+                textBoxFlags |= TEXT_BOX_END_TIME_FLAG;
+            }
+
+            if (LOWORD(wParam) == TEXT_BOX_TIME_INTERVAL_HANDLE) {
+                textBoxFlags |= TEXT_BOX_TIME_INTERVAL_FLAG;
+            }
+
+            if (LOWORD(wParam) == TEXT_BOX_RTC_DATE_HANDLE) {
+                textBoxFlags |= TEXT_BOX_RTC_DATE_FLAG;
+            }
+
+            if (LOWORD(wParam) == TEXT_BOX_RTC_TIME_HANDLE) {
+                textBoxFlags |= TEXT_BOX_RTC_TIME_FLAG;
+            }
+
+            // This is for when they click off the text box
+
+            if ((LOWORD(wParam) != TEXT_BOX_START_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_START_TIME_FLAG)) {
+                // Unset the flag
+                textBoxFlags &= ~TEXT_BOX_START_TIME_FLAG;
+
+                // pull the text from the text box
+                int textBoxCharLen = GetWindowTextLength(textBoxStartTime) + 1;
+                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+                GetWindowText(textBoxStartTime, textBoxText, textBoxCharLen);
+
+                // Check if the text in the text box is valid
+                if (dt_is_valid_hour_min_period(textBoxText)) {
+                    // TODO: send a bpacket to say what the start Time will be
+                } else {
+                    // TODO: decide what to do
+                    printf("FUCKED IT \n");
+                }
+                free(textBoxText);
+            }
+
+            if ((LOWORD(wParam) != TEXT_BOX_END_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG)) {
+                textBoxFlags &= ~TEXT_BOX_END_TIME_FLAG;
+                // DO THE CHECKS
+            }
+
+            if ((LOWORD(wParam) != TEXT_BOX_TIME_INTERVAL_HANDLE) && (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG)) {
+                textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
+                // DO THE CHECKS
+            }
+
+            if ((LOWORD(wParam) != TEXT_BOX_RTC_DATE_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_DATE_FLAG)) {
+                textBoxFlags &= ~TEXT_BOX_RTC_DATE_FLAG;
+                // DO THE CHECKS
+            }
+
+            if ((LOWORD(wParam) != TEXT_BOX_RTC_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_TIME_FLAG)) {
+                textBoxFlags &= ~TEXT_BOX_RTC_TIME_FLAG;
+                // DO THE CHECKS
             }
 
             break;
@@ -560,11 +633,11 @@ DWORD WINAPI gui(void* arg) {
 
         // If a Bpacket is recieved from main, deal with it in here
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
-            printf("The number is: %i",
-                   *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes);
-            if (10 == *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes) {
-                printf("EASY");
-            }
+            // printf("The number is: %i",
+            //        *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes);
+            // if (10 == *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes) {
+            //     printf("EASY");
+            // }
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
         }
     }

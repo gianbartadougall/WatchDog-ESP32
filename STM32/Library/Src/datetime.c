@@ -8,11 +8,14 @@
  * @copyright Copyright (c) 2023
  *
  */
-/* */
+
+/* C Library Includes */
+#include <stdio.h>
 
 /* Personal Includes */
 #include "datetime.h"
 #include "utilities.h"
+#include "chars.h"
 
 #define JANUARY   1
 #define FEBRUARY  2
@@ -26,6 +29,8 @@
 #define OCTOBER   10
 #define NOVEMEBER 11
 #define DECEMBER  12
+#define MIN_YEAR  2022
+#define MAX_YEAR  2100
 
 #define YEAR_IS_LEAP_YEAR(year) ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0)))
 
@@ -102,5 +107,78 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour) {
         return FALSE;
     }
 
+    return TRUE;
+}
+uint8_t is_leap_year(int year) {
+    return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0);
+}
+
+uint8_t dt_is_valid_date(char* date) {
+    int day, month, year;
+    if (chars_get_num_bytes(date) > 10) {
+        return FALSE;
+    }
+    if (sscanf(date, "%d/%d/%d", &day, &month, &year) != 3) {
+        return FALSE;
+    }
+    if (month < 1 || month > 12) {
+        return FALSE;
+    }
+    if (day < 1 || day > 31) {
+        return FALSE;
+    }
+    if ((month == 2) && (day > 29)) {
+        return FALSE;
+    }
+    if ((month == 2) && (day == 29) && (!is_leap_year(year))) {
+        return FALSE;
+    }
+    if ((month == 4 || month == 6 || month == 9 || month == 11) && (day > 30)) {
+        return FALSE;
+    }
+    if (year < MIN_YEAR || year > MAX_YEAR) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+uint8_t dt_is_valid_hour_min(char* time) {
+    int hour, min;
+    if (chars_get_num_bytes(time) > 5) {
+        return FALSE;
+    }
+    if (sscanf(time, "%d:%d", &hour, &min) != 2) {
+        return FALSE;
+    }
+    if ((min < 0) || min >= 60) {
+        return FALSE;
+    }
+    if ((hour <= 0) || hour > 12) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+uint8_t dt_is_valid_hour_min_period(char* time) {
+    if (chars_get_num_bytes(time) > 8) {
+        return FALSE;
+    }
+    if (time[5] != ' ') {
+        return FALSE;
+    }
+    int hour, min;
+    char period[3];
+    if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
+        return FALSE;
+    }
+    if ((min < 0) || min >= 60) {
+        return FALSE;
+    }
+    if ((hour <= 0) || hour > 12) {
+        return FALSE;
+    }
+    if (chars_same(period, "am\0") != TRUE && chars_same(period, "pm\0") != TRUE) {
+        return FALSE;
+    }
     return TRUE;
 }

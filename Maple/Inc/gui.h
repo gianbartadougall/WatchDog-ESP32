@@ -47,8 +47,6 @@ typedef struct gui_initalisation_t {
 
 void gui_init();
 
-int is_valid_date(char* date);
-
 void gui_update();
 
 DWORD WINAPI gui(void* arg);

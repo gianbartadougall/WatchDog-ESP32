@@ -59,6 +59,10 @@ uint8_t chars_same(char* str1, char* str2) {
         i++;
     }
 
+    if (str1[i] != str2[i]) {
+        return FALSE;
+    }
+
     return TRUE;
 }
 

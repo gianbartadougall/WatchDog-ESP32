@@ -383,7 +383,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
 int main(int argc, char** argv) {
 
-    comms_port_test();
+    // comms_port_test();
 
     if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
         printf("Unable to connect to Watchdog\n");
@@ -411,7 +411,11 @@ int main(int argc, char** argv) {
     watchdogInfo.status = (packetBuffer[packetPendingIndex].bytes[4] == 0) ? SYSTEM_STATUS_OK : SYSTEM_STATUS_ERROR;
     sprintf(watchdogInfo.datetime, "01/03/2022 9:15 AM");
 
-    uint32_t flags;
+    // packetPendingIndex++;
+
+    uint32_t flags = 0;
+    // uint8_t cameraView = FALSE;
+
     gui_initalisation_t guiInit;
     guiInit.watchdog  = &watchdogInfo;
     guiInit.flags     = &flags;
@@ -425,13 +429,37 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    bpacket_t bpacket;
+    // put an example bpacket into the packet buffer
+    uint8_t number = 10;
+    bpacket_create_p(&packetBuffer[packetBufferIndex], 10, 1, &number);
+    maple_increment_packet_buffer_index();
+
+    while (1) {
+        // If a bpacket is recieved from the Gui, deal with it in here
+        if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
+
+            bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+        }
+
+        // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular buffer
+        if (packetBufferIndex != packetPendingIndex) {
+
+            *mainToGuiCircularBuffer.circularBuffer[*guiToMainCircularBuffer.writeIndex] =
+                packetBuffer[packetPendingIndex];
+
+            // Increase packet pending index so code it is know that the incoming data was dealt with
+            maple_increment_packet_pending_index();
+            // Increae write index of the main to gui circular buffer so that it can be parsed to
+            // the GUI
+            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer.writeIndex);
+        }
+    }
     while (1) {
 
-        // Check if
-        if (*guiToMainCircularBuffer.readIndex == *guiToMainCircularBuffer.writeIndex) {
-            continue;
-        }
+        // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
+        //     flags &= ~(GUI_TURN_RED_LED_OFF);
+        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+        // }
 
         bpacket_t* bpacket = guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex];
         bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);

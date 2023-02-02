@@ -45,6 +45,8 @@ LIB_SP_OBJECTS = $(patsubst %.c, %.o, $(LIB_SP_SOURCES))
 C_OBJECTS_BUILD_DIR = $(foreach D, $(C_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 
+
+
 OPT = -Og
 C_COMPILER=gcc
 DEBUG_MODE=-g

@@ -147,11 +147,14 @@ uint8_t dt_is_valid_hour_min(char* time) {
 }
 
 uint8_t dt_is_valid_hour_min_period(char* time) {
-    int hour, min;
-    char period[3];
     if (chars_get_num_bytes(time) > 8) {
         return FALSE;
     }
+    if (time[5] != ' ') {
+        return FALSE;
+    }
+    int hour, min;
+    char period[3];
     if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
         return FALSE;
     }
@@ -161,7 +164,7 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     if ((hour <= 0) || hour > 12) {
         return FALSE;
     }
-    if (chars_same(period, "am") != 0 && chars_same(period, "pm") != 0) {
+    if (chars_same(period, "am\0") != TRUE && chars_same(period, "pm\0") != TRUE) {
         return FALSE;
     }
     return TRUE;

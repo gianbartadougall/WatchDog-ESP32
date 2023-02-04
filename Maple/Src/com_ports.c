@@ -161,9 +161,9 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
 
         bpacket_buffer_decode(&bpacket, response);
 
-        if ((bpacket.request != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
+        if ((bpacket.code != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
             sp_close(port);
-            printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
+            printf("Code: [%i] with ping: [%i]\n", bpacket.code, bpacket.bytes[0]);
             continue;
         }
 
@@ -235,147 +235,154 @@ void comms_port_test(void) {
         if (com_ports_open_port(port) != SP_OK) {
             printf("Unable to open port [%i]\n", i);
             continue;
+        } else {
+            printf("Opened port %s\n", sp_get_port_name(port));
         }
 
-        bpacket_t getRTCTime, setRTCTime;
-        bpacket_buffer_t getPacketBuffer, setPacketBuffer;
+        bpacket_t getRTCTime;
+        bpacket_buffer_t getPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
-                         BPACKET_CODE_EXECUTE, 0, NULL);
+        char imageName[] = "img0.jpg";
+        // bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
+        //                  BPACKET_CODE_EXECUTE, 0, NULL);
+        bpacket_create_sp(&getRTCTime, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_COPY_FILE,
+                          BPACKET_CODE_EXECUTE, imageName);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
 
-        // printf("packet buffer length: %i %i %i\n", getPacketBuffer.numBytes, getPacketBuffer.request,
-        // getRTCTime.code);
-
-        // uint8_t length = 6;
-        // uint8_t data[length];
-        // data[0] = BPACKET_START_BYTE;
-        // data[1] = 3;
-        // data[2] = BPACKET_GEN_R_PING;
-        // data[3] = 'G';
-        // data[4] = 'H';
-        // data[5] = BPACKET_STOP_BYTE;
         printf("Starting\n");
-        while (1) {
 
-            for (int i = 0; i < 1000000000; i++) {}
-
-            if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
-                printf("Unable to write\n");
-                continue;
-            }
-
-            uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
-            if (sp_blocking_read(port, response, 100, 1000) < 0) {
-                printf("Unbable to read\n");
-                return;
-            }
-
-            uint8_t result = bpacket_buffer_decode(&getRTCTime, response);
-
-            if (result != TRUE) {
-                char errMsg[50];
-                bpacket_get_error(result, errMsg);
-                printf(errMsg);
-                printf("%s\n", response);
-                continue;
-            }
-
-            if (getRTCTime.code == BPACKET_CODE_SUCCESS) {
-
-                printf("Start time: %i:%i End time: %i:%i Interval time: %i:%i Resolution: %i\n", getRTCTime.bytes[0],
-                       getRTCTime.bytes[1], getRTCTime.bytes[2], getRTCTime.bytes[3], getRTCTime.bytes[4],
-                       getRTCTime.bytes[5], getRTCTime.bytes[6]);
-
-                wd_camera_settings_t cameraSettings;
-                cameraSettings.startTime.second    = 0;
-                cameraSettings.startTime.minute    = getRTCTime.bytes[0];
-                cameraSettings.startTime.hour      = getRTCTime.bytes[1];
-                cameraSettings.endTime.second      = 0;
-                cameraSettings.endTime.minute      = getRTCTime.bytes[2];
-                cameraSettings.endTime.hour        = getRTCTime.bytes[3];
-                cameraSettings.intervalTime.second = 0;
-                cameraSettings.intervalTime.minute = getRTCTime.bytes[4];
-                cameraSettings.intervalTime.hour   = getRTCTime.bytes[5];
-                cameraSettings.resolution          = getRTCTime.bytes[6];
-
-                result = wd_bpacket_to_camera_settings(&getRTCTime, &cameraSettings);
-
-                if (result == TRUE) {
-
-                    if (cameraSettings.startTime.hour < 12) {
-                        cameraSettings.startTime.hour++;
-                    } else {
-                        cameraSettings.startTime.hour = 3;
-                    }
-
-                    result = wd_camera_settings_to_bpacket(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                                           WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE,
-                                                           &cameraSettings);
-
-                    if (result != TRUE) {
-                        char errMsg[50];
-                        wd_get_error(result, errMsg);
-                        printf(errMsg);
-                        continue;
-                    }
-
-                    bpacket_to_buffer(&getRTCTime, &setPacketBuffer);
-
-                    if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes, 1000) < 0) {
-                        printf("Unable to set the date\n");
-                        continue;
-                    }
-
-                    uint32_t bytesRead = 0;
-                    if ((bytesRead = sp_blocking_read(port, response, 100, 1000)) < 0) {
-                        printf("Unbable to read\n");
-                        return;
-                    }
-
-                    if (bytesRead == 0) {
-                        continue;
-                    }
-
-                    result = bpacket_buffer_decode(&getRTCTime, response);
-
-                    if (result != TRUE) {
-                        char errMsg[50];
-                        bpacket_get_error(result, errMsg);
-                        printf(errMsg);
-                        continue;
-                    }
-
-                    printf("Request: [%i] with code: [%i]\n", getRTCTime.request, getRTCTime.code);
-                    // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-                    //     printf("%c", response[i]);
-                    // }
-
-                    // if (response[0] != '\0') {
-                    //     printf("\n");
-                    // }
-
-                    // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
-                    //     response[i] = '\0';
-                    // }
-                } else {
-                    if (result != TRUE) {
-                        char errMsg[50];
-                        wd_get_error(result, errMsg);
-                        printf(errMsg);
-                        printf("here\n");
-                        continue;
-                    }
-                }
-
-                continue;
-            } else {
-                printf("Return code not success %i\n", getRTCTime.code);
-                bpacket_char_array_t msg;
-                bpacket_data_to_string(&getRTCTime, &msg);
-                printf(msg.string);
-                printf("\n");
-            }
+        // Send request
+        if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
+            printf("Unable to write\n");
+            continue;
         }
+
+        uint8_t bytes = 0;
+        uint8_t data;
+        while ((bytes = sp_blocking_read(port, &data, 1, 3000)) >= 0) {
+
+            if (bytes == 0) {
+                continue;
+            }
+
+            printf("%c", data);
+        }
+
+        printf("Ended\n");
+        while (1) {}
+
+        // while (1) {
+
+        //     for (int i = 0; i < 1000000000; i++) {}
+
+        //     uint8_t response[BPACKET_BUFFER_LENGTH_BYTES];
+
+        //     uint8_t result = bpacket_buffer_decode(&getRTCTime, response);
+
+        //     if (result != TRUE) {
+        //         char errMsg[50];
+        //         bpacket_get_error(result, errMsg);
+        //         printf(errMsg);
+        //         printf("%s\n", response);
+        //         continue;
+        //     }
+
+        //     if (getRTCTime.code == BPACKET_CODE_SUCCESS) {
+
+        //         printf("Start time: %i:%i End time: %i:%i Interval time: %i:%i Resolution: %i\n",
+        //         getRTCTime.bytes[0],
+        //                getRTCTime.bytes[1], getRTCTime.bytes[2], getRTCTime.bytes[3], getRTCTime.bytes[4],
+        //                getRTCTime.bytes[5], getRTCTime.bytes[6]);
+
+        //         wd_camera_settings_t cameraSettings;
+        //         cameraSettings.startTime.second    = 0;
+        //         cameraSettings.startTime.minute    = getRTCTime.bytes[0];
+        //         cameraSettings.startTime.hour      = getRTCTime.bytes[1];
+        //         cameraSettings.endTime.second      = 0;
+        //         cameraSettings.endTime.minute      = getRTCTime.bytes[2];
+        //         cameraSettings.endTime.hour        = getRTCTime.bytes[3];
+        //         cameraSettings.intervalTime.second = 0;
+        //         cameraSettings.intervalTime.minute = getRTCTime.bytes[4];
+        //         cameraSettings.intervalTime.hour   = getRTCTime.bytes[5];
+        //         cameraSettings.resolution          = getRTCTime.bytes[6];
+
+        //         result = wd_bpacket_to_camera_settings(&getRTCTime, &cameraSettings);
+
+        //         if (result == TRUE) {
+
+        //             if (cameraSettings.startTime.hour < 12) {
+        //                 cameraSettings.startTime.hour++;
+        //             } else {
+        //                 cameraSettings.startTime.hour = 3;
+        //             }
+
+        //             result = wd_camera_settings_to_bpacket(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+        //                                                    WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE,
+        //                                                    &cameraSettings);
+
+        //             if (result != TRUE) {
+        //                 char errMsg[50];
+        //                 wd_get_error(result, errMsg);
+        //                 printf(errMsg);
+        //                 continue;
+        //             }
+
+        //             bpacket_to_buffer(&getRTCTime, &setPacketBuffer);
+
+        //             if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes, 1000) < 0) {
+        //                 printf("Unable to set the date\n");
+        //                 continue;
+        //             }
+
+        //             uint32_t bytesRead = 0;
+        //             if ((bytesRead = sp_blocking_read(port, response, 100, 1000)) < 0) {
+        //                 printf("Unbable to read\n");
+        //                 return;
+        //             }
+
+        //             if (bytesRead == 0) {
+        //                 continue;
+        //             }
+
+        //             result = bpacket_buffer_decode(&getRTCTime, response);
+
+        //             if (result != TRUE) {
+        //                 char errMsg[50];
+        //                 bpacket_get_error(result, errMsg);
+        //                 printf(errMsg);
+        //                 continue;
+        //             }
+
+        //             printf("Request: [%i] with code: [%i]\n", getRTCTime.request, getRTCTime.code);
+        //             // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+        //             //     printf("%c", response[i]);
+        //             // }
+
+        //             // if (response[0] != '\0') {
+        //             //     printf("\n");
+        //             // }
+
+        //             // for (int i = 0; i < BPACKET_BUFFER_LENGTH_BYTES; i++) {
+        //             //     response[i] = '\0';
+        //             // }
+        //         } else {
+        //             if (result != TRUE) {
+        //                 char errMsg[50];
+        //                 wd_get_error(result, errMsg);
+        //                 printf(errMsg);
+        //                 printf("here\n");
+        //                 continue;
+        //             }
+        //         }
+
+        //         continue;
+        //     } else {
+        //         printf("Return code not success %i\n", getRTCTime.code);
+        //         bpacket_char_array_t msg;
+        //         bpacket_data_to_string(&getRTCTime, &msg);
+        //         printf(msg.string);
+        //         printf("\n");
+        //     }
+        // }
     }
 }

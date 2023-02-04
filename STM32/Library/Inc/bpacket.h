@@ -165,12 +165,12 @@ typedef struct bpacket_t {
 } bpacket_t;
 
 typedef struct bpacket_buffer_t {
-    uint8_t numBytes;
+    uint16_t numBytes; // Bpacket size needs to be a uint16_t because bpacket buffer > 255 bytes when put into a buffer
     uint8_t buffer[BPACKET_BUFFER_LENGTH_BYTES];
 } bpacket_buffer_t;
 
 typedef struct bpacket_char_array_t {
-    uint8_t numBytes;
+    uint16_t numBytes;
     char string[BPACKET_MAX_NUM_DATA_BYTES + 1]; // One extra for null character
 } bpacket_char_array_t;
 

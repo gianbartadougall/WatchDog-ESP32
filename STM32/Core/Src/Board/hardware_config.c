@@ -242,7 +242,10 @@ void hardware_config_uart_init(void) {
     UART_ESP32_CLK_ENABLE();
     UART_ESP32->BRR = SystemCoreClock / UART_ESP32_BUAD_RATE;
     UART_ESP32->CR1 = 0x00; // reset UART
-    UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE);
+
+    // UART is purposely left disabled here until the ESP32 has been turned on. This ensures the startup
+    // data sent over UART by the ESP32 is not read by the STM32
+    UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_RXNEIE);
 
     // Set baud rate
     UART_LOG_CLK_ENABLE();

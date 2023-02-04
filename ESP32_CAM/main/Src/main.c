@@ -60,6 +60,7 @@
 uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
     // Save the address
+    uint8_t request  = bpacket->request;
     uint8_t receiver = bpacket->receiver;
     uint8_t sender   = bpacket->sender;
 
@@ -70,9 +71,9 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
 
             if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-                bpacket_create_p(bpacket, sender, receiver, BPACKET_R_FAILED, 0, NULL);
+                bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, 0, NULL);
             } else {
-                bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
             }
 
             esp32_uart_send_bpacket(bpacket);
@@ -80,7 +81,7 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
 
             uint8_t resolution = camera_get_resolution();
-            bpacket_create_p(bpacket, sender, receiver, BPACKET_R_SUCCESS, 1, &resolution);
+            bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, &resolution);
             esp32_uart_send_bpacket(bpacket);
             break;
         case WATCHDOG_BPK_R_RECORD_DATA:
@@ -101,7 +102,7 @@ uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
             bpacket_data_to_string(bpacket, &bpacketCharArray);
             sd_card_list_directory(bpacket, &bpacketCharArray);
             break;
-        case WATCHDOG_BPK_R_COPY_FILE:
+        case WATCHDOG_BPK_R_COPY_FILE:;
             bpacket_data_to_string(bpacket, &bpacketCharArray);
             sd_card_copy_file(bpacket, &bpacketCharArray);
             break;
@@ -119,11 +120,10 @@ void watchdog_system_start(void) {
     led_off(RED_LED);
 
     uint8_t ping[1];
-    ping[0] = 23;
+    ping[0] = WATCHDOG_PING_CODE_ESP32;
 
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
     bpacket_t bpacket;
-    // bpacket_char_array_t bpacketCharArray;
 
     while (1) {
 
@@ -135,41 +135,63 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        bpacket_buffer_decode(&bpacket, bdata);
+        uint8_t result = bpacket_buffer_decode(&bpacket, bdata);
 
-        if ((bpacket.receiver == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
+        if (result != TRUE) {
+            esp32_uart_send_bpacket(&bpacket);
+            led_on(RED_LED);
             continue;
         }
 
-        if ((bpacket.receiver == BPACKET_ADDRESS_MAPLE) && (esp3_match_maple_request(&bpacket) == TRUE)) {
+        bpacket_t response;
+        bpacket_buffer_t bpacketBuffer;
+        char msg[50];
+        sprintf(msg, "Sender: %i Receiver: %i ", bpacket.sender, bpacket.receiver);
+        bpacket_create_sp(&response, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_PING,
+                          BPACKET_CODE_SUCCESS, msg);
+        bpacket_to_buffer(&response, &bpacketBuffer);
+        esp32_uart_send_bpacket(&response);
+
+        if ((bpacket.sender == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
             continue;
         }
+
+        if ((bpacket.sender == BPACKET_ADDRESS_MAPLE) && (esp3_match_maple_request(&bpacket) == TRUE)) {
+            continue;
+        }
+
+        bpacket_create_sp(&response, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_PING,
+                          BPACKET_CODE_SUCCESS, "Generic request received");
+        bpacket_to_buffer(&response, &bpacketBuffer);
+        esp32_uart_send_bpacket(&response);
 
         // The request was a generic request that could have been sent from the stm32
         // or from maple
+        uint8_t request  = bpacket.request;
         uint8_t receiver = bpacket.receiver;
         uint8_t sender   = bpacket.sender;
 
         switch (bpacket.request) {
             case BPACKET_GEN_R_PING:
-                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 1, ping);
+                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, ping);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_ON:
                 led_on(RED_LED);
-                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_OFF:
                 led_off(RED_LED);
-                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_SUCCESS, 0, NULL);
+                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
                 // sd_card_write_to_file();
                 break;
             default: // No request was able to be matched. Send response back to sender
-                bpacket_create_p(&bpacket, sender, receiver, BPACKET_R_UNKNOWN, 0, NULL);
+                bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN,
+                                  "ESP32 could not recnognise the request\0");
                 esp32_uart_send_bpacket(&bpacket);
                 break;
         }
@@ -203,5 +225,6 @@ void app_main(void) {
         // esp32_uart_send_packet(&status);
         // esp32_uart_send_data("\r\n");
         vTaskDelay(2000 / portTICK_PERIOD_MS);
+        led_toggle(RED_LED);
     }
 }

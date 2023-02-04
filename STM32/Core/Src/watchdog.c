@@ -72,7 +72,12 @@ void watchdog_init(void) {
     cameraSettings.resolution = WD_CAM_RES_1024x768;
 
     // Turn the ESP32 on
-    // watchdog_esp32_on();
+    watchdog_esp32_on();
+
+    // Wait for 1000ms for ESP32 to send all it's startup info and then start UART so the STM32 doesn't need
+    // to read it all at the moment
+    HAL_Delay(2000);
+    UART_ESP32->CR1 |= USART_CR1_UE; // Start UART 1
 }
 
 void watchdog_send_string(char* string) {
@@ -269,6 +274,7 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             // TODO: Implement
             break;
         case WATCHDOG_BPK_R_GET_STATUS:
+
             // TODO: Implement
             break;
         default:;
@@ -305,12 +311,11 @@ void watchdog_update(void) {
     while (1) {
 
         // Process anything the ESP32 sends to the STM32
-        // if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
-
-        //     if (stm32_match_maple_request(&esp32Bpacket) != TRUE) {
-        //         process_watchdog_stm32_request(&esp32Bpacket);
-        //     }
-        // }
+        if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
+            if (stm32_match_maple_request(&esp32Bpacket) != TRUE) {
+                process_watchdog_stm32_request(&esp32Bpacket);
+            }
+        }
 
         // Process anything Maple sends to the STM32
         if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {

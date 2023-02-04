@@ -47,7 +47,6 @@ uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, u
     BPACKET_ASSERT_VALID_ADDRESS(receiver);
     BPACKET_ASSERT_VALID_REQUEST(request);
     BPACKET_ASSERT_VALID_CODE(code);
-    BPACKET_ASSERT_VALID_NUM_BYTES(numDataBytes);
 
     bpacket->receiver = receiver;
     bpacket->sender   = sender;
@@ -119,7 +118,6 @@ uint8_t bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LE
     BPACKET_ASSERT_VALID_ADDRESS(receiver);
     BPACKET_ASSERT_VALID_REQUEST(request);
     BPACKET_ASSERT_VALID_CODE(code);
-    BPACKET_ASSERT_VALID_NUM_BYTES(numDataBytes);
 
     bpacket->receiver = receiver;
     bpacket->sender   = sender;

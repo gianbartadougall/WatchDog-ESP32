@@ -26,9 +26,9 @@
 
 void esp32_uart_send_bpacket(bpacket_t* bpacket) {
 
-    bpacket_buffer_t packetBuffer;
-    bpacket_to_buffer(bpacket, &packetBuffer);
-    uart_write_bytes(UART_NUM, packetBuffer.buffer, packetBuffer.numBytes);
+    bpacket_buffer_t bpacketBuffer;
+    bpacket_to_buffer(bpacket, &bpacketBuffer);
+    uart_write_bytes(UART_NUM, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 }
 
 int esp32_uart_send_data(const char* data) {
@@ -46,7 +46,7 @@ int esp32_uart_send_data(const char* data) {
 void esp32_uart_send_string(char* string) {
 
     bpacket_t bpacket;
-    bpacket.request  = BPACKET_R_IN_PROGRESS;
+    bpacket.request  = BPACKET_CODE_IN_PROGRESS;
     bpacket.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
     int pi           = 0;
     int numBytes     = chars_get_num_bytes(string);
@@ -60,7 +60,7 @@ void esp32_uart_send_string(char* string) {
         }
 
         if ((i + 1) == numBytes) {
-            bpacket.request  = BPACKET_R_SUCCESS;
+            bpacket.request  = BPACKET_CODE_SUCCESS;
             bpacket.numBytes = pi--;
         }
 

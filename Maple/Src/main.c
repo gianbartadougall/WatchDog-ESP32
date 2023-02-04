@@ -37,6 +37,11 @@
 #define MAPLE_MAX_ARGS     5
 #define PACKET_BUFFER_SIZE 50
 
+bpacket_circular_buffer_t guiToMainCircularBuffer;
+bpacket_circular_buffer_t mainToGuiCircularBuffer;
+
+#define GTM_CB_CURRENT_BPACKET (guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex])
+
 /* Example of how to get a list of serial ports on the system.
  *
  * This example file is released to the public domain. */
@@ -432,6 +437,12 @@ int main(int argc, char** argv) {
     while (1) {
         // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
+            uint8_t sendStatus = com_ports_send_bpacket(GTM_CB_CURRENT_BPACKET);
+            if (sendStatus != TRUE) {
+                char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
+                bpacket_get_error(sendStatus, sendBpErrorMsg);
+                printf("%s\n", sendBpErrorMsg);
+            }
 
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
         }
@@ -447,22 +458,6 @@ int main(int argc, char** argv) {
             // Increae write index of the main to gui circular buffer so that it can be parsed to
             // the GUI
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer.writeIndex);
-        }
-    }
-    while (1) {
-
-        // if ((flags & GUI_TURN_RED_LED_OFF) != 0) {
-        //     flags &= ~(GUI_TURN_RED_LED_OFF);
-        //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-        // }
-
-        bpacket_t* bpacket = guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex];
-        bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
-
-        switch (bpacket->request) {
-            default:
-                printf("Request: %i\n", bpacket->request);
-                com_ports_send_bpacket(bpacket);
         }
     }
 

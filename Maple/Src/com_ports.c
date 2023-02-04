@@ -228,8 +228,7 @@ void comms_port_test(void) {
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    bpacket_t bpacket;
-    for (int i = 1; port_list[i] != NULL; i++) {
+    for (int i = 0; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
 

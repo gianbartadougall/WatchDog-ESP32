@@ -140,6 +140,8 @@ uint32_t* flags;
 bpacket_circular_buffer_t* guiToMainCircularBuffer;
 bpacket_circular_buffer_t* mainToGuiCircularBuffer;
 
+#define MTG_CB_CURRENT_BPACKET (mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])
+
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
                         NULL);
@@ -248,6 +250,11 @@ void gui_set_normal_view(HWND hwnd) {
 
     // Hide the normal view button
     ShowWindow(buttonNormalView, SW_HIDE);
+
+    // Set the "clicked of the texbox" flag so if the input in them is valid the red text will be written over them
+    // again
+    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG |
+                     TEXT_BOX_RTC_DATE_FLAG | TEXT_BOX_RTC_TIME_FLAG);
 
     // make the changes
     UpdateWindow(hwnd);
@@ -468,8 +475,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxFlags |= TEXT_BOX_RTC_TIME_FLAG;
             }
 
-            // This is for when they click off the text box
-
+            // This if statment will be evaluated as true when the user click off the start time textbox
             if ((LOWORD(wParam) != TEXT_BOX_START_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_START_TIME_FLAG)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_START_TIME_FLAG;
@@ -483,30 +489,105 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 if (dt_is_valid_hour_min_period(textBoxText)) {
                     // TODO: send a bpacket to say what the start Time will be
                 } else {
-                    // TODO: decide what to do
-                    printf("FUCKED IT \n");
+                    // Write, in red, invalid input over the textbox
+                    HDC hdc = GetDC(textBoxStartTime);
+                    SetTextColor(hdc, RGB(255, 0, 0));
+                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+                    ReleaseDC(textBoxStartTime, hdc);
                 }
                 free(textBoxText);
             }
 
+            // This if statment will be evaluated as true when the user click off the end time textbox
             if ((LOWORD(wParam) != TEXT_BOX_END_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG)) {
+                // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_END_TIME_FLAG;
-                // DO THE CHECKS
+
+                // pull the text from the text box
+                int textBoxCharLen = GetWindowTextLength(textBoxEndTime) + 1;
+                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+                GetWindowText(textBoxEndTime, textBoxText, textBoxCharLen);
+
+                // Check if the text in the text box is valid
+                if (dt_is_valid_hour_min_period(textBoxText)) {
+                    // TODO: send a bpacket to say what the start Time will be
+                } else {
+                    // Write, in red, invalid input over the textbox
+                    HDC hdc = GetDC(textBoxEndTime);
+                    SetTextColor(hdc, RGB(255, 0, 0));
+                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+                    ReleaseDC(textBoxEndTime, hdc);
+                }
+                free(textBoxText);
             }
 
+            // This if statment will be evaluated as true when the user click off the time interval time textbox
             if ((LOWORD(wParam) != TEXT_BOX_TIME_INTERVAL_HANDLE) && (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG)) {
+                // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
-                // DO THE CHECKS
+
+                // pull the text from the text box
+                int textBoxCharLen = GetWindowTextLength(textBoxTimeInterval) + 1;
+                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+                GetWindowText(textBoxTimeInterval, textBoxText, textBoxCharLen);
+
+                // Check if the text in the text box is valid
+                if (dt_is_valid_hour_min(textBoxText)) {
+                    // TODO: send a bpacket to say what the start Time will be
+                } else {
+                    // Write, in red, invalid input over the textbox
+                    HDC hdc = GetDC(textBoxTimeInterval);
+                    SetTextColor(hdc, RGB(255, 0, 0));
+                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+                    ReleaseDC(textBoxTimeInterval, hdc);
+                }
+                free(textBoxText);
             }
 
+            // This if statment will be evaluated as true when the user click off the RTC date time textbox
             if ((LOWORD(wParam) != TEXT_BOX_RTC_DATE_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_DATE_FLAG)) {
+                // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_RTC_DATE_FLAG;
-                // DO THE CHECKS
+
+                // pull the text from the text box
+                int textBoxCharLen = GetWindowTextLength(textBoxRtcDate) + 1;
+                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+                GetWindowText(textBoxRtcDate, textBoxText, textBoxCharLen);
+
+                // Check if the text in the text box is valid
+                if (dt_is_valid_date(textBoxText)) {
+                    // TODO: send a bpacket to say what the start Time will be
+                } else {
+                    // Write, in red, invalid input over the textbox
+                    HDC hdc = GetDC(textBoxRtcDate);
+                    SetTextColor(hdc, RGB(255, 0, 0));
+                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+                    ReleaseDC(textBoxRtcDate, hdc);
+                }
+                free(textBoxText);
             }
 
+            // This if statment will be evaluated as true when the user click off the RTC time time textbox
             if ((LOWORD(wParam) != TEXT_BOX_RTC_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_TIME_FLAG)) {
+                // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_RTC_TIME_FLAG;
-                // DO THE CHECKS
+
+                // pull the text from the text box
+                int textBoxCharLen = GetWindowTextLength(textBoxRtcTime) + 1;
+                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+                GetWindowText(textBoxRtcTime, textBoxText, textBoxCharLen);
+
+                // Check if the text in the text box is valid
+                if (dt_is_valid_hour_min_period(textBoxText)) {
+                    // TODO: send a bpacket to say what the start Time will be
+                } else {
+                    // Write, in red, invalid input over the textbox
+                    HDC hdc = GetDC(textBoxRtcTime);
+                    SetTextColor(hdc, RGB(255, 0, 0));
+                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+                    ReleaseDC(textBoxRtcTime, hdc);
+                }
+                free(textBoxText);
             }
 
             break;
@@ -621,6 +702,7 @@ DWORD WINAPI gui(void* arg) {
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
+    bpacket_t* recievedBpacket;
 
     // message loop
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
@@ -635,12 +717,20 @@ DWORD WINAPI gui(void* arg) {
 
         // If a Bpacket is recieved from main, deal with it in here
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
-            // printf("The number is: %i",
-            //        *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes);
-            // if (10 == *(mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])->bytes) {
-            //     printf("EASY");
-            // }
+
+            recievedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
+            if (recievedBpacket->code != TRUE) {
+                printf("The code of the Bpacket wasn't 'success'"); // TODO: make this a better print
+            }
+
+            // The bpacket is now recieved, now it can be one of a bunch of possible requets.
+            // Now check which request it is and do what you need to do
+        }
+        switch (recievedBpacket->request) {
+            case WATCHDOG_BPK_R_GET_DATETIME:
+
+                break;
         }
     }
 

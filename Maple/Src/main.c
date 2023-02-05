@@ -298,6 +298,8 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
     while ((numBytes = com_ports_read(&byte, 1, 0)) >= 0) {
 
+        // printf("%c", byte);
+
         if (expectedByteId == BPACKET_DATA_BYTE_ID) {
 
             // Increment the number of data bytes received
@@ -326,7 +328,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             expectedByteId = BPACKET_START_BYTE_UPPER_ID;
 
             // Increment the packet buffer. Reset the buffer index
-            packetBufferIndex++;
+            maple_increment_packet_buffer_index();
             bpacketByteIndex = 0;
             continue;
         }
@@ -437,7 +439,7 @@ void copy_file_test_function(void) {
 
     // Create file to copy data into
     FILE* target;
-    target = fopen("testFile.jpg", "wb"); // Read binary
+    target = fopen("testFile1.jpg", "wb"); // Read binary
 
     if (target == NULL) {
         printf("Could not open file\n");
@@ -447,7 +449,7 @@ void copy_file_test_function(void) {
 
     // Create bpacket message to request file to be copied
     bpacket_t bpacket;
-    char imageName[] = "img1.jpg";
+    char imageName[] = "img0.jpg";
     bpacket_create_sp(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_COPY_FILE,
                       BPACKET_CODE_EXECUTE, imageName);
     com_ports_send_bpacket(&bpacket);
@@ -461,7 +463,7 @@ void copy_file_test_function(void) {
 
         while (packetPendingIndex == packetBufferIndex) {}
 
-        // packet = &packetBuffer[packetPendingIndex];
+        packet = &packetBuffer[packetPendingIndex];
 
         // for (int i = 0; i < packet->numBytes; i++) {
         //     printf("%c", packet->bytes[i]);
@@ -470,13 +472,22 @@ void copy_file_test_function(void) {
         // maple_increment_packet_pending_index();
 
         // Skip the packet if the reciever data is not for the copy file
+        // printf("here\n");
         if (packetBuffer[packetPendingIndex].request != WATCHDOG_BPK_R_COPY_FILE) {
             maple_increment_packet_pending_index();
             printf("Skipping\n");
             continue;
         }
-        printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n", packet->sender, packet->receiver,
-               packet->request, packet->code, packet->numBytes);
+        // printf(" donkey \n");
+        // printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n", packet->sender, packet->receiver,
+        //        packet->request, packet->code, packet->numBytes);
+
+        if (packet->numBytes != 255) {
+            for (int i = 0; i < packet->numBytes; i++) {
+                printf("%c", packet->bytes[i]);
+            }
+            printf("\n");
+        }
 
         i++;
         // Write the contents to the file
@@ -490,6 +501,7 @@ void copy_file_test_function(void) {
             maple_increment_packet_pending_index();
             break;
         }
+        maple_increment_packet_pending_index();
     }
 
     printf("Finished\n");

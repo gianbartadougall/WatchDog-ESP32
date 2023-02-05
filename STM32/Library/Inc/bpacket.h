@@ -61,7 +61,8 @@
 #define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 1)
 #define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 2)
 #define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 3)
-#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 4) // This is the offset applied to specific projects
+#define BPACKET_GET_R_MESSAGE     (BPACKET_MIN_REQUEST_INDEX + 4) // Used for debugging purposes and general messages
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 5) // This is the offset applied to specific projects
 
 #define BPACKET_CODE_IS_INVALID(code)         ((code > BPACKET_CODE_EXECUTE) == TRUE)
 #define BPACKET_SENDER_IS_INVALID(sender)     ((sender > BPACKET_ADDRESS_15) == TRUE)

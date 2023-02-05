@@ -17,6 +17,7 @@
 /* Personal Includes */
 #include "gui.h"
 #include "utilities.h"
+#include "chars.h"
 #include "watchdog_defines.h"
 
 // #define STB_IMAGE_IMPLEMENTATION // Required for stb_image
@@ -120,6 +121,9 @@ HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumI
     labelTimeInfo;
 HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
 HFONT hFont;
+int startTimeHr, startTimeMin, endTimeHr, endTimeMin, timeIntervalHr, timeIntervalMin, rtcTimeMin, rtcTimeHr,
+    rtcTimeDay, rtcTimeMonth, rtcTimeYear;
+
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -169,6 +173,13 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
 HWND create_textbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY, width,
                           height, hwnd, handle, GetModuleHandle(NULL), NULL);
+}
+
+void invalid_text_input(HWND textBox) {
+    HDC hdc = GetDC(textBox);
+    SetTextColor(hdc, RGB(255, 0, 0));
+    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+    ReleaseDC(textBox, hdc);
 }
 
 int cameraViewOn = FALSE;
@@ -487,15 +498,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 // Check if the text in the text box is valid
                 if (dt_is_valid_hour_min_period(textBoxText)) {
-                    // TODO: send a bpacket to say what the start Time will be
+                    char period[3];
+                    sscanf(textBoxText, "%d:%d %2s", &startTimeHr, &startTimeMin, period);
+                    // The info is stored in 24 hour time so if it is pm add 12 hrs, if it is 12, take 12
+                    if (startTimeHr == 12) {
+                        startTimeHr -= 12;
+                    }
+                    if (chars_same(period, "pm\0") == TRUE) {
+                        startTimeHr += 12;
+                    }
+                    // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    HDC hdc = GetDC(textBoxStartTime);
-                    SetTextColor(hdc, RGB(255, 0, 0));
-                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-                    ReleaseDC(textBoxStartTime, hdc);
+                    invalid_text_input(textBoxStartTime);
                 }
                 free(textBoxText);
+                // Set the flags so the other textboxes will be checked if this change made them invalid
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the end time textbox
@@ -508,17 +527,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
                 GetWindowText(textBoxEndTime, textBoxText, textBoxCharLen);
 
-                // Check if the text in the text box is valid
+                // Check if the text in the text box is valid and that the end time is after the start time
                 if (dt_is_valid_hour_min_period(textBoxText)) {
-                    // TODO: send a bpacket to say what the start Time will be
+                    char period[3];
+                    sscanf(textBoxText, "%d:%d %2s", &endTimeHr, &endTimeMin, period);
+
+                    // Make sure that the end time is after the start time
+                    if ((startTimeHr * 60 + startTimeMin) <= (endTimeHr * 60 + endTimeMin)) {
+                        // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12 hours
+                        if (endTimeHr == 12) {
+                            endTimeHr -= 12;
+                        }
+                        if (chars_same(period, "pm\0") == TRUE) {
+                            endTimeHr += 12;
+                        }
+                    } else {
+                        invalid_text_input(textBoxEndTime);
+                    }
+                    // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    HDC hdc = GetDC(textBoxEndTime);
-                    SetTextColor(hdc, RGB(255, 0, 0));
-                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-                    ReleaseDC(textBoxEndTime, hdc);
+                    invalid_text_input(textBoxEndTime);
                 }
                 free(textBoxText);
+                // Set the flags so the other textboxes will be checked if this change made them invalid
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the time interval time textbox
@@ -534,14 +567,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // Check if the text in the text box is valid
                 if (dt_is_valid_hour_min(textBoxText)) {
                     // TODO: send a bpacket to say what the start Time will be
+                    sscanf(textBoxText, "%d:%d", &timeIntervalHr, &timeIntervalMin);
+
+                    // Make sure that the time interval plus the start time isnt into the next day
+                    if ((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) > (24 * 60)) {
+                        // uThe info is stored in 24 hour time so if it is pm add 12 hrs
+                        invalid_text_input(textBoxTimeInterval);
+                    }
                 } else {
                     // Write, in red, invalid input over the textbox
-                    HDC hdc = GetDC(textBoxTimeInterval);
-                    SetTextColor(hdc, RGB(255, 0, 0));
-                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-                    ReleaseDC(textBoxTimeInterval, hdc);
+                    invalid_text_input(textBoxTimeInterval);
                 }
                 free(textBoxText);
+                // Set the flags so the other textboxes will be checked if this change made them invalid
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the RTC date time textbox
@@ -556,13 +595,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 // Check if the text in the text box is valid
                 if (dt_is_valid_date(textBoxText)) {
+                    sscanf(textBoxText, "%d/%d/%d", &rtcTimeDay, &rtcTimeMonth, &rtcTimeYear);
                     // TODO: send a bpacket to say what the start Time will be
                 } else {
                     // Write, in red, invalid input over the textbox
-                    HDC hdc = GetDC(textBoxRtcDate);
-                    SetTextColor(hdc, RGB(255, 0, 0));
-                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-                    ReleaseDC(textBoxRtcDate, hdc);
+                    invalid_text_input(textBoxRtcDate);
                 }
                 free(textBoxText);
             }
@@ -579,13 +616,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 // Check if the text in the text box is valid
                 if (dt_is_valid_hour_min_period(textBoxText)) {
-                    // TODO: send a bpacket to say what the start Time will be
+                    char period[3];
+                    sscanf(textBoxText, "%d:%d %2s", &rtcTimeHr, &rtcTimeMin, period);
+                    // The info is stored in 24 hour time so if it is pm add 12 hrs, if it is 12, take 12
+                    if (rtcTimeHr == 12) {
+                        rtcTimeHr -= 12;
+                    }
+                    if (chars_same(period, "pm\0") == TRUE) {
+                        rtcTimeHr += 12;
+                    }
+                    // TODO: Send the bpacket to change the Rtc
                 } else {
                     // Write, in red, invalid input over the textbox
-                    HDC hdc = GetDC(textBoxRtcTime);
-                    SetTextColor(hdc, RGB(255, 0, 0));
-                    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-                    ReleaseDC(textBoxRtcTime, hdc);
+                    invalid_text_input(textBoxRtcTime);
                 }
                 free(textBoxText);
             }

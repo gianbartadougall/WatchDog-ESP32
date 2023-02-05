@@ -202,7 +202,6 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
         firstZero = 1;
     }
     if (time[4 + firstZero] != ' ' || time[1 + firstZero] != ':') {
-        printf("firstzero: %i, 4 + zero: %c, 1 + zero: %c:\n", firstZero, time[4 + firstZero], time[1 + firstZero]);
         return FALSE;
     }
     if ((min < 0) || min >= 60) {

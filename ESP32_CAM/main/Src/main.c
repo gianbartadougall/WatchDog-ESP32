@@ -119,8 +119,7 @@ void watchdog_system_start(void) {
     led_off(COB_LED);
     led_off(RED_LED);
 
-    uint8_t ping[1];
-    ping[0] = WATCHDOG_PING_CODE_ESP32;
+    uint8_t ping = WATCHDOG_PING_CODE_ESP32;
 
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
     bpacket_t bpacket;
@@ -143,15 +142,6 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        bpacket_t response;
-        bpacket_buffer_t bpacketBuffer;
-        char msg[50];
-        sprintf(msg, "Sender: %i Receiver: %i ", bpacket.sender, bpacket.receiver);
-        bpacket_create_sp(&response, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_PING,
-                          BPACKET_CODE_SUCCESS, msg);
-        bpacket_to_buffer(&response, &bpacketBuffer);
-        esp32_uart_send_bpacket(&response);
-
         if ((bpacket.sender == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
             continue;
         }
@@ -160,20 +150,22 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        bpacket_create_sp(&response, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_PING,
-                          BPACKET_CODE_SUCCESS, "Generic request received");
-        bpacket_to_buffer(&response, &bpacketBuffer);
-        esp32_uart_send_bpacket(&response);
-
         // The request was a generic request that could have been sent from the stm32
         // or from maple
         uint8_t request  = bpacket.request;
         uint8_t receiver = bpacket.receiver;
         uint8_t sender   = bpacket.sender;
 
+        char m[256];
+        sprintf(
+            m,
+            "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
+            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, and a strong "
+            "determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
+
         switch (bpacket.request) {
             case BPACKET_GEN_R_PING:
-                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, ping);
+                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, &ping);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_LED_RED_ON:
@@ -187,7 +179,9 @@ void watchdog_system_start(void) {
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
+                bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, m);
                 // sd_card_write_to_file();
+                esp32_uart_send_bpacket(&bpacket);
                 break;
             default: // No request was able to be matched. Send response back to sender
                 bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN,

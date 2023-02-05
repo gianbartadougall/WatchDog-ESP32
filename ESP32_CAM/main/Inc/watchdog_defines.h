@@ -110,8 +110,8 @@ uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
         return BPACKET_ERR_INVALID_REQUEST;
     }
 
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_CODE(code);
 
     // Confirm the time is valid
@@ -187,8 +187,8 @@ uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint
         return WATCHDOG_INVALID_REQUEST;
     }
 
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_CODE(code);
 
     // Confirm the resolution is valid
@@ -297,7 +297,7 @@ uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sende
         return FALSE;
     }
 
-    if (BPACKET_ADDRESS_IS_INVALID(receiver) || BPACKET_ADDRESS_IS_INVALID(sender) ||
+    if (BPACKET_RECEIVER_IS_INVALID(receiver) || BPACKET_SENDER_IS_INVALID(sender) ||
         BPACKET_REQUEST_IS_INVALID(request) || BPACKET_CODE_IS_INVALID(code)) {
         return FALSE;
     }

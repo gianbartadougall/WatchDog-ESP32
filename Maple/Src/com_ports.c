@@ -37,6 +37,11 @@ void comms_port_test(void);
 /* Private Variables */
 struct sp_port* activePort;
 
+void comms_port_clear_buffer(struct sp_port* port) {
+    uint8_t data;
+    while (sp_blocking_read(port, &data, 1, 50) > 0) {}
+}
+
 uint8_t com_ports_open_connection(uint8_t address, uint8_t pingResponse) {
 
     char espPortName[PORT_NAME_MAX_BYTES];
@@ -133,6 +138,8 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             continue;
         }
 
+        comms_port_clear_buffer(port);
+
         // Ping port
         bpacket_create_p(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_buffer_t packetBuffer;
@@ -148,21 +155,37 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         uint8_t responseSize;
-        if ((responseSize = sp_blocking_read(port, response, 6, 200)) < 0) {
+        if ((responseSize = sp_blocking_read(port, response, BPACKET_BUFFER_LENGTH_BYTES, 100)) < 0) {
             sp_close(port);
             printf("res < 0\n");
             continue;
         }
 
-        if (responseSize < 0) {
-            sp_close(port);
-            continue;
-        }
+        uint8_t result = bpacket_buffer_decode(&bpacket, response);
 
-        bpacket_buffer_decode(&bpacket, response);
+        if (result != TRUE) {
+            char errorMsg[50];
+            bpacket_get_error(result, errorMsg);
+            printf("%s", errorMsg);
+        }
 
         if ((bpacket.code != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
             sp_close(port);
+
+            // Print the entire message received
+            printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n", bpacket.sender, bpacket.receiver,
+                   bpacket.request, bpacket.code, bpacket.numBytes);
+            printf("Read %i bytes\n", responseSize);
+            for (int i = 0; i < responseSize; i++) {
+                printf("%c", response[i]);
+            }
+
+            for (int i = 0; i < responseSize; i++) {
+                printf("%i ", response[i]);
+            }
+
+            printf("\n");
+
             printf("Code: [%i] with ping: [%i]\n", bpacket.code, bpacket.bytes[0]);
             continue;
         }
@@ -219,6 +242,24 @@ int com_ports_read(void* buf, size_t count, unsigned int timeout_ms) {
 
 void comms_port_test(void) {
 
+    // bpacket_t bpacket;
+    // bpacket_buffer_t bp;
+    // char m[256];
+    // sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
+    //            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, and a "
+    //            "strong determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
+    // bpacket_create_sp(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_WRITE_TO_FILE,
+    //                   BPACKET_CODE_SUCCESS, m);
+    // bpacket_to_buffer(&bpacket, &bp);
+
+    // printf("Size: %i\n", bpacket.numBytes);
+
+    // for (int i = 0; i < 9; i++) {
+    //     printf("%i ", bp.buffer[i]);
+    // }
+    // printf("\n");
+    // while (1) {}
+
     struct sp_port** port_list;
     enum sp_return result = sp_list_ports(&port_list);
 
@@ -229,7 +270,6 @@ void comms_port_test(void) {
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
     for (int i = 1; port_list[i] != NULL; i++) {
-
         struct sp_port* port = port_list[i];
 
         if (com_ports_open_port(port) != SP_OK) {
@@ -242,14 +282,20 @@ void comms_port_test(void) {
         bpacket_t getRTCTime;
         bpacket_buffer_t getPacketBuffer;
 
-        char imageName[] = "img0.jpg";
+        char imageName[] = "img1.jpg\0";
         // bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
         //                  BPACKET_CODE_EXECUTE, 0, NULL);
-        bpacket_create_sp(&getRTCTime, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_COPY_FILE,
-                          BPACKET_CODE_EXECUTE, imageName);
+        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_WRITE_TO_FILE,
+                         BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
 
-        printf("Starting\n");
+        // for (int i = 0; i < getPacketBuffer.numBytes; i++) {
+        //     printf("%c", getPacketBuffer.buffer[i]);
+        // }
+
+        printf("Starting: %i %i\n", getPacketBuffer.buffer[6], getPacketBuffer.numBytes);
+
+        comms_port_clear_buffer(port);
 
         // Send request
         if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
@@ -259,6 +305,7 @@ void comms_port_test(void) {
 
         uint8_t bytes = 0;
         uint8_t data;
+
         while ((bytes = sp_blocking_read(port, &data, 1, 3000)) >= 0) {
 
             if (bytes == 0) {
@@ -266,9 +313,10 @@ void comms_port_test(void) {
             }
 
             printf("%c", data);
+            // printf("%c (%i)", data, data);
         }
 
-        printf("Ended\n");
+        printf("}\nEnded\n");
         while (1) {}
 
         // while (1) {

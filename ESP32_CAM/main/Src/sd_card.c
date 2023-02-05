@@ -369,6 +369,13 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     uint8_t receiver = bpacket->receiver;
     uint8_t sender   = bpacket->sender;
 
+    bpacket_t bpacket1;
+    bpacket_buffer_t bpacketBuffer1;
+    bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_COPY_FILE,
+                      BPACKET_CODE_SUCCESS, "Made it in");
+    bpacket_to_buffer(&bpacket1, &bpacketBuffer1);
+    esp32_uart_send_bpacket(&bpacket1);
+
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR,
@@ -394,11 +401,13 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
         return;
     }
 
-    char filePath[filePathNameSize];
+    char filePath[filePathNameSize + 1]; // add one for null pointer!
     sprintf(filePath, "%s/", MOUNT_POINT_PATH);
-    for (int i = 0; i < filePathNameSize; i++) {
+    int i = 0;
+    for (i = 0; i < filePathNameSize; i++) {
         filePath[i + 8] = bpacketCharArray->string[i];
     }
+    filePath[i + 8] = '\0'; // Add null terminator
 
     // char* filePath = bpacketCharArray->string;
 
@@ -408,7 +417,7 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     if (file == NULL) {
         char msg[100];
-        sprintf(msg, "File == NULL: %s => %s", filePath, strerror(errno));
+        sprintf(msg, "File was NULL: [%i] [%s] => [%s]", filePathNameSize, filePath, strerror(errno));
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR, msg);
         esp32_uart_send_bpacket(bpacket);
         return;
@@ -418,6 +427,11 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     fseek(file, 0L, SEEK_END);
     uint32_t fileNumBytes = ftell(file);
     fseek(file, 0L, SEEK_SET);
+
+    bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_COPY_FILE,
+                      BPACKET_CODE_SUCCESS, "About to send image");
+    bpacket_to_buffer(&bpacket1, &bpacketBuffer1);
+    esp32_uart_send_bpacket(&bpacket1);
 
     // Change the values of the bpacket so they get sent to Maple
     bpacket->sender   = BPACKET_ADDRESS_ESP32;

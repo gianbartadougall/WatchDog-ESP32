@@ -174,8 +174,18 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
             watchdog_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_CODE_EXECUTE, 0, NULL);
             break;
         case BPACKET_GEN_R_PING:;
-            uint8_t ping = WATCHDOG_PING_CODE_STM32;
-            watchdog_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
+            char m[256];
+            bpacket_buffer_t bp;
+            sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
+                       "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, "
+                       "and a strong "
+                       "determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
+            bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_GEN_R_PING,
+                              BPACKET_CODE_SUCCESS, m);
+            bpacket_to_buffer(bpacket, &bp);
+            comms_transmit(BUFFER_2_ID, bp.buffer, bp.numBytes);
+            // uint8_t ping = WATCHDOG_PING_CODE_STM32;
+            // watchdog_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
             break;
         case BPACKET_CODE_SUCCESS:
             watchdog_report_success(bpacket->request);

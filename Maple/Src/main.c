@@ -66,7 +66,7 @@ uint8_t packetPendingIndex = 0;
 bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
 
 uint8_t currentByte = 0;
-uint8_t pastByte1   = BPACKET_STOP_BYTE;
+uint8_t pastByte1   = BPACKET_STOP_BYTE_UPPER;
 uint8_t pastByte2   = 0;
 uint8_t pastByte3   = 0;
 
@@ -289,84 +289,129 @@ void update_past_bytes(void) {
 
 DWORD WINAPI maple_listen_rx(void* arg) {
 
-    uint16_t numBytes;
-    uint32_t packetByteIndex = 0;
+    uint16_t numBytes            = 0;
+    uint8_t expectedByteId       = BPACKET_START_BYTE_UPPER_ID;
+    uint8_t numDataBytesReceived = 0;
+    uint8_t numDataBytesExpected = 0;
+    uint8_t bpacketByteIndex     = 0;
+    uint8_t byte;
 
-    while ((numBytes = com_ports_read(&currentByte, 1, 0)) >= 0) {
+    while ((numBytes = com_ports_read(&byte, 1, 0)) >= 0) {
 
-        if (currentByte == BPACKET_START_BYTE) {
+        if (expectedByteId == BPACKET_DATA_BYTE_ID) {
 
-            // If the byte just before was a stop byte we can be pretty
-            // certain this is the start of a new packet
-            if (pastByte1 == BPACKET_STOP_BYTE) {
-                packetByteIndex = 0;
-                // char b[30];
-                // sprintf(b, "start [%li]: ", pindex);
-                // log_send_data("Start ", 6);
-                update_past_bytes();
-                continue;
+            // Increment the number of data bytes received
+            numDataBytesReceived++;
+
+            // Set the expected byte to stop byte if this is the last data byte expected
+            if (numDataBytesReceived == numDataBytesExpected) {
+                expectedByteId = BPACKET_STOP_BYTE_UPPER_ID;
+            }
+
+            // char msg[40];
+            // sprintf(msg, "DATA BYTE[%i]: [%i] [%i]", bufferId, numDataBytesReceived[bufferId],
+            //         numDataBytesExpected[bufferId]);
+            // printf(msg, sizeof(msg));
+
+            // Add byte to bpacket
+            packetBuffer[packetBufferIndex].bytes[bpacketByteIndex++] = byte;
+            continue;
+        }
+
+        if ((expectedByteId == BPACKET_STOP_BYTE_LOWER_ID) && (byte == BPACKET_STOP_BYTE_LOWER)) {
+
+            // printf(" STP BYTE LW ");
+
+            // End of packet reached. Reset the system
+            expectedByteId = BPACKET_START_BYTE_UPPER_ID;
+
+            // Increment the packet buffer. Reset the buffer index
+            packetBufferIndex++;
+            bpacketByteIndex = 0;
+            continue;
+        }
+
+        if ((expectedByteId == BPACKET_STOP_BYTE_UPPER_ID) && (byte == BPACKET_STOP_BYTE_UPPER)) {
+
+            // printf(" STP BYTE UP ");
+            expectedByteId = BPACKET_STOP_BYTE_LOWER_ID;
+            continue;
+        }
+
+        if (expectedByteId == BPACKET_NUM_BYTES_BYTE_ID) {
+            // printf("[LEN BYTE]");
+
+            // Set the number of bytes in the bpacket
+            packetBuffer[packetBufferIndex].numBytes = byte;
+
+            // Set the number of data bytes expected
+            numDataBytesExpected = byte;
+            numDataBytesReceived = 0;
+
+            // Update the expected byte to data bytes
+            if (byte == 0) {
+                expectedByteId = BPACKET_STOP_BYTE_UPPER_ID;
             } else {
-                // char msg[40];
-                // sprintf(msg, "rx= {%i} {%i} {%i} {%i} {%i}", byte, pastByte1, pastByte2, pastByte3, pastByte4);
-                // log_send_data(msg, sizeof(msg));
-                // char msg[40];
-                // sprintf(msg, "rx= {%i} {%i} {%i} {%i} {%i}", byte, pastByte1, pastByte2, pastByte3, pastByte4);
-                // log_send_data(msg, sizeof(msg));
+                expectedByteId = BPACKET_DATA_BYTE_ID;
             }
 
-            // Assume the start byte is actually a piece of data
-        }
-
-        if (pastByte1 == BPACKET_START_BYTE) {
-
-            // If the byte before the start byte was a stop byte, very certain that
-            // the current byte is the address byte of the bpacket
-            if (pastByte2 == BPACKET_STOP_BYTE) {
-                packetBuffer[packetBufferIndex].receiver = BPACKET_BYTE_TO_RECEIVER(currentByte);
-                packetBuffer[packetBufferIndex].sender   = BPACKET_BYTE_TO_SENDER(currentByte);
-                update_past_bytes();
-                continue;
-            }
-        }
-
-        if (pastByte2 == BPACKET_START_BYTE) {
-
-            // If the byte just before looks like a sender byte, very certain that this is the
-            // request byte
-            uint8_t receiver = BPACKET_BYTE_TO_RECEIVER(pastByte1);
-            uint8_t sender   = BPACKET_BYTE_TO_SENDER(pastByte1);
-            if ((receiver <= BPACKET_MAX_ADDRESS) && (sender <= BPACKET_MAX_ADDRESS)) {
-                packetBuffer[packetBufferIndex].request = BPACKET_BYTE_TO_REQUEST(currentByte);
-                packetBuffer[packetBufferIndex].code    = BPACKET_BYTE_TO_CODE(currentByte);
-            }
-            update_past_bytes();
             continue;
         }
 
-        if (pastByte3 == BPACKET_START_BYTE) {
-            // If the second last byte looks like the sender, we can be pretty sure
-            // this is the length byte
-            uint8_t receiver = BPACKET_BYTE_TO_RECEIVER(pastByte2);
-            uint8_t sender   = BPACKET_BYTE_TO_SENDER(pastByte2);
-            if ((receiver <= BPACKET_MAX_ADDRESS) && (sender <= BPACKET_MAX_ADDRESS)) {
+        if (expectedByteId == BPACKET_CODE_BYTE_ID) {
+            // printf(" COD BYTE  ");
 
-                // Pretty sure this is the length byte
-                // log_send_data(" len added ", 11);
-                packetBuffer[packetBufferIndex].numBytes = currentByte;
-                update_past_bytes();
-                continue;
-            }
-        }
-
-        if (currentByte == BPACKET_STOP_BYTE) {
-            // log_send_data(" end true", 9);
-            update_past_bytes();
-            maple_increment_packet_buffer_index();
+            packetBuffer[packetBufferIndex].code = byte;
+            expectedByteId                       = BPACKET_NUM_BYTES_BYTE_ID;
             continue;
         }
 
-        packetBuffer[packetBufferIndex].bytes[packetByteIndex++] = currentByte;
-        update_past_bytes();
+        if (expectedByteId == BPACKET_REQUEST_BYTE_ID) {
+            // printf(" REQ BYTE  ");
+
+            packetBuffer[packetBufferIndex].request = byte;
+
+            expectedByteId = BPACKET_CODE_BYTE_ID;
+            continue;
+        }
+
+        if (expectedByteId == BPACKET_SENDER_BYTE_ID) {
+            // printf(" SND BYTE  ");
+
+            packetBuffer[packetBufferIndex].sender = byte;
+
+            expectedByteId = BPACKET_REQUEST_BYTE_ID;
+            continue;
+        }
+
+        if (expectedByteId == BPACKET_RECEIVER_BYTE_ID) {
+
+            // printf(" REC BYTE  ");
+
+            packetBuffer[packetBufferIndex].receiver = byte;
+            expectedByteId                           = BPACKET_SENDER_BYTE_ID;
+            continue;
+        }
+
+        if ((expectedByteId == BPACKET_START_BYTE_LOWER_ID) && (byte == BPACKET_START_BYTE_LOWER)) {
+            // printf(" START LOWER ");
+            expectedByteId = BPACKET_RECEIVER_BYTE_ID;
+            continue;
+        }
+
+        if ((expectedByteId == BPACKET_START_BYTE_UPPER_ID) && (byte == BPACKET_START_BYTE_UPPER)) {
+            expectedByteId = BPACKET_START_BYTE_LOWER_ID;
+            // printf(" START UPPER ");
+            // Reset the byte index
+            bpacketByteIndex = 0;
+
+            continue;
+        }
+
+        printf("%c", byte);
+        // printf(" FAILED [%i] exp [%i] ", byte, expectedByteId);
+        // Erraneous byte. Reset the system
+        expectedByteId = BPACKET_START_BYTE_UPPER_ID;
     }
 
     if (numBytes < 0) {
@@ -374,108 +419,6 @@ DWORD WINAPI maple_listen_rx(void* arg) {
     }
 
     return FALSE;
-
-    // Arg is the pointer to the port
-    // struct sp_port* port = arg;
-
-    // uint8_t c[1];
-    // uint8_t lastChar  = BPACKET_STOP_BYTE;
-    // int numBytes      = 0;
-    // packetBufferIndex = 0;
-
-    // int bufferIndex = 0;
-
-    // int packetLengthFlag  = FALSE;
-    // int packetCommandFlag = FALSE;
-    // int packetByteIndex   = 0;
-    // int startByteIndex    = 0;
-
-    // // while ((numBytes = sp_blocking_read(port, c, 1, 0)) > 0) {
-    // while ((numBytes = com_ports_read(c, 1, 0)) > 0) {
-
-    //     if (bufferIndex == RX_BUFFER_SIZE) {
-    //         bufferIndex = 0;
-    //     }
-
-    //     rxBuffer[bufferIndex++] = c[0];
-
-    //     if (packetLengthFlag == TRUE) {
-    //         // Subtract 1 because this number includes the request
-    //         packetBuffer[packetBufferIndex].numBytes = (c[0] - 1);
-    //         packetLengthFlag                         = FALSE;
-    //         packetCommandFlag                        = TRUE;
-    //         lastChar                                 = c[0];
-    //         continue;
-    //     }
-
-    //     if (packetCommandFlag == TRUE) {
-    //         packetBuffer[packetBufferIndex].request = c[0];
-    //         packetCommandFlag                       = FALSE;
-    //         lastChar                                = c[0];
-    //         continue;
-    //     }
-
-    //     if (c[0] == BPACKET_START_BYTE) {
-
-    //         // Need to determine whether the character recieved is a start byte or part
-    //         // of a message. We can be very confident the character represents a start
-    //         // byte if:
-    //         // 1) The character that was recieved previously was a stop byte, and
-    //         // 2) The start byte agrees with the length of the last message that
-    //         //      was recieved
-
-    //         if (lastChar == BPACKET_STOP_BYTE) {
-
-    //             // Check whether the length of the message agrees with the position
-    //             // of this recieved start byte
-    //             // if (bufferIndex == (stopByteIndex + 1)) {
-    //             //     // Very certain that this byte is the start of a new packet
-    //             // }
-
-    //             // Start of new packet
-    //             packetLengthFlag = TRUE;
-    //             startByteIndex   = bufferIndex - 1; // Minus 1 because one is added at the top
-    //             lastChar         = c[0];
-
-    //             // printf("Start byte recieved\n");
-    //             // printf("Start byte acted upon\n");
-    //             continue;
-    //         }
-    //     }
-
-    //     if (c[0] == BPACKET_STOP_BYTE) {
-    //         // printf("Buffer index: %i Start index: %i\n", bufferIndex, startByteIndex);
-
-    //         // Calculate the
-    //         int stopByteIndex = (bufferIndex == 0 ? RX_BUFFER_SIZE : bufferIndex) - 1;
-
-    //         // The added 3 is for the start byte and the second byte in the bpacket that holds
-    //         // the number of data bytes the packet should contain and the request byte
-    //         int predictedStopByteIndex =
-    //             (startByteIndex + 3 + packetBuffer[packetBufferIndex].numBytes) % RX_BUFFER_SIZE;
-
-    //         // Need to determine whether the character recieved was a stop byte or
-    //         // part of the message. If the stop byte is in the predicted spot, then
-    //         // we can be farily certain that this byte is a stop byte
-    //         if (stopByteIndex == predictedStopByteIndex) {
-
-    //             // Very sure this is the end of a packet. Reset byte index to 0
-    //             packetByteIndex = 0;
-    //             lastChar        = c[0];
-    //             maple_increment_packet_buffer_index();
-    //             continue;
-    //         }
-    //     }
-
-    //     // Byte is a data byte, add to the bpacket
-    //     packetBuffer[packetBufferIndex].bytes[packetByteIndex++] = c[0];
-    // }
-
-    // if (numBytes < 0) {
-    //     printf("Error reading COM port\n");
-    // }
-
-    // return FALSE;
 }
 
 void copy_file_test_function(void) {
@@ -504,44 +447,49 @@ void copy_file_test_function(void) {
 
     // Create bpacket message to request file to be copied
     bpacket_t bpacket;
-    char imageName[] = "img0.jpg";
-    bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, BPACKET_CODE_EXECUTE,
-                     0, NULL);
+    char imageName[] = "img1.jpg";
+    bpacket_create_sp(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_COPY_FILE,
+                      BPACKET_CODE_EXECUTE, imageName);
     com_ports_send_bpacket(&bpacket);
 
-    while (1) {
-        com_ports_send_bpacket(&bpacket);
-        while (packetPendingIndex == packetBufferIndex) {}
-
-        bpacket_t packet = packetBuffer[packetPendingIndex];
-        printf("Sender: %i Reciever: %i Request: %i Code: %i Num bytes: %i data: %i\n", packet.sender, packet.receiver,
-               packet.request, packet.code, packet.numBytes, packet.bytes[0]);
-
-        maple_increment_packet_pending_index();
-
-        Sleep(1000);
-    }
-    // maple_create_and_send_sbpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_COPY_FILE, "img1.jpg");
     printf("Sent\n");
     int i = 0;
-    while (packetPendingIndex == packetBufferIndex) {}
-    printf("Packets received\n");
+    bpacket_t* packet;
+    while (1) {
 
-    while (packetPendingIndex != packetBufferIndex) {
-        // Skip the packet if the reciever data is not for the copy file
-        // if (packetBuffer[packetPendingIndex].request != WATCHDOG_BPK_R_COPY_FILE) {
-        //     maple_increment_packet_pending_index();
-        //     continue;
+        // printf("Packets received\n");
+
+        while (packetPendingIndex == packetBufferIndex) {}
+
+        // packet = &packetBuffer[packetPendingIndex];
+
+        // for (int i = 0; i < packet->numBytes; i++) {
+        //     printf("%c", packet->bytes[i]);
         // }
-
-        // i++;
-        // // Write the contents to the file
-        // for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-        //     fputc(packetBuffer[packetPendingIndex].bytes[i], target);
-        // }
-
-        // printf("Packet [%i] written\n", i);
+        // printf("\n");
         // maple_increment_packet_pending_index();
+
+        // Skip the packet if the reciever data is not for the copy file
+        if (packetBuffer[packetPendingIndex].request != WATCHDOG_BPK_R_COPY_FILE) {
+            maple_increment_packet_pending_index();
+            printf("Skipping\n");
+            continue;
+        }
+        printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n", packet->sender, packet->receiver,
+               packet->request, packet->code, packet->numBytes);
+
+        i++;
+        // Write the contents to the file
+        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
+            fputc(packetBuffer[packetPendingIndex].bytes[i], target);
+        }
+
+        printf("Packet [%i] written\n", i);
+
+        if (packetBuffer[packetPendingIndex].code == BPACKET_CODE_SUCCESS) {
+            maple_increment_packet_pending_index();
+            break;
+        }
     }
 
     printf("Finished\n");

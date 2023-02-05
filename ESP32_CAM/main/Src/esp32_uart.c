@@ -29,6 +29,13 @@ void esp32_uart_send_bpacket(bpacket_t* bpacket) {
     bpacket_buffer_t bpacketBuffer;
     bpacket_to_buffer(bpacket, &bpacketBuffer);
     uart_write_bytes(UART_NUM, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+    // bpacket_t res;
+    // char msg[20];
+    // sprintf(msg, "[bytes: %i]", bpacketBuffer.numBytes);
+    // bpacket_create_sp(&res, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, 0, BPACKET_CODE_SUCCESS, msg);
+    // bpacket_to_buffer(&res, &bp1);
+    // uart_write_bytes(UART_NUM, bp1.buffer, bp1.numBytes);
 }
 
 int esp32_uart_send_data(const char* data) {

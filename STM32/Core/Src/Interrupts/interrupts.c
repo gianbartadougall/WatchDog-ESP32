@@ -22,11 +22,8 @@ void USART1_IRQHandler(void) {
     if ((USART1->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART1->RDR;
-        // Skip accidental noise
-        if (c == 0xFF) {
-            return;
-        }
 
+        // log_send_data(&c, 1);
         // log_prints("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
         comms_add_to_buffer(BUFFER_1_ID, (uint8_t)c);
@@ -47,11 +44,6 @@ void USART2_IRQHandler(void) {
     if ((USART2->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART2->RDR;
-
-        // Skip accidental noise
-        if (c == 0xFF) {
-            return;
-        }
 
         // Copy bit into buffer. Reading RDR automatically clears flag
         // comms_add_to_buffer(USART2, c);

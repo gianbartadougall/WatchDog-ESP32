@@ -390,17 +390,17 @@ int main(int argc, char** argv) {
 
     // comms_port_test();
 
-    if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
-        printf("Unable to connect to Watchdog\n");
-        return FALSE;
-    }
+    // if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
+    //     printf("Unable to connect to Watchdog\n");
+    //     return FALSE;
+    // }
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+    // HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
-    if (!thread) {
-        printf("Thread failed\n");
-        return 0;
-    }
+    // if (!thread) {
+    //     printf("Thread failed\n");
+    //     return 0;
+    // }
 
     bpacket_circular_buffer_t guiToMainCircularBuffer;
     bpacket_create_circular_buffer(&guiToMainCircularBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);

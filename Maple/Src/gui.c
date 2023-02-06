@@ -10,9 +10,10 @@
  */
 
 /* C Library Includes */
-
 #include <stdio.h>
 #include <sensor.h>
+#include <string.h>
+#include <stdlib.h>
 
 /* Personal Includes */
 #include "gui.h"
@@ -54,6 +55,9 @@
 #define GAP_WIDTH  10
 #define GAP_HEIGHT 10
 
+#define RED   255
+#define WHITE 0
+
 #define ROW_1  10
 #define ROW_2  (ROW_1 + LABEL_HEIGHT + GAP_HEIGHT)
 #define ROW_3  (ROW_2 + LABEL_HEIGHT + GAP_HEIGHT)
@@ -76,12 +80,15 @@
 #define ROW_20 (ROW_19 + LABEL_HEIGHT + GAP_HEIGHT)
 
 #define COL_1           10
-#define COL_1_ONE_THIRD (COL_1 + 70)
-#define COL_1_ONE_HALF  (COL_1 + 105)
-#define COL_1_TWO_THIRD (COL_1 + 140)
+#define COL_HALF        105
+#define COL_THIRD       70
+#define COL_1_ONE_THIRD (COL_1 + COL_THIRD)
+#define COL_1_AND_HALF  (COL_1 + COL_HALF)
+#define COL_1_TWO_THIRD (COL_1 + 2 * COL_THIRD)
 #define COL_2           (COL_1 + LABEL_WIDTH + GAP_WIDTH)
-#define COL_2_ONE_THIRD (COL_2 + 70)
-#define COL_2_TWO_THIRD (COL_2 + 140)
+#define COL_2_ONE_THIRD (COL_2 + COL_THIRD)
+#define COL_2_AND_HALF  (COL_2 + COL_HALF)
+#define COL_2_TWO_THIRD (COL_2 + 2 * COL_THIRD)
 #define COL_3           (COL_2 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_4           (COL_3 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_5           (COL_4 + LABEL_WIDTH + GAP_WIDTH)
@@ -100,6 +107,8 @@
 #define TEXT_BOX_TIME_INTERVAL_HANDLE     9
 #define TEXT_BOX_RTC_DATE_HANDLE          10
 #define TEXT_BOX_RTC_TIME_HANDLE          11
+#define BUTTON_HELP_HANDLE                12
+#define TEXT_BOX_START_ERROR_HANDLE       13
 
 #define TEXT_BOX_START_TIME_FLAG    (0x01 << 0)
 #define TEXT_BOX_END_TIME_FLAG      (0x01 << 1)
@@ -118,8 +127,8 @@ HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval, textBoxRtcDate, text
 HWND dropDownCameraResolution;
 HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumImages, labelDateRtc, labelTimeRtc,
     labelSetUp, labelData, labelSettings, labelStartTime, labelEndTime, labelTimeInterval, labelDateHeading,
-    labelTimeInfo;
-HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
+    labelTimeInfo, labelStartTimeError;
+HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView, buttonHelp;
 HFONT hFont;
 int startTimeHr, startTimeMin, endTimeHr, endTimeMin, timeIntervalHr, timeIntervalMin, rtcTimeMin, rtcTimeHr,
     rtcTimeDay, rtcTimeMonth, rtcTimeYear;
@@ -144,6 +153,7 @@ uint32_t* flags;
 bpacket_circular_buffer_t* guiToMainCircularBuffer;
 bpacket_circular_buffer_t* mainToGuiCircularBuffer;
 
+// Macro that takes the bpacket out of the circular buffer at the read index
 #define MTG_CB_CURRENT_BPACKET (mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])
 
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
@@ -152,15 +162,13 @@ HWND create_button(char* title, int startX, int startY, int width, int height, H
 }
 
 HWND create_label(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
-    return CreateWindow("STATIC", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
-                        NULL);
+    return CreateWindow("STATIC", title, WS_VISIBLE | WS_CHILD | SS_NOTIFY, startX, startY, width, height, hwnd, handle,
+                        NULL, NULL);
 }
 
 HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
                     int numberOfOptions, const char* nameOfOptions[40], int indexOfDisplayedOption) {
     HWND dropBox =
-        // CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED |
-        // WS_VISIBLE, startX,
         CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
                      startY, width, height, hwnd, handle, NULL, NULL);
     for (int i = 0; i < numberOfOptions; i++) {
@@ -175,11 +183,20 @@ HWND create_textbox(char* title, int startX, int startY, int width, int height, 
                           height, hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
-void invalid_text_input(HWND textBox) {
-    HDC hdc = GetDC(textBox);
-    SetTextColor(hdc, RGB(255, 0, 0));
-    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-    ReleaseDC(textBox, hdc);
+void change_label_color(HWND hLabel, int red, int green, int blue) {
+    HDC hdc        = GetDC(hLabel);
+    COLORREF color = RGB(red, green, blue);
+    SetTextColor(hdc, color);
+    RedrawWindow(hLabel, NULL, NULL, RDW_INVALIDATE);
+    ReleaseDC(hLabel, hdc);
+}
+
+void change_label_bg_color(HWND hLabel, int red, int green, int blue) {
+    HDC hdc      = GetDC(hLabel);
+    HBRUSH brush = CreateSolidBrush(RGB(red, green, blue));
+    SetWindowLongPtr(hLabel, GCLP_HBRBACKGROUND, (LONG_PTR)brush);
+    RedrawWindow(hLabel, NULL, NULL, RDW_INVALIDATE);
+    ReleaseDC(hLabel, hdc);
 }
 
 int cameraViewOn = FALSE;
@@ -218,6 +235,7 @@ void gui_set_camera_view(HWND hwnd) {
     ShowWindow(buttonOpenSDCard, SW_HIDE);
     ShowWindow(buttonExportData, SW_HIDE);
     ShowWindow(buttonRunTest, SW_HIDE);
+    ShowWindow(buttonHelp, SW_HIDE);
 
     // Show the buttons used in camera view
     ShowWindow(buttonNormalView, SW_SHOW);
@@ -258,6 +276,7 @@ void gui_set_normal_view(HWND hwnd) {
     ShowWindow(buttonOpenSDCard, SW_SHOW);
     ShowWindow(buttonExportData, SW_SHOW);
     ShowWindow(buttonRunTest, SW_SHOW);
+    ShowWindow(buttonHelp, SW_SHOW);
 
     // Hide the normal view button
     ShowWindow(buttonNormalView, SW_HIDE);
@@ -270,8 +289,6 @@ void gui_set_normal_view(HWND hwnd) {
     // make the changes
     UpdateWindow(hwnd);
 }
-#include <stdio.h>
-#include <string.h>
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
@@ -332,7 +349,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 create_button(text, COL_1, ROW_2, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_NORMAL_VIEW_HANDLE);
             ShowWindow(buttonNormalView, SW_HIDE);
 
+            // button to open the help pdf
+            sprintf(text, "Help");
+            buttonHelp =
+                create_button(text, COL_6, ROW_4, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_HELP_HANDLE);
+
             // LABELS
+
+            // Label for invalid input
+            sprintf(text, " Invalid Input");
+            labelStartTimeError =
+                create_label(text, COL_2_AND_HALF, ROW_9, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd, NULL);
+            change_label_color(labelStartTimeError, 255, 0, 0);
+            change_label_bg_color(labelStartTimeError, 255, 255, 255);
 
             // Status label to show the health of the system
             sprintf(text, " Status: %s", watchdog->status == SYSTEM_STATUS_OK ? "Ok" : "Error");
@@ -430,6 +459,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 draw_image(hwnd, "img6.jpg", &rectangle);
             }
 
+            if (LOWORD(wParam) == BUTTON_HELP_HANDLE) {
+                system("start help.pdf");
+            }
+
             if (LOWORD(wParam) == BUTTON_NORMAL_VIEW_HANDLE) {
                 cameraViewOn = FALSE;
 
@@ -510,11 +543,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxStartTime);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                textBoxFlags |= (TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the end time textbox
@@ -532,26 +564,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     char period[3];
                     sscanf(textBoxText, "%d:%d %2s", &endTimeHr, &endTimeMin, period);
 
-                    // Make sure that the end time is after the start time
-                    if ((startTimeHr * 60 + startTimeMin) <= (endTimeHr * 60 + endTimeMin)) {
-                        // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12 hours
-                        if (endTimeHr == 12) {
-                            endTimeHr -= 12;
-                        }
-                        if (chars_same(period, "pm\0") == TRUE) {
-                            endTimeHr += 12;
-                        }
-                    } else {
-                        invalid_text_input(textBoxEndTime);
+                    // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12 hours
+                    if (endTimeHr == 12) {
+                        endTimeHr -= 12;
                     }
+                    if (chars_same(period, "pm\0") == TRUE) {
+                        endTimeHr += 12;
+                    }
+
+                    // Make sure that the end time is after the start time
+                    if ((startTimeHr * 60 + startTimeMin) >= (endTimeHr * 60 + endTimeMin)) {
+                        // invalid_text_input(textBoxEndTime);
+                    }
+
                     // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxEndTime);
+                    // invalid_text_input(textBoxEndTime);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the time interval time textbox
@@ -566,21 +599,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 // Check if the text in the text box is valid
                 if (dt_is_valid_hour_min(textBoxText)) {
-                    // TODO: send a bpacket to say what the start Time will be
+                    msg = WM_PAINT;
                     sscanf(textBoxText, "%d:%d", &timeIntervalHr, &timeIntervalMin);
-
                     // Make sure that the time interval plus the start time isnt into the next day
                     if ((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) > (24 * 60)) {
                         // uThe info is stored in 24 hour time so if it is pm add 12 hrs
-                        invalid_text_input(textBoxTimeInterval);
+                        // invalid_text_input(textBoxTimeInterval);
                     }
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxTimeInterval);
+                    // invalid_text_input(textBoxTimeInterval);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the RTC date time textbox
@@ -599,7 +631,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     // TODO: send a bpacket to say what the start Time will be
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxRtcDate);
+                    // invalid_text_input(textBoxRtcDate);
                 }
                 free(textBoxText);
             }
@@ -628,7 +660,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     // TODO: Send the bpacket to change the Rtc
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxRtcTime);
+                    // invalid_text_input(textBoxRtcTime);
                 }
                 free(textBoxText);
             }

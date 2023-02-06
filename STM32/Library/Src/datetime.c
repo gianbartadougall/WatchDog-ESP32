@@ -194,6 +194,7 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     }
     int hour, min;
     int firstZero = 0;
+    int isSpace;
     char period[3];
     if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
         return FALSE;
@@ -201,7 +202,15 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     if (time[0] == '0' || hour > 9) {
         firstZero = 1;
     }
-    if (time[4 + firstZero] != ' ' || time[1 + firstZero] != ':') {
+    if (time[1 + firstZero] != ':') {
+        return FALSE;
+    }
+    if (time[4 + firstZero] == ' ') {
+        isSpace = 1;
+    } else {
+        isSpace = 0;
+    }
+    if (chars_get_num_bytes(time) > (6 + isSpace + firstZero)) {
         return FALSE;
     }
     if ((min < 0) || min >= 60) {

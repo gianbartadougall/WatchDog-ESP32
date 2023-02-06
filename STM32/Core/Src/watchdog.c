@@ -30,15 +30,30 @@
 
 /* Private Variables */
 dt_datetime_t datetime;
-wd_camera_settings_t cameraSettings;
+wd_settings_t wdSettings;
+
+wd_settings_t deafultWdSettings = {
+    .cameraSettings.resolution    = WD_CAM_RES_640x480,
+    .captureTime.startTime.second = 0,
+    .captureTime.startTime.minute = 0,
+    .captureTime.startTime.hour   = 9,
+    .captureTime.endTime.second   = 0,
+    .captureTime.endTime.minute   = 0,
+    .captureTime.endTime.hour     = 15,
+};
 
 /* Function Prototypes */
 void watchdog_esp32_on(void);
 void watchdog_esp32_off(void);
+void watchdog_send_bpacket_to_esp32(bpacket_t* bpacket);
+void watchdog_send_bpacket_to_maple(bpacket_t* bpacket);
+void watchdog_create_and_send_bpacket_to_esp32(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data);
+void watchdog_create_and_send_bpacket_to_maple(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data);
 
 void bpacket_print(bpacket_t* bpacket) {
     char msg[BPACKET_BUFFER_LENGTH_BYTES + 2];
-    sprintf(msg, "heelo R: %i ", bpacket->request);
+    sprintf(msg, "Receiver: %i Sender: %i Request: %i Code: %i Num bytes: %i", bpacket->receiver, bpacket->sender,
+            bpacket->request, bpacket->code, bpacket->numBytes);
     log_message(msg);
 
     if (bpacket->numBytes > 0) {
@@ -65,19 +80,13 @@ void watchdog_init(void) {
     datetime.time.second = 0;
     stm32_rtc_write_datetime(&datetime);
 
-    // By deafult, camera takes two photos per day. Once at 9am and once at 3pm
-    dt_time_init(&cameraSettings.startTime, 0, 0, 9);
-    dt_time_init(&cameraSettings.endTime, 0, 0, 15);
-    dt_time_init(&cameraSettings.intervalTime, 0, 0, 6);
-    cameraSettings.resolution = WD_CAM_RES_1024x768;
-
     // Turn the ESP32 on
     watchdog_esp32_on();
 
-    // Wait for 1000ms for ESP32 to send all it's startup info and then start UART so the STM32 doesn't need
-    // to read it all at the moment
-    HAL_Delay(2000);
-    UART_ESP32->CR1 |= USART_CR1_UE; // Start UART 1
+    HAL_Delay(2000); // Wait for the ESP32 to startup
+
+    // Get the watchdog settings from the ESP32
+    watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_READ_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
 }
 
 void watchdog_send_string(char* string) {
@@ -148,7 +157,7 @@ void watchdog_report_success(uint8_t request) {
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
-void watchdog_send_bpacket_to_maple(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data) {
+void watchdog_create_and_send_bpacket_to_maple(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data) {
     bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
     bpacket_create_p(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, request, code, numBytes, data);
@@ -156,7 +165,7 @@ void watchdog_send_bpacket_to_maple(uint8_t request, uint8_t code, uint8_t numBy
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
-void watchdog_send_bpacket_to_esp32(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data) {
+void watchdog_create_and_send_bpacket_to_esp32(uint8_t request, uint8_t code, uint8_t numBytes, uint8_t* data) {
     bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
     bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32, request, code, numBytes, data);
@@ -164,46 +173,120 @@ void watchdog_send_bpacket_to_esp32(uint8_t request, uint8_t code, uint8_t numBy
     comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
-void process_watchdog_stm32_request(bpacket_t* bpacket) {
+void watchdog_send_bpacket_to_esp32(bpacket_t* bpacket) {
+    bpacket_buffer_t bpacketBuffer;
+    bpacket_to_buffer(bpacket, &bpacketBuffer);
+    comms_transmit(ESP32_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+}
 
+void watchdog_send_bpacket_to_maple(bpacket_t* bpacket) {
+    bpacket_buffer_t bpacketBuffer;
+    bpacket_to_buffer(bpacket, &bpacketBuffer);
+    comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+}
+
+void process_watchdog_stm32_request(bpacket_t* bpacket) {
     switch (bpacket->request) {
         case WATCHDOG_BPK_R_LED_RED_ON:
-            watchdog_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_CODE_EXECUTE, 0, NULL);
+            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_CODE_EXECUTE, 0, NULL);
             break;
+
         case WATCHDOG_BPK_R_LED_RED_OFF:
-            watchdog_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_CODE_EXECUTE, 0, NULL);
+            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_CODE_EXECUTE, 0, NULL);
             break;
+
         case BPACKET_GEN_R_PING:;
-            char m[256];
-            bpacket_buffer_t bp;
-            sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
-                       "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, "
-                       "and a strong "
-                       "determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
-            bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_GEN_R_PING,
-                              BPACKET_CODE_SUCCESS, m);
-            bpacket_to_buffer(bpacket, &bp);
-            comms_transmit(BUFFER_2_ID, bp.buffer, bp.numBytes);
-            // uint8_t ping = WATCHDOG_PING_CODE_STM32;
-            // watchdog_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
+            uint8_t ping = WATCHDOG_PING_CODE_STM32;
+            watchdog_create_and_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
             break;
+
         case BPACKET_CODE_SUCCESS:
             watchdog_report_success(bpacket->request);
             break;
+
+        case BPACKET_GET_R_MESSAGE:
+            log_send_bdata(bpacket->bytes, bpacket->numBytes);
+            break;
+
         default:
             watchdog_report_error(bpacket->request, "Unknown request");
     }
 }
 
-uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
+void watchdog_print_wd_error(uint8_t result) {
+    char msg[40];
+    wd_get_error(result, msg);
+    log_error(msg);
+}
 
+uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
+    // log_send_data("here 9", 6);
     switch (bpacket->request) {
-        case BPACKET_CODE_ERROR:
-            // TODO: Implement
+
+        case WATCHDOG_BPK_R_READ_SETTINGS:
+
+            // Log success to Maple
+            if (bpacket->code == BPACKET_CODE_SUCCESS) {
+                // // Store watchdog settings in struct
+                uint8_t result = wd_bpacket_to_settings(bpacket, &wdSettings);
+
+                if (result != TRUE) {
+                    watchdog_print_wd_error(result);
+                    break;
+                }
+                log_send_data(" CONV SUCC ", 11);
+                // // watchdog_report_success(WATCHDOG_BPK_R_READ_SETTINGS);
+
+                // char k[52];
+                // sprintf(k, "Cam res: %i Start time: %i %i End time: %i %i", wdSettings.cameraSettings.resolution,
+                //         wdSettings.captureTime.startTime.minute, wdSettings.captureTime.startTime.hour,
+                //         wdSettings.captureTime.endTime.minute, wdSettings.captureTime.endTime.hour);
+                // log_send_data(k, chars_get_num_bytes(k));
+                // break;
+            }
+
+            // If reading the watchdog settings fails, write the default watchdog
+            // settings to the ESP32
+            if (bpacket->code == BPACKET_CODE_ERROR) {
+                log_send_data(" READ FAIL ", 11);
+                // watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to read");
+
+                // log_send_bdata(bpacket->bytes, bpacket->numBytes);
+
+                // bpacket_t settings;
+                // uint8_t result =
+                //     wd_settings_to_bpacket(&settings, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
+                //                            WATCHDOG_BPK_R_WRITE_SETTINGS, BPACKET_CODE_EXECUTE, &deafultWdSettings);
+
+                // // Write camera settings to the esp32
+                // if (result == TRUE) {
+                //     watchdog_send_bpacket_to_esp32(&settings);
+                //     watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Wrote default settings");
+                // } else {
+                //     watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to write default settings");
+                // }
+
+                // break;
+            }
+
             break;
-        case BPACKET_CODE_SUCCESS:
-            // TODO: Implement
+
+        case WATCHDOG_BPK_R_WRITE_SETTINGS:
+
+            // Log success to Maple
+            if (bpacket->code == BPACKET_CODE_SUCCESS) {
+                // watchdog_report_success(WATCHDOG_BPK_R_WRITE_SETTINGS);
+                watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Set new settings");
+                break;
+            }
+
+            // Log failure to Maple
+            if (bpacket->code == BPACKET_CODE_ERROR) {
+                watchdog_report_error(WATCHDOG_BPK_R_WRITE_SETTINGS, "Failed to write settings to ESP32");
+            }
+
             break;
+
         default:
             return FALSE;
     }
@@ -216,7 +299,6 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
     bpacket_buffer_t bpacketBuffer;
 
     uint8_t request = bpacket->request;
-    uint8_t result;
 
     switch (bpacket->request) {
         case WATCHDOG_BPK_R_TAKE_PHOTO:
@@ -250,37 +332,10 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
                 watchdog_report_error(WATCHDOG_BPK_R_SET_DATETIME, "Failed to convert bpacket to datetime\0");
             }
             break;
-        case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:;
-
-            // Successfullly got the camera resolution from the ESP32. Compile the camera settings
-            // stored on the STM32 and send back to Maple
-            result = wd_camera_settings_to_bpacket(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
-                                                   WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS,
-                                                   &cameraSettings);
-            if (result == TRUE) {
-                // Convert the bpacket to a buffer
-                bpacket_to_buffer(bpacket, &bpacketBuffer);
-                comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
-            } else {
-                char errorMsg[50];
-                wd_get_error(result, errorMsg);
-                log_send_data(errorMsg, sizeof(errorMsg));
-                watchdog_report_error(WATCHDOG_BPK_R_SET_DATETIME, "Failed to convert camera settings to bpacket\0");
-            }
-
+        case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
+            // TODO: Implement
             break;
-        case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:;
-
-            // Set the camera settings
-            result = wd_bpacket_to_camera_settings(bpacket, &cameraSettings);
-
-            if (result == TRUE) {
-                watchdog_report_success(WATCHDOG_BPK_R_SET_CAMERA_SETTINGS);
-            } else {
-                watchdog_report_error(WATCHDOG_BPK_R_SET_CAMERA_SETTINGS,
-                                      "Failed to convert bpacket to camera settings\0");
-            }
-
+        case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:;
             // TODO: Implement
             break;
         case WATCHDOG_BPK_R_GET_STATUS:
@@ -322,9 +377,10 @@ void watchdog_update(void) {
 
         // Process anything the ESP32 sends to the STM32
         if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
-            if (stm32_match_maple_request(&esp32Bpacket) != TRUE) {
-                process_watchdog_stm32_request(&esp32Bpacket);
-            }
+            bpacket_print(&esp32Bpacket);
+            // if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
+            //     process_watchdog_stm32_request(&esp32Bpacket);
+            // }
         }
 
         // Process anything Maple sends to the STM32

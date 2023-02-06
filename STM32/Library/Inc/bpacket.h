@@ -154,7 +154,7 @@
 
 #define BPACKET_ASSERT_VALID_RECEIVER(receiver)  \
     do {                                         \
-        if (request > BPACKET_MAX_ADDRESS) {     \
+        if (receiver > BPACKET_MAX_ADDRESS) {    \
             return BPACKET_ERR_INVALID_RECEIVER; \
         }                                        \
     } while (0)

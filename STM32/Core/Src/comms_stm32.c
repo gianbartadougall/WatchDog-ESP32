@@ -51,6 +51,7 @@ uint8_t lastByte = 0;
 
 /* Function Prototyes */
 void comms_send_byte(uint8_t bufferId, uint8_t byte);
+void comms_stm32_log_invalid_byte(uint8_t bufferId, uint8_t byte);
 
 void comms_stm32_init(void) {
 
@@ -79,13 +80,6 @@ void comms_add_to_buffer(uint8_t bufferId, uint8_t byte) {
     commms_stm32_increment_circ_buff_index(&rxBufIndexes[bufferId], RX_BUFFER_SIZE);
 }
 
-void update_past_bytes(uint8_t byte) {
-    lastByte = byte;
-    // pastByte3             = pastByte2;
-    // pastByte2             = pastByte1;
-    // pastByte1             = byte;
-}
-
 uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
     while (rxBufProcessedIndexes[bufferId] != rxBufIndexes[bufferId]) {
@@ -94,7 +88,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         commms_stm32_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
 
         if (expectedByteId[bufferId] == BPACKET_DATA_BYTE_ID) {
-            update_past_bytes(byte);
+
             // Increment the number of data bytes received
             numDataBytesReceived[bufferId]++;
 
@@ -103,14 +97,8 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                 expectedByteId[bufferId] = BPACKET_STOP_BYTE_UPPER_ID;
             }
 
-            // char msg[40];
-            // sprintf(msg, "DATA BYTE[%i]: [%i] [%i]", bufferId, numDataBytesReceived[bufferId],
-            //         numDataBytesExpected[bufferId]);
-            // log_send_data(msg, sizeof(msg));
-
+            // Divert byte to intended receiver
             if (divertBytes[bufferId] == TRUE) {
-
-                // Divert byte to intended receiver
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
                 continue;
             }
@@ -121,7 +109,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         }
 
         if ((expectedByteId[bufferId] == BPACKET_STOP_BYTE_LOWER_ID) && (byte == BPACKET_STOP_BYTE_LOWER)) {
-            update_past_bytes(byte);
+
             // if (bufferId == BUFFER_1_ID) {
             //     log_send_data(" STP BYTE LW ", 13);
             // }
@@ -132,7 +120,6 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
-
                 continue;
             }
 
@@ -143,7 +130,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         }
 
         if ((expectedByteId[bufferId] == BPACKET_STOP_BYTE_UPPER_ID) && (byte == BPACKET_STOP_BYTE_UPPER)) {
-            update_past_bytes(byte);
+
             // if (bufferId == BUFFER_1_ID) {
             //     log_send_data(" STP BYTE UP ", 13);
             // }
@@ -162,9 +149,8 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             //     sprintf(y, " LEN BYTE[%i] ", byte);
             //     log_send_data(y, chars_get_num_bytes(y));
             // }
-            update_past_bytes(byte);
+
             if (divertBytes[bufferId] == TRUE) {
-                // log_send_data(" LEN DIV ", 8);
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
 
@@ -186,12 +172,12 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         }
 
         if (expectedByteId[bufferId] == BPACKET_CODE_BYTE_ID) {
+
             // if (bufferId == BUFFER_1_ID) {
             //     char y[20];
             //     sprintf(y, " COD BYTE[%i] ", byte);
             //     log_send_data(y, chars_get_num_bytes(y));
             // }
-            update_past_bytes(byte);
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
@@ -207,7 +193,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             //     sprintf(y, " REQ BYTE[%i] ", byte);
             //     log_send_data(y, chars_get_num_bytes(y));
             // }
-            update_past_bytes(byte);
+
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
@@ -223,7 +209,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             //     sprintf(y, " SND BYTE[%i] ", byte);
             //     log_send_data(y, chars_get_num_bytes(y));
             // }
-            update_past_bytes(byte);
+
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
@@ -237,7 +223,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     log_send_data(" REC BYTE  ", 10);
             // }
-            update_past_bytes(byte);
+
             // Determine if this bpacket needs to be diverted to another mcu or not
             switch (byte) {
 
@@ -272,10 +258,8 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                     break;
 
                 case BPACKET_ADDRESS_STM32: // No need to divert bytes
-                                            // if (bufferId == BUFFER_1_ID) {
-                                            //     log_send_data(" REC STM ", 9);
-                                            // }
-                default:                    // Unknown receiver address. Pass onto STM32 and let STM32 handle it
+
+                default: // Unknown receiver address. Pass onto STM32 and let STM32 handle it
                     bpacket->receiver     = BPACKET_ADDRESS_STM32;
                     divertBytes[bufferId] = FALSE;
                     break;
@@ -289,7 +273,6 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     log_send_data(" START LOWER ", 13);
             // }
-            update_past_bytes(byte);
             expectedByteId[bufferId] = BPACKET_RECEIVER_BYTE_ID;
             continue;
         }
@@ -299,41 +282,33 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             //     log_send_data(" START UPPER ", 13);
             // }
             expectedByteId[bufferId] = BPACKET_START_BYTE_LOWER_ID;
+
             // Reset the byte index
-            update_past_bytes(byte);
             bpacketByteIndex[bufferId] = 0;
 
             continue;
         }
 
-        char m[40];
-        if (bufferId == BUFFER_1_ID) {
-            // comms_send_byte(BUFFER_2_ID, byte);
-            sprintf(m, " F1[%i][%i][%i] Len: %i got: %i", expectedByteId[bufferId], byte, lastByte,
-                    numDataBytesExpected[bufferId], numDataBytesReceived[bufferId]);
-            log_send_data(m, chars_get_num_bytes(m));
-        } else {
-            sprintf(m, " F2[%i][%i][%i] Len: %i got: %i", expectedByteId[bufferId], byte, lastByte,
-                    numDataBytesExpected[bufferId], numDataBytesReceived[bufferId]);
-            log_send_data(m, chars_get_num_bytes(m));
-        }
-
-        for (int i = 0; i < 30; i++) {
-            m[i] = '\0';
-        }
+        // Log data if required
+        // comms_stm32_log_invalid_byte(bufferId, byte);
 
         // Erraneous byte. Reset the system
         expectedByteId[bufferId] = BPACKET_START_BYTE_UPPER_ID;
-        update_past_bytes(byte);
     }
 
     return FALSE;
 }
 
+void comms_stm32_log_invalid_byte(uint8_t bufferId, uint8_t byte) {
+    char m[30];
+    sprintf(m, " BUF[%i][%i]", bufferId, byte);
+    log_send_data(m, chars_get_num_bytes(m));
+}
+
 /* Generic USART Commuincation Functions */
 
 void comms_send_byte(uint8_t bufferId, uint8_t byte) {
-
+    // log_send_data("rx SENT ", 8);
     // Wait for USART to be ready to send a byte
     while ((uarts[bufferId]->ISR & USART_ISR_TXE) == 0) {};
 

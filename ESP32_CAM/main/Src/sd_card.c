@@ -24,6 +24,7 @@
 #include "esp32_uart.h"
 
 #include "uart_comms.h"
+#include "watchdog_defines.h"
 
 /* Private Macros */
 
@@ -457,6 +458,95 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     // Close the SD card
     sd_card_close();
+}
+
+uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket) {
+
+    uint8_t request  = bpacket->request;
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
+    // Return error message if the SD card cannot be opened
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card failed to open\0");
+        return FALSE;
+    }
+
+    // Confirm file path exists. Create it if it does not
+    FILE* file = fopen(SETTINGS_FILE_PATH_START_AT_ROOT, "wb"); // write binary file
+    if (file == NULL) {
+        char msg[70];
+        sprintf(msg, "Failed to open '%s' for writing. Error: %s", SETTINGS_FILE_PATH_START_AT_ROOT, strerror(errno));
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        return FALSE;
+    }
+
+    // Rewrite bytes file in the same order as the bpacket for simplicity
+    for (int i = 0; i < bpacket->numBytes; i++) {
+        fputc(bpacket->bytes[i], file);
+    }
+
+    // Clean up
+    fclose(file);
+    sd_card_close();
+
+    // Update bapacket to send as success response back
+    bpacket->numBytes = 0;
+    bpacket->receiver = sender;
+    bpacket->sender   = receiver;
+    bpacket->code     = BPACKET_CODE_SUCCESS;
+
+    return TRUE;
+}
+
+uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket) {
+
+    uint8_t request  = bpacket->request;
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
+    // Return error message if the SD card cannot be opened
+    if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card failed to open\0");
+        return FALSE;
+    }
+
+    FILE* file = fopen(SETTINGS_FILE_PATH_START_AT_ROOT, "rb"); // read binary file
+    if (file == NULL) {
+        char msg[70];
+        sprintf(msg, "Failed to open '%s'. Error: %s", SETTINGS_FILE_PATH_START_AT_ROOT, strerror(errno));
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        return FALSE;
+    }
+
+    // Calculate the length of the file
+    fseek(file, 0L, SEEK_END);
+    bpacket->numBytes = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+
+    // If the file is empty, return error
+    if (bpacket->numBytes == 0) {
+        char msg[70];
+        sprintf(msg, "File '%s' was empty.", SETTINGS_FILE_PATH_START_AT_ROOT);
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        fclose(file);
+        return FALSE;
+    }
+
+    // Rewrite bytes file in the same order as the bpacket for simplicity
+    for (int i = 0; i < bpacket->numBytes; i++) {
+        bpacket->bytes[i] = fgetc(file);
+    }
+
+    // Clean up
+    fclose(file);
+    sd_card_close();
+
+    bpacket->receiver = sender;
+    bpacket->sender   = receiver;
+    bpacket->code     = BPACKET_CODE_SUCCESS;
+
+    return TRUE;
 }
 
 /* GOOD FUNCTIONS */

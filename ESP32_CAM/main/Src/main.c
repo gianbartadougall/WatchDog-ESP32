@@ -59,6 +59,13 @@
 
 uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
+    // bpacket_t bpacket1;
+    // char j[30];
+    // sprintf(j, "Request: [%i]", bpacket->request);
+    // bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_ESP32, BPACKET_GET_R_MESSAGE,
+    //                   BPACKET_CODE_SUCCESS, j);
+    // esp32_uart_send_bpacket(&bpacket1);
+
     // Save the address
     uint8_t request  = bpacket->request;
     uint8_t receiver = bpacket->receiver;
@@ -68,6 +75,7 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_TAKE_PHOTO:
             camera_capture_and_save_image(bpacket);
             break;
+
         case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
 
             if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
@@ -78,14 +86,29 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
             esp32_uart_send_bpacket(bpacket);
             break;
+
         case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
 
             uint8_t resolution = camera_get_resolution();
             bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, &resolution);
             esp32_uart_send_bpacket(bpacket);
             break;
+
+        case WATCHDOG_BPK_R_WRITE_SETTINGS:
+
+            sd_card_write_watchdog_settings(bpacket);
+            esp32_uart_send_bpacket(bpacket); // Send response back
+            break;
+
+        case WATCHDOG_BPK_R_READ_SETTINGS:
+
+            sd_card_read_watchdog_settings(bpacket);
+            esp32_uart_send_bpacket(bpacket); // Send response back
+            break;
+
         case WATCHDOG_BPK_R_RECORD_DATA:
             break;
+
         default:
             return FALSE;
     }
@@ -134,6 +157,8 @@ void watchdog_system_start(void) {
             continue;
         }
 
+        led_toggle(RED_LED);
+
         uint8_t result = bpacket_buffer_decode(&bpacket, bdata);
 
         if (result != TRUE) {
@@ -141,6 +166,21 @@ void watchdog_system_start(void) {
             led_on(RED_LED);
             continue;
         }
+
+        // Confirm valid receiver
+        // if (bpacket.receiver != BPACKET_ADDRESS_ESP32) {
+        //     char m[50];
+        //     sprintf(m, "Invalid receiver. Expected %i but got %i", BPACKET_ADDRESS_ESP32, bpacket.receiver);
+        //     bpacket_create_sp(&bpacket, bpacket.sender, bpacket.receiver, bpacket.request, BPACKET_CODE_ERROR, m);
+        //     esp32_uart_send_bpacket(&bpacket);
+        // } else {
+        //     char m[50];
+        //     sprintf(m, "Sender: %i Receiver: %i", bpacket.sender, bpacket.receiver);
+        //     bpacket_create_sp(&bpacket, bpacket.sender, bpacket.receiver, BPACKET_GET_R_MESSAGE,
+        //     BPACKET_CODE_SUCCESS,
+        //                       m);
+        //     esp32_uart_send_bpacket(&bpacket);
+        // }
 
         if ((bpacket.sender == BPACKET_ADDRESS_STM32) && (esp3_match_stm32_request(&bpacket) == TRUE)) {
             continue;
@@ -150,18 +190,17 @@ void watchdog_system_start(void) {
             continue;
         }
 
+        char m[50];
+        bpacket_t h;
+        sprintf(m, "Generic request [%i][%i][%i]", bpacket.receiver, bpacket.sender, bpacket.request);
+        bpacket_create_sp(&h, bpacket.sender, bpacket.receiver, bpacket.request, BPACKET_CODE_ERROR, m);
+        esp32_uart_send_bpacket(&h);
+
         // The request was a generic request that could have been sent from the stm32
         // or from maple
         uint8_t request  = bpacket.request;
         uint8_t receiver = bpacket.receiver;
         uint8_t sender   = bpacket.sender;
-
-        char m[256];
-        sprintf(
-            m,
-            "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
-            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, and a strong "
-            "determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
 
         switch (bpacket.request) {
             case BPACKET_GEN_R_PING:
@@ -179,9 +218,7 @@ void watchdog_system_start(void) {
                 esp32_uart_send_bpacket(&bpacket);
                 break;
             case WATCHDOG_BPK_R_WRITE_TO_FILE:
-                bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, m);
-                // sd_card_write_to_file();
-                esp32_uart_send_bpacket(&bpacket);
+
                 break;
             default: // No request was able to be matched. Send response back to sender
                 bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN,

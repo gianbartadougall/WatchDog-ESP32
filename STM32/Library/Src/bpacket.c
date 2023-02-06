@@ -167,25 +167,25 @@ void bpacket_get_error(uint8_t bpacketError, char* errorMsg) {
 
     switch (bpacketError) {
         case BPACKET_ERR_INVALID_RECEIVER:
-            sprintf(errorMsg, "Invalid receiver address\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid receiver address\r\n");
             break;
         case BPACKET_ERR_INVALID_SENDER:
-            sprintf(errorMsg, "Invalid sender address\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid sender address\r\n");
             break;
         case BPACKET_ERR_INVALID_REQUEST:
-            sprintf(errorMsg, "Invalid request\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid request\r\n");
             break;
         case BPACKET_ERR_INVALID_CODE:
-            sprintf(errorMsg, "Invalid code\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid code\r\n");
             break;
         case BPACKET_ERR_INVALID_NUM_DATA_BYTES:
-            sprintf(errorMsg, "Invalid number of data bytes\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid number of data bytes\r\n");
             break;
         case BPACKET_ERR_INVALID_START_BYTE:
-            sprintf(errorMsg, "Invalid start byte\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid start byte\r\n");
             break;
         default:
-            sprintf(errorMsg, "Unknown error code %i\r\n", bpacketError);
+            sprintf(errorMsg, "Bpacket err: Unknown error code %i\r\n", bpacketError);
             break;
     }
 }

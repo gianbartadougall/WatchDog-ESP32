@@ -47,4 +47,18 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour);
 uint8_t dt_date_is_valid(dt_date_t* date);
 uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year);
 
+#define DATETIME_ASSERT_VALID_TIME(time, error) \
+    do {                                        \
+        if (dt_time_is_valid(time) != TRUE) {   \
+            return error;                       \
+        }                                       \
+    } while (0)
+
+#define DATETIME_ASSERT_VALID_DATA(date, error) \
+    do {                                        \
+        if (dt_date_is_valid(date) != TRUE) {   \
+            return error;                       \
+        }                                       \
+    } while (0)
+
 #endif // DATETIME_H

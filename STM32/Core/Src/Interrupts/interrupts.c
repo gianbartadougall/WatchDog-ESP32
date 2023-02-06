@@ -22,7 +22,7 @@ void USART1_IRQHandler(void) {
     if ((USART1->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART1->RDR;
-
+        // uint8_t c = USART1->RDR;
         // log_send_data(&c, 1);
         // log_prints("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag

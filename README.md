@@ -34,7 +34,7 @@
    - Running a test (DONE)
    - Streaming photos from ESP32 to GUI (DONE)
  - ESP32 recieve all of the above and change those settings (DONE)
-   - Save all these settings on SD card on the ESP32
+   - Save all these settings on SD card on the ESP32 (DONE)
  - Get the STM32 working in deep sleep mode
  - Change the names of the images to a hex ID with a text file that relates ids to the date and time and temperature data
  - Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning

@@ -237,36 +237,34 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
                 log_send_data(" CONV SUCC ", 11);
                 // // watchdog_report_success(WATCHDOG_BPK_R_READ_SETTINGS);
 
-                // char k[52];
-                // sprintf(k, "Cam res: %i Start time: %i %i End time: %i %i", wdSettings.cameraSettings.resolution,
-                //         wdSettings.captureTime.startTime.minute, wdSettings.captureTime.startTime.hour,
-                //         wdSettings.captureTime.endTime.minute, wdSettings.captureTime.endTime.hour);
-                // log_send_data(k, chars_get_num_bytes(k));
-                // break;
+                char k[52];
+                sprintf(k, "Cam res: %i Start time: %i %i End time: %i %i", wdSettings.cameraSettings.resolution,
+                        wdSettings.captureTime.startTime.minute, wdSettings.captureTime.startTime.hour,
+                        wdSettings.captureTime.endTime.minute, wdSettings.captureTime.endTime.hour);
+                log_send_data(k, chars_get_num_bytes(k));
+                break;
             }
 
             // If reading the watchdog settings fails, write the default watchdog
             // settings to the ESP32
             if (bpacket->code == BPACKET_CODE_ERROR) {
-                log_send_data(" READ FAIL ", 11);
-                // watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to read");
 
-                // log_send_bdata(bpacket->bytes, bpacket->numBytes);
+                watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to read");
 
-                // bpacket_t settings;
-                // uint8_t result =
-                //     wd_settings_to_bpacket(&settings, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
-                //                            WATCHDOG_BPK_R_WRITE_SETTINGS, BPACKET_CODE_EXECUTE, &deafultWdSettings);
+                bpacket_t settings;
+                uint8_t result =
+                    wd_settings_to_bpacket(&settings, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
+                                           WATCHDOG_BPK_R_WRITE_SETTINGS, BPACKET_CODE_EXECUTE, &deafultWdSettings);
 
-                // // Write camera settings to the esp32
-                // if (result == TRUE) {
-                //     watchdog_send_bpacket_to_esp32(&settings);
-                //     watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Wrote default settings");
-                // } else {
-                //     watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to write default settings");
-                // }
+                // Write camera settings to the esp32
+                if (result == TRUE) {
+                    watchdog_send_bpacket_to_esp32(&settings);
+                    watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Wrote default settings");
+                } else {
+                    watchdog_report_error(WATCHDOG_BPK_R_READ_SETTINGS, "Failed to write default settings");
+                }
 
-                // break;
+                break;
             }
 
             break;
@@ -377,10 +375,9 @@ void watchdog_update(void) {
 
         // Process anything the ESP32 sends to the STM32
         if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
-            bpacket_print(&esp32Bpacket);
-            // if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
-            //     process_watchdog_stm32_request(&esp32Bpacket);
-            // }
+            if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
+                process_watchdog_stm32_request(&esp32Bpacket);
+            }
         }
 
         // Process anything Maple sends to the STM32

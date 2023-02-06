@@ -5,6 +5,7 @@ EXECUTABLE_NAME = Maple
 EXECUTABLE = $(BUILD_DIR)\$(EXECUTABLE_NAME)
 
 LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
+STB_DIRECTORY = ../Drivers/stb_image/Src
 
 C_SOURCES = \
 Src/main.c \
@@ -24,9 +25,11 @@ C_INCLUDES = \
 -I../Drivers/ESP32_Camera/driver/include \
 -IInc
 
+STB_SOURCES = \
+../Drivers/stb_image/Src/stb_image.c \
+../Drivers/stb_image/Src/stb_image_resize.c 
+
 LIB_SP_SOURCES = \
-Src/stb_image.c \
-Src/stb_image_resize.c \
 serialport.c \
 timing.c \
 windows.c
@@ -35,15 +38,20 @@ FILES_NO_DIR = $(foreach D, $(C_SOURCES), $(notdir $(D)))
 FILES_TO_CLEAN = $(patsubst %.c, "$(BUILD_DIR)\\%.o", $(FILES_NO_DIR)) $(patsubst %.c, "$(BUILD_DIR)\\%.d", $(FILES_NO_DIR))
 
 # The Windows/System32 include is required for the LibSerialPort setupapi.dll file
+LIB_STB_INCLUDES = \
+-I../Drivers/stb_image/Inc
+
 LIB_SP_INCLUDES = \
 -I../Drivers/LibSerialPort \
 -IC:/Windows/System32
 
 C_OBJECTS = $(patsubst %.c, %.o, $(C_SOURCES))
 LIB_SP_OBJECTS = $(patsubst %.c, %.o, $(LIB_SP_SOURCES))
+STB_OBJECTS = $(patsubst %.c, %.o, $(STB_SOURCES))
 
 C_OBJECTS_BUILD_DIR = $(foreach D, $(C_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
+STB_OBJECTS_BUILD_DIR = $(foreach D, $(STB_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 
 
 
@@ -55,14 +63,14 @@ DEBUG_MODE=-g
 # Ensures .cpp files are recompiled if header files are edited 
 DEPENDENCY_FLAGS = -MP -MD
 
-FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(C_INCLUDES) $(DEPENDENCY_FLAGS) $(OPT)
+FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(LIB_STB_INCLUDES) $(C_INCLUDES) $(DEPENDENCY_FLAGS) $(OPT)
 # $(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
 
 all: $(BUILD_DIR) $(C_SOURCES) Linker
 
 # The -lsetupapi (used for libSerialPort) include must go at the end for it to compile properly.
 # The gdi32.lib is used for the win32A API
-Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR)
+Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR) $(STB_OBJECTS_BUILD_DIR)
 	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi -lgdi32
 
 $(C_SOURCES):
@@ -71,6 +79,9 @@ $(C_SOURCES):
 
 $(LIB_SP_OBJECTS_BUILD_DIR):
 	$(C_COMPILER) $(FLAGS) -c -o $@ $(LIB_SP_DIRECTORY)/$(notdir $(basename $@)).c
+
+$(STB_OBJECTS_BUILD_DIR):
+	$(C_COMPILER) $(FLAGS) -c -o $@ $(STB_DIRECTORY)/$(notdir $(basename $@)).c
 
 $(C_OBJECTS_BUILD_DIR): $(C_SOURCES)
 	$(C_COMPILER) $(FLAGS) -c -o $@ $(strip $(filter %/$(notdir $(basename $@).c), $(C_SOURCES)))

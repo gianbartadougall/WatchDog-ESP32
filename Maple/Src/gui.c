@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <sensor.h>
+#include <string.h>
 
 /* Personal Includes */
 #include "gui.h"
@@ -25,17 +26,20 @@
 #include "stb_image_resize.h"
 
 /* Private Macros */
-#define IDC_COMBOBOX  32511
 #define LEFT_MARGIN   10
 #define MIDDLE_MARGIN 270
 #define TOP_MARGIN    10
 #define RIGHT_MARGIN  500
 
+#define GAP_WIDTH  10
+#define GAP_HEIGHT 10
+
 #define BUTTON_WIDTH  200
 #define BUTTON_HEIGHT 30
 
 #define LABEL_WIDTH         200
-#define HEADING_LABEL_WIDTH LABEL_WIDTH * 2
+#define LABEL_WIDTH_HALF    ((LABEL_WIDTH - GAP_WIDTH) / 2)
+#define LABEL_WIDTH_HEADING (LABEL_WIDTH * 2 + GAP_WIDTH)
 #define LABEL_HEIGHT        30
 
 #define DROP_BOX_WIDTH       200
@@ -45,14 +49,8 @@
 #define TEXT_BOX_WIDTH  95
 #define TEXT_BOX_HEIGHT 30
 
-// #define WINDOW_WIDTH  (RIGHT_MARGIN + LABEL_WIDTH + (GAP_WIDTH * 3))
-// #define WINDOW_HEIGHT ((LABEL_HEIGHT * 2) + TOP_MARGIN + 300)
-
 #define WINDOW_WIDTH  1300
 #define WINDOW_HEIGHT 768
-
-#define GAP_WIDTH  10
-#define GAP_HEIGHT 10
 
 #define ROW_1  10
 #define ROW_2  (ROW_1 + LABEL_HEIGHT + GAP_HEIGHT)
@@ -76,12 +74,13 @@
 #define ROW_20 (ROW_19 + LABEL_HEIGHT + GAP_HEIGHT)
 
 #define COL_1           10
-#define COL_1_ONE_THIRD (COL_1 + 70)
-#define COL_1_ONE_HALF  (COL_1 + 105)
-#define COL_1_TWO_THIRD (COL_1 + 140)
+#define COL_1_ONE_THIRD (COL_1 + (LABEL_WIDTH + GAP_WIDTH) / 3)
+#define COL_1_ONE_HALF  (COL_1 + (LABEL_WIDTH + GAP_WIDTH) / 2)
+#define COL_1_TWO_THIRD (COL_1 + (LABEL_WIDTH + GAP_WIDTH) * 2 / 3)
 #define COL_2           (COL_1 + LABEL_WIDTH + GAP_WIDTH)
-#define COL_2_ONE_THIRD (COL_2 + 70)
-#define COL_2_TWO_THIRD (COL_2 + 140)
+#define COL_2_ONE_THIRD (COL_2 + (LABEL_WIDTH + GAP_WIDTH) / 3)
+#define COL_2_ONE_HALF  (COL_2 + (LABEL_WIDTH + GAP_WIDTH) / 2)
+#define COL_2_TWO_THIRD (COL_2 + (LABEL_WIDTH + GAP_WIDTH) * 2 / 3)
 #define COL_3           (COL_2 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_4           (COL_3 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_5           (COL_4 + LABEL_WIDTH + GAP_WIDTH)
@@ -89,41 +88,11 @@
 #define COL_7           (COL_6 + LABEL_WIDTH + GAP_WIDTH)
 #define COL_8           (COL_7 + LABEL_WIDTH + GAP_WIDTH)
 
-#define BUTTON_CAMERA_VIEW_HANDLE         1
-#define BUTTON_OPEN_SD_CARD_HANDLE        2
-#define BUTTON_EXPORT_DATA_HANDLE         3
-#define BUTTON_RUN_TEST_HANDLE            4
-#define BUTTON_NORMAL_VIEW_HANDLE         5
-#define DROP_BOX_CAMERA_RESOLUTION_HANDLE 6
-#define TEXT_BOX_START_TIME_HANDLE        7
-#define TEXT_BOX_END_TIME_HANDLE          8
-#define TEXT_BOX_TIME_INTERVAL_HANDLE     9
-#define TEXT_BOX_RTC_DATE_HANDLE          10
-#define TEXT_BOX_RTC_TIME_HANDLE          11
-
 #define TEXT_BOX_START_TIME_FLAG    (0x01 << 0)
 #define TEXT_BOX_END_TIME_FLAG      (0x01 << 1)
 #define TEXT_BOX_TIME_INTERVAL_FLAG (0x01 << 2)
-#define TEXT_BOX_RTC_DATE_FLAG      (0x01 << 3)
-#define TEXT_BOX_RTC_TIME_FLAG      (0x01 << 4)
 
-#define NUMBER_OF_CAM_RESOLUTIONS 7
-
-const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
-                                           "1024x768", "1280x1024", "1600x1200"};
-
-uint32_t textBoxFlags = 0;
-
-HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval, textBoxRtcDate, textBoxRtcDate, textBoxRtcTime;
-HWND dropDownCameraResolution;
-HWND labelCameraResolution, labelPhotoFrequency, labelStatus, labelID, labelNumImages, labelDateRtc, labelTimeRtc,
-    labelSetUp, labelData, labelSettings, labelStartTime, labelEndTime, labelTimeInterval, labelDateHeading,
-    labelTimeInfo;
-HWND buttonCameraView, buttonOpenSDCard, buttonExportData, buttonRunTest, buttonNormalView;
-HFONT hFont;
-int startTimeHr, startTimeMin, endTimeHr, endTimeMin, timeIntervalHr, timeIntervalMin, rtcTimeMin, rtcTimeHr,
-    rtcTimeDay, rtcTimeMonth, rtcTimeYear;
-
+// Struct for drawing
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -133,18 +102,189 @@ typedef struct rectangle_t {
 
 rectangle_t cameraViewImagePosition;
 
+// Function prototypes
 uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
 void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b);
 void gui_update_camera_view(char* fileName);
-framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
-    FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
 
+// Create instances of structs that are used for the GUI
 watchdog_info_t* watchdog;
 uint32_t* flags;
 bpacket_circular_buffer_t* guiToMainCircularBuffer;
 bpacket_circular_buffer_t* mainToGuiCircularBuffer;
 
 #define MTG_CB_CURRENT_BPACKET (mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])
+
+
+/* ALL THE LABEL INFORMATION IS HERE */
+
+#define NUMBER_OF_LABELS        11
+#define LONGEST_LABEL_TITLE     50
+#define LABEL_STATUS            0
+#define LABEL_ID                1 
+#define LABEL_NUM_IMAGES        2
+#define LABEL_SET_UP            3
+#define LABEL_DATE              4
+#define LABEL_SETTINGS          5
+#define LABEL_CAMERA_RESOLUTION 6 
+#define LABEL_START_TIME        7 
+#define LABEL_END_TIME          8 
+#define LABEL_TIME_INTERVAL     9
+#define LABEL_TIME_INFO         10
+#define LABEL_START_INVALID     11
+#define LABEL_END_INVALID       12 
+#define LABEL_INTERVAL_INVAILD  13
+HWND labelStatus, labelID, labelNumImages, labelSetUp, labelData, labelSettings, labelCameraResolution, labelStartTime, labelEndTime, labelTimeInterval, labelTimeInfo;
+char* labelTitleList[LONGEST_LABEL_TITLE] = {" Status", " ID", " Images Taken", " SET UP", " DATA", " CAMERA SETTINGS", " Camera Resolution", " Start Time(hh:mm am)", " End Time(hh:mm am)", "Time Interval(hh:mm)", "THIS WILL TELL YOU WHEN THE PHOTOS ARE TAKEN"};
+int labelStartXList[NUMBER_OF_LABELS] = {COL_6, COL_6, COL_6, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1};
+int labelStartYList[NUMBER_OF_LABELS] = {ROW_1, ROW_2, ROW_3, ROW_1, ROW_4, ROW_7, ROW_8, ROW_9, ROW_10, ROW_11, ROW_12};
+int labelWidthList[NUMBER_OF_LABELS] = {LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH_HEADING, LABEL_WIDTH_HEADING, LABEL_WIDTH_HEADING, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH_HEADING * 2};
+int labelHeightList[NUMBER_OF_LABELS] = {LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT};
+
+typedef struct label_info_t {
+    HWND handle;
+    char* text;
+    int startX;
+    int startY;
+    int width;
+    int height;
+} label_info_t;
+
+label_info_t labelList[NUMBER_OF_LABELS];
+
+//HWND labelHandleList[NUMBER_OF_LABELS] = {labelStatus, labelID, labelNumImages, labelSetUp, labelData, labelSettings, labelCameraResolution, labelStartTime, labelEndTime, labelTimeInterval, labelTimeInfo};
+
+void initalise_label_structs(label_info_t* labelList) {
+    for (int i = 0; i < NUMBER_OF_LABELS; i++) {
+        // labelList[i].handle = labelHandleList[i];
+        labelList[i].text   = labelTitleList[i];
+        labelList[i].startX = labelStartXList[i];
+        labelList[i].startY = labelStartYList[i];
+        labelList[i].width  = labelWidthList[i];
+        labelList[i].height = labelHeightList[i];
+    }
+    // Ask Gian how to put this in the loop
+    labelList[0].handle  = labelCameraResolution;
+    labelList[1].handle  = labelID;
+    labelList[2].handle  = labelNumImages;
+    labelList[3].handle  = labelSetUp;
+    labelList[4].handle  = labelData;
+    labelList[5].handle  = labelSettings;
+    labelList[6].handle  = labelCameraResolution;
+    labelList[7].handle  = labelStartTime;
+    labelList[8].handle  = labelEndTime;
+    labelList[9].handle  = labelTimeInterval;
+    labelList[10].handle = labelTimeInfo;
+    return;
+}
+
+/* ALL THE BUTTON INFORMATION IS HERE */
+
+#define NUMBER_OF_BUTTONS    6
+#define LONGEST_BUTTON_TITLE 50
+#define BUTTON_OPEN_SD_CARD  0 
+#define BUTTON_CAMERA_VIEW   1
+#define BUTTON_RUN_TEST      2
+#define BUTTON_EXPORT_DATA   3 
+#define BUTTON_NORMAL_VIEW   4 
+#define BUTTON_HELP          5
+HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp;
+char* buttonTitleList[LONGEST_BUTTON_TITLE] = {"View Data", "Live Camera View", "Test System", "Download data from SD card", "Exit Camera View", "Help"};
+int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6};
+int buttonStartYList[NUMBER_OF_BUTTONS] = {ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4, };
+int buttonWidthList[NUMBER_OF_BUTTONS] = {BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH};
+int buttonHeightList[NUMBER_OF_BUTTONS] = {BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT};
+
+typedef struct button_info_t {
+    HWND handle;
+    char* text;
+    int startX;
+    int startY;
+    int width;
+    int height;
+} button_info_t;
+
+button_info_t buttonList[NUMBER_OF_BUTTONS];
+
+void initalise_button_structs(button_info_t* buttonList) {
+    for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
+        buttonList[i].text   = buttonTitleList[i];
+        buttonList[i].startX = buttonStartXList[i];
+        buttonList[i].startY = buttonStartYList[i];
+        buttonList[i].width  = buttonWidthList[i];
+        buttonList[i].height = buttonHeightList[i];
+    }
+    // Ask Gian how to put this in the loop
+    buttonList[0].handle = buttonOpenSDCard;
+    buttonList[1].handle = buttonCameraView;
+    buttonList[2].handle = buttonRunTest;
+    buttonList[3].handle = buttonExportData;
+    buttonList[4].handle = buttonNormalView;
+    buttonList[5].handle = buttonHelp;
+    return;
+}
+
+/* ALL THE TEXT BOX INFORMATION IS HERE */
+
+#define NUMBER_OF_TEXT_BOXES   3 
+#define TEXT_BOX_START_TIME    0
+#define TEXT_BOX_END_TIME      1
+#define TEXT_BOX_TIME_INTERVAL 2
+uint32_t textBoxFlags = 0;
+int startTimeHr, startTimeMin, endTimeHr, endTimeMin, timeIntervalHr, timeIntervalMin;
+HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval; 
+HWND textBoxLabelStart, textBoxLabelEnd, textBoxLabelInterval;
+int textBoxStartXList[NUMBER_OF_TEXT_BOXES] = {COL_2, COL_2, COL_2};
+int textBoxStartYList[NUMBER_OF_TEXT_BOXES] = {ROW_9, ROW_10, ROW_11};
+int textBoxWidthList[NUMBER_OF_TEXT_BOXES] = {TEXT_BOX_WIDTH, TEXT_BOX_WIDTH, TEXT_BOX_WIDTH};
+int textBoxHeightList[NUMBER_OF_TEXT_BOXES] = {TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT};
+char* textBoxLabelTitleList[NUMBER_OF_TEXT_BOXES] = {"Invalid Input", "Invalid Input", "Invalid Input"};
+
+typedef struct text_box_info_t {
+    HWND handle;
+    int startX;
+    int startY;
+    int width;
+    int height;
+    label_info_t label;
+} text_box_info_t;
+
+text_box_info_t textBoxList[NUMBER_OF_TEXT_BOXES];
+
+void initalise_text_box_structs(text_box_info_t* textBoxList) {
+    for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
+        textBoxList[i].startX       = textBoxStartXList[i];
+        textBoxList[i].startY       = textBoxStartYList[i];
+        textBoxList[i].width        = textBoxWidthList[i];
+        textBoxList[i].height       = textBoxHeightList[i];
+        textBoxList[i].label.text   = textBoxLabelTitleList[i];
+        textBoxList[i].label.startX = (textBoxStartXList[i] + textBoxWidthList[i] + GAP_WIDTH);
+        textBoxList[i].label.startY = textBoxStartYList[i];
+        textBoxList[i].label.width  = textBoxWidthList[i];
+        textBoxList[i].label.height = textBoxHeightList[i];
+    }
+    textBoxList[0].handle       = textBoxStartTime;
+    textBoxList[0].label.handle = textBoxLabelStart;
+    textBoxList[1].handle       = textBoxEndTime;
+    textBoxList[1].label.handle = textBoxLabelEnd;
+    textBoxList[2].handle       = textBoxTimeInterval;
+    textBoxList[2].label.handle = textBoxLabelInterval;
+}
+
+
+
+/* ALL THE DROPBOX INFORMATION IS HERE */
+
+HWND dropDownCameraResolution;
+
+#define NUMBER_OF_CAM_RESOLUTIONS 7
+const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
+                                           "1024x768", "1280x1024", "1600x1200"};
+framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
+    FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
+
+
+/* FUNCTIONS TO CREATE BUTTONS, LABELS, DROPBOXES and TEXTBOXES */
 
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
@@ -159,8 +299,6 @@ HWND create_label(char* title, int startX, int startY, int width, int height, HW
 HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
                     int numberOfOptions, const char* nameOfOptions[40], int indexOfDisplayedOption) {
     HWND dropBox =
-        // CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED |
-        // WS_VISIBLE, startX,
         CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
                      startY, width, height, hwnd, handle, NULL, NULL);
     for (int i = 0; i < numberOfOptions; i++) {
@@ -170,235 +308,118 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
     return dropBox;
 }
 
-HWND create_textbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
+HWND create_text_box(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY, width,
                           height, hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
-void invalid_text_input(HWND textBox) {
-    HDC hdc = GetDC(textBox);
-    SetTextColor(hdc, RGB(255, 0, 0));
-    TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
-    ReleaseDC(textBox, hdc);
-}
+// This function puts red invalid text over the text boxes if they make a mistake, not needed for now
+// void invalid_text_input(HWND textBox) {
+//     HDC hdc = GetDC(textBox);
+//     SetTextColor(hdc, RGB(255, 0, 0));
+//     TextOut(hdc, 0, 0, "Invalid Input", strlen("Invalid Input"));
+//     ReleaseDC(textBox, hdc);
+// }
 
 int cameraViewOn = FALSE;
 
 void gui_set_camera_view(HWND hwnd) {
 
     // Show all the text boxes
-    ShowWindow(textBoxStartTime, SW_HIDE);
-    ShowWindow(textBoxEndTime, SW_HIDE);
-    ShowWindow(textBoxTimeInterval, SW_HIDE);
-    ShowWindow(textBoxRtcDate, SW_HIDE);
-    ShowWindow(textBoxRtcTime, SW_HIDE);
+    for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
+        ShowWindow(textBoxList[i].handle, SW_HIDE);
+        ShowWindow(textBoxList[i].label.handle, SW_HIDE);
+    }   
 
     // Hide all the drop downs
     ShowWindow(dropDownCameraResolution, SW_HIDE);
 
     // Hide all the labels
-    ShowWindow(labelCameraResolution, SW_HIDE);
-    ShowWindow(labelPhotoFrequency, SW_HIDE);
-    ShowWindow(labelStatus, SW_HIDE);
-    ShowWindow(labelID, SW_HIDE);
-    ShowWindow(labelNumImages, SW_HIDE);
-    ShowWindow(labelDateRtc, SW_HIDE);
-    ShowWindow(labelTimeRtc, SW_HIDE);
-    ShowWindow(labelSetUp, SW_HIDE);
-    ShowWindow(labelData, SW_HIDE);
-    ShowWindow(labelSettings, SW_HIDE);
-    ShowWindow(labelStartTime, SW_HIDE);
-    ShowWindow(labelEndTime, SW_HIDE);
-    ShowWindow(labelTimeInterval, SW_HIDE);
-    ShowWindow(labelDateHeading, SW_HIDE);
-    ShowWindow(labelTimeInfo, SW_HIDE);
+    for (int i = 0; i < NUMBER_OF_LABELS; i++) {
+        ShowWindow(labelList[i].handle, SW_HIDE);
+    }
 
     // Hide all the buttons
-    ShowWindow(buttonCameraView, SW_HIDE);
-    ShowWindow(buttonOpenSDCard, SW_HIDE);
-    ShowWindow(buttonExportData, SW_HIDE);
-    ShowWindow(buttonRunTest, SW_HIDE);
+    for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
+        ShowWindow(buttonList[i].handle, SW_HIDE);
+    }
 
     // Show the buttons used in camera view
-    ShowWindow(buttonNormalView, SW_SHOW);
+    ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_SHOW);
     UpdateWindow(hwnd);
 }
 
 void gui_set_normal_view(HWND hwnd) {
 
     // Show all the text boxes
-    ShowWindow(textBoxStartTime, SW_SHOW);
-    ShowWindow(textBoxEndTime, SW_SHOW);
-    ShowWindow(textBoxTimeInterval, SW_SHOW);
-    ShowWindow(textBoxRtcDate, SW_SHOW);
-    ShowWindow(textBoxRtcTime, SW_SHOW);
+    for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
+        ShowWindow(textBoxList[i].handle, SW_SHOW);
+        ShowWindow(textBoxList[i].label.handle, SW_SHOW);
+    }   
 
     // Show all the drop downs
     ShowWindow(dropDownCameraResolution, SW_SHOW);
 
     // Show all the labels
-    ShowWindow(labelCameraResolution, SW_SHOW);
-    ShowWindow(labelPhotoFrequency, SW_SHOW);
-    ShowWindow(labelStatus, SW_SHOW);
-    ShowWindow(labelID, SW_SHOW);
-    ShowWindow(labelNumImages, SW_SHOW);
-    ShowWindow(labelDateRtc, SW_SHOW);
-    ShowWindow(labelTimeRtc, SW_SHOW);
-    ShowWindow(labelSetUp, SW_SHOW);
-    ShowWindow(labelData, SW_SHOW);
-    ShowWindow(labelSettings, SW_SHOW);
-    ShowWindow(labelStartTime, SW_SHOW);
-    ShowWindow(labelEndTime, SW_SHOW);
-    ShowWindow(labelTimeInterval, SW_SHOW);
-    ShowWindow(labelDateHeading, SW_SHOW);
-    ShowWindow(labelTimeInfo, SW_SHOW);
+    for (int i = 0; i < NUMBER_OF_LABELS; i++) {
+        ShowWindow(labelList[i].handle, SW_SHOW);
+    }
 
     // Show all the buttons
-    ShowWindow(buttonCameraView, SW_SHOW);
-    ShowWindow(buttonOpenSDCard, SW_SHOW);
-    ShowWindow(buttonExportData, SW_SHOW);
-    ShowWindow(buttonRunTest, SW_SHOW);
+    for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
+        ShowWindow(buttonList[i].handle, SW_SHOW);
+    }
 
     // Hide the normal view button
-    ShowWindow(buttonNormalView, SW_HIDE);
+    ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
 
     // Set the "clicked of the texbox" flag so if the input in them is valid the red text will be written over them
     // again
-    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG |
-                     TEXT_BOX_RTC_DATE_FLAG | TEXT_BOX_RTC_TIME_FLAG);
+    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
 
     // make the changes
     UpdateWindow(hwnd);
 }
-#include <stdio.h>
-#include <string.h>
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
 
         case WM_CREATE:;
 
-            char text[150];
+            // create TEXT BOXES
+            initalise_text_box_structs(&textBoxList[0]);
+            for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
+                textBoxList[i].handle = create_text_box("Text_Box", textBoxList[i].startX, textBoxList[i].startY, textBoxList[i].width, textBoxList[i].height, hwnd, NULL);
+                textBoxList[i].label.handle = create_label(textBoxList[i].label.text, textBoxList[i].label.startX, textBoxList[i].label.startY, textBoxList[i].label.width, textBoxList[i].label.height, hwnd, NULL);
+                ShowWindow(textBoxList[i].label.handle, SW_HIDE);
+            }
 
-            // TEXT BOXES
+            // CREATE DROP BOXES
 
-            textBoxStartTime = create_textbox("Title", COL_2, ROW_9, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                              (HMENU)TEXT_BOX_START_TIME_HANDLE);
-
-            textBoxEndTime = create_textbox("Title", COL_2, ROW_10, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_END_TIME_HANDLE);
-
-            textBoxTimeInterval = create_textbox("Title", COL_2, ROW_11, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                                 (HMENU)TEXT_BOX_TIME_INTERVAL_HANDLE);
-
-            textBoxRtcDate = create_textbox("Title", COL_2, ROW_15, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_RTC_DATE_HANDLE);
-
-            textBoxRtcTime = create_textbox("Title", COL_2, ROW_16, TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT, hwnd,
-                                            (HMENU)TEXT_BOX_RTC_TIME_HANDLE);
-
-            // DROP BOXES
-
-            // Drop down box to change the camera resolution
             dropDownCameraResolution =
-                create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, (HMENU)IDC_COMBOBOX,
+                create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, NULL,
                                NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings, 0);
 
-            // BUTTONS
+            // CREATE BUTTONS
+            initalise_button_structs(&buttonList[0]);
+            for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
+                buttonList[i].handle = create_button(buttonList[i].text, buttonList[i].startX, buttonList[i].startY, buttonList[i].width, buttonList[i].height, hwnd, NULL);
+            }
+            ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
 
-            // Button use to open and view the data on the SD card
-            sprintf(text, "View Data");
-            buttonOpenSDCard =
-                create_button(text, COL_2, ROW_5, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_OPEN_SD_CARD_HANDLE);
-
-            // Button to get live stream feed of camera
-            sprintf(text, "Camera View");
-            buttonCameraView =
-                create_button(text, COL_1, ROW_2, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_CAMERA_VIEW_HANDLE);
-
-            // Button to run a test on the system
-            sprintf(text, "Test System");
-            buttonRunTest =
-                create_button(text, COL_2, ROW_2, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_RUN_TEST_HANDLE);
-
-            // button to copy data from the watchdog to the computer
-            sprintf(text, "Send Data to Computer");
-            buttonExportData =
-                create_button(text, COL_1, ROW_5, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_EXPORT_DATA_HANDLE);
-
-            // button to go back to camera View
-            sprintf(text, "Exit Camera View");
-            buttonNormalView =
-                create_button(text, COL_1, ROW_2, BUTTON_WIDTH, BUTTON_HEIGHT, hwnd, (HMENU)BUTTON_NORMAL_VIEW_HANDLE);
-            ShowWindow(buttonNormalView, SW_HIDE);
-
-            // LABELS
-
-            // Status label to show the health of the system
-            sprintf(text, " Status: %s", watchdog->status == SYSTEM_STATUS_OK ? "Ok" : "Error");
-            labelStatus = create_label(text, COL_6, ROW_1, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // ID label to show the ID of the system
-            sprintf(text, " ID: %x", watchdog->id);
-            labelID = create_label(text, COL_6, ROW_2, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label to show how many images are on the SD card
-            sprintf(text, " %i Image%s Taken", watchdog->numImages, watchdog->numImages == 1 ? "" : "s");
-            labelNumImages = create_label(text, COL_6, ROW_3, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label for the current date of the system
-            sprintf(text, " Current Date     (dd/mm/yyyy)");
-            labelDateRtc = create_label(text, COL_1, ROW_15, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label for the current time of the system
-            sprintf(text, " Current Time    (hh:mm am) ");
-            labelTimeRtc = create_label(text, COL_1, ROW_16, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Set Up" above the camera view and test system button
-            sprintf(text, " SET UP");
-            labelSetUp = create_label(text, COL_1, ROW_1, HEADING_LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Data" above the send data and view data button
-            sprintf(text, " DATA");
-            labelData = create_label(text, COL_1, ROW_4, HEADING_LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Camera settings" above the resolution and photo frequency settings
-            sprintf(text, " CAMERA SETTINGS");
-            labelSettings = create_label(text, COL_1, ROW_7, HEADING_LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "DATE" above settings to calibrate the real time clock
-            sprintf(text, " DATE");
-            labelDateHeading = create_label(text, COL_1, ROW_14, HEADING_LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Camera Resolution"
-            sprintf(text, " Camera Resolution");
-            labelCameraResolution = create_label(text, COL_1, ROW_8, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Start Time"
-            sprintf(text, " Start Time            (hh:mm am)");
-            labelStartTime = create_label(text, COL_1, ROW_9, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "End Time"
-            sprintf(text, " End Time             (hh:mm am)");
-            labelEndTime = create_label(text, COL_1, ROW_10, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Time Interval"
-            sprintf(text, " Time Interval       (hh:mm)");
-            labelTimeInterval = create_label(text, COL_1, ROW_11, LABEL_WIDTH, LABEL_HEIGHT, hwnd, NULL);
-
-            // Label "Time Interval"
-            sprintf(text, " THIS IS TO TELL YOU WHEN THE PHOTOS WILL BE TAKEN");
-            labelTimeInfo = create_label(text, COL_1, ROW_12, LABEL_WIDTH * 4, LABEL_HEIGHT, hwnd, NULL);
-
+            // create LABELS
+            initalise_label_structs(&labelList[0]);
+            for (int i = 0; i < NUMBER_OF_LABELS; i++) {
+                labelList[i].handle = create_label(labelList[i].text, labelList[i].startX, labelList[i].startY, labelList[i].width, labelList[i].height, hwnd, NULL);
+            }
+            
             break;
 
         case WM_COMMAND:
 
             // Handle button clicks
-            if (LOWORD(wParam) == BUTTON_OPEN_SD_CARD_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_OPEN_SD_CARD].handle) {
                 *flags |= GUI_TURN_RED_LED_ON;
-                // printf("Displaying SD card data\n");
-                // TRY TO PUT SOMETHING IN A BPACKET
 
                 bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
                                  BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
@@ -406,7 +427,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
             }
 
-            if (LOWORD(wParam) == BUTTON_EXPORT_DATA_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
 
                 bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
@@ -416,7 +437,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // printf("Exporting SD card data\n");
             }
 
-            if (LOWORD(wParam) == BUTTON_CAMERA_VIEW_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_CAMERA_VIEW].handle) {
                 cameraViewOn = TRUE;
                 gui_set_camera_view(hwnd);
 
@@ -430,7 +451,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 draw_image(hwnd, "img6.jpg", &rectangle);
             }
 
-            if (LOWORD(wParam) == BUTTON_NORMAL_VIEW_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_NORMAL_VIEW].handle) {
                 cameraViewOn = FALSE;
 
                 // Clear the screen
@@ -446,8 +467,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 // printf("Stopping livestream\n");
             }
 
-            if (LOWORD(wParam) == BUTTON_RUN_TEST_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_RUN_TEST].handle) {
                 printf("Testing system\n");
+            }
+
+            if ((HWND)lParam == buttonList[BUTTON_HELP].handle) {
+                system("start help.pdf");
             }
 
             // Handle drop down box
@@ -466,28 +491,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             // Handle the text boxes here
 
-            if (LOWORD(wParam) == TEXT_BOX_START_TIME_HANDLE) {
+            if ((HWND)lParam == textBoxList[TEXT_BOX_START_TIME].handle) {
                 textBoxFlags |= TEXT_BOX_START_TIME_FLAG;
             }
 
-            if (LOWORD(wParam) == TEXT_BOX_END_TIME_HANDLE) {
+            if ((HWND)lParam == textBoxList[TEXT_BOX_END_TIME].handle) {
                 textBoxFlags |= TEXT_BOX_END_TIME_FLAG;
             }
 
-            if (LOWORD(wParam) == TEXT_BOX_TIME_INTERVAL_HANDLE) {
+            if ((HWND)lParam == textBoxList[TEXT_BOX_TIME_INTERVAL].handle) {
                 textBoxFlags |= TEXT_BOX_TIME_INTERVAL_FLAG;
             }
 
-            if (LOWORD(wParam) == TEXT_BOX_RTC_DATE_HANDLE) {
-                textBoxFlags |= TEXT_BOX_RTC_DATE_FLAG;
-            }
-
-            if (LOWORD(wParam) == TEXT_BOX_RTC_TIME_HANDLE) {
-                textBoxFlags |= TEXT_BOX_RTC_TIME_FLAG;
-            }
-
             // This if statment will be evaluated as true when the user click off the start time textbox
-            if ((LOWORD(wParam) != TEXT_BOX_START_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_START_TIME_FLAG)) {
+            if (((HWND)lParam != textBoxList[TEXT_BOX_START_TIME].handle) && (textBoxFlags & TEXT_BOX_START_TIME_FLAG)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_START_TIME_FLAG;
 
@@ -510,15 +527,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxStartTime);
+                    //invalid_text_input(textBoxStartTime);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                textBoxFlags |= (TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the end time textbox
-            if ((LOWORD(wParam) != TEXT_BOX_END_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG)) {
+            if (((HWND)lParam != textBoxEndTime) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_END_TIME_FLAG;
 
@@ -533,7 +550,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     sscanf(textBoxText, "%d:%d %2s", &endTimeHr, &endTimeMin, period);
 
                     // Make sure that the end time is after the start time
-                    if ((startTimeHr * 60 + startTimeMin) <= (endTimeHr * 60 + endTimeMin)) {
+                    if ((startTimeHr * 60 + startTimeMin) >= (endTimeHr * 60 + endTimeMin)) {
                         // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12 hours
                         if (endTimeHr == 12) {
                             endTimeHr -= 12;
@@ -542,20 +559,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                             endTimeHr += 12;
                         }
                     } else {
-                        invalid_text_input(textBoxEndTime);
+                        //invalid_text_input(textBoxEndTime);
                     }
                     // TODO: Send the bpacket to change the start time
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxEndTime);
+                    //invalid_text_input(textBoxEndTime);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the time interval time textbox
-            if ((LOWORD(wParam) != TEXT_BOX_TIME_INTERVAL_HANDLE) && (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG)) {
+            if (((HWND)lParam != textBoxTimeInterval) && (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
 
@@ -572,65 +589,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     // Make sure that the time interval plus the start time isnt into the next day
                     if ((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) > (24 * 60)) {
                         // uThe info is stored in 24 hour time so if it is pm add 12 hrs
-                        invalid_text_input(textBoxTimeInterval);
+                        //invalid_text_input(textBoxTimeInterval);
                     }
                 } else {
                     // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxTimeInterval);
+                    //invalid_text_input(textBoxTimeInterval);
                 }
                 free(textBoxText);
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
-            }
-
-            // This if statment will be evaluated as true when the user click off the RTC date time textbox
-            if ((LOWORD(wParam) != TEXT_BOX_RTC_DATE_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_DATE_FLAG)) {
-                // Unset the flag
-                textBoxFlags &= ~TEXT_BOX_RTC_DATE_FLAG;
-
-                // pull the text from the text box
-                int textBoxCharLen = GetWindowTextLength(textBoxRtcDate) + 1;
-                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
-                GetWindowText(textBoxRtcDate, textBoxText, textBoxCharLen);
-
-                // Check if the text in the text box is valid
-                if (dt_is_valid_date(textBoxText)) {
-                    sscanf(textBoxText, "%d/%d/%d", &rtcTimeDay, &rtcTimeMonth, &rtcTimeYear);
-                    // TODO: send a bpacket to say what the start Time will be
-                } else {
-                    // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxRtcDate);
-                }
-                free(textBoxText);
-            }
-
-            // This if statment will be evaluated as true when the user click off the RTC time time textbox
-            if ((LOWORD(wParam) != TEXT_BOX_RTC_TIME_HANDLE) && (textBoxFlags & TEXT_BOX_RTC_TIME_FLAG)) {
-                // Unset the flag
-                textBoxFlags &= ~TEXT_BOX_RTC_TIME_FLAG;
-
-                // pull the text from the text box
-                int textBoxCharLen = GetWindowTextLength(textBoxRtcTime) + 1;
-                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
-                GetWindowText(textBoxRtcTime, textBoxText, textBoxCharLen);
-
-                // Check if the text in the text box is valid
-                if (dt_is_valid_hour_min_period(textBoxText)) {
-                    char period[3];
-                    sscanf(textBoxText, "%d:%d %2s", &rtcTimeHr, &rtcTimeMin, period);
-                    // The info is stored in 24 hour time so if it is pm add 12 hrs, if it is 12, take 12
-                    if (rtcTimeHr == 12) {
-                        rtcTimeHr -= 12;
-                    }
-                    if (chars_same(period, "pm\0") == TRUE) {
-                        rtcTimeHr += 12;
-                    }
-                    // TODO: Send the bpacket to change the Rtc
-                } else {
-                    // Write, in red, invalid input over the textbox
-                    invalid_text_input(textBoxRtcTime);
-                }
-                free(textBoxText);
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
             }
 
             break;

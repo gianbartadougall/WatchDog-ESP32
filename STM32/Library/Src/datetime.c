@@ -184,7 +184,6 @@ uint8_t dt_time_format_is_valid(char* time) {
             return FALSE;
         }
     }
-
     return TRUE;
 }
 
@@ -196,7 +195,8 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     int firstZero = 0;
     int isSpace   = 0;
     char period[3];
-    if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
+    int num;
+    if ((num = sscanf(time, "%d:%d %2s", &hour, &min, period)) != 3) {
         return FALSE;
     }
     if (time[0] == '0' || hour > 9) {

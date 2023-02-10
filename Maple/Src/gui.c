@@ -321,6 +321,111 @@ HWND create_text_box(char* title, int startX, int startY, int width, int height,
                           height, hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
+/* THESE FUNCTIONS ARE FOR WHAT HAPPENS WHEN THE USER CLICKS OFF A TEXT BOX */
+uint8_t click_off_start_tb(HWND hwnd) {
+    uint8_t success;
+
+    // pull the text from the text box
+    int textBoxCharLen = GetWindowTextLength(textBoxList[TEXT_BOX_START_TIME].handle) + 1;
+    char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+    GetWindowText(textBoxList[TEXT_BOX_START_TIME].handle, textBoxText, textBoxCharLen);
+
+    // Check if the text in the text box is valid
+    if (dt_is_valid_hour_min_period(textBoxText)) {
+        ShowWindow(textBoxList[TEXT_BOX_START_TIME].label.handle, SW_HIDE);
+        success = TRUE;
+        UpdateWindow(hwnd);
+        char period[3];
+        sscanf(textBoxText, "%d:%d %2s", &startTimeHr, &startTimeMin, period);
+        // The info is stored in 24 hour time so if it is pm add 12 hrs, if it is 12, take 12
+        if (startTimeHr == 12) {
+            startTimeHr -= 12;
+        }
+        if (chars_same(period, "pm\0") == TRUE) {
+            startTimeHr += 12;
+        }
+        printf("start time: %i:%i\n", startTimeHr, startTimeMin);
+        // TODO: Send the bpacket to change the start time
+    } else {
+        // Write, in red, invalid input over the textbox
+        ShowWindow(textBoxList[TEXT_BOX_START_TIME].label.handle, SW_SHOW);
+        success = FALSE;
+        UpdateWindow(hwnd);
+    }
+    free(textBoxText);
+    return success;
+}
+
+uint8_t click_off_end_tb(HWND hwnd) {
+    uint8_t success;
+
+    // pull the text from the text box
+    int textBoxCharLen = GetWindowTextLength(textBoxList[TEXT_BOX_END_TIME].handle) + 1;
+    char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+    GetWindowText(textBoxList[TEXT_BOX_END_TIME].handle, textBoxText, textBoxCharLen);
+
+    // Check if the text in the text box is valid and that the end time is after the start time
+    if (dt_is_valid_hour_min_period(textBoxText)) {
+        char period[3];
+        sscanf(textBoxText, "%d:%d %2s", &endTimeHr, &endTimeMin, period);
+        // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12
+        // hours
+        if (endTimeHr == 12) {
+            endTimeHr -= 12;
+        }
+        if (chars_same(period, "pm\0") == TRUE) {
+            endTimeHr += 12;
+        }
+        // Make sure that the end time is after the start time
+        if ((startTimeHr * 60 + startTimeMin) < (endTimeHr * 60 + endTimeMin)) {
+            ShowWindow(textBoxList[TEXT_BOX_END_TIME].label.handle, SW_HIDE);
+            success = TRUE;
+            UpdateWindow(hwnd);
+        } else {
+            ShowWindow(textBoxList[TEXT_BOX_END_TIME].label.handle, SW_SHOW);
+            success = FALSE;
+            UpdateWindow(hwnd);
+        }
+    } else {
+        ShowWindow(textBoxList[TEXT_BOX_END_TIME].label.handle, SW_SHOW);
+        success = FALSE;
+        UpdateWindow(hwnd);
+    }
+    free(textBoxText);
+    return success;
+}
+
+uint8_t click_off_interval_tb(HWND hwnd) {
+    uint8_t success;
+
+    // pull the text from the text box
+    int textBoxCharLen = GetWindowTextLength(textBoxList[TEXT_BOX_TIME_INTERVAL].handle) + 1;
+    char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
+    GetWindowText(textBoxList[TEXT_BOX_TIME_INTERVAL].handle, textBoxText, textBoxCharLen);
+
+    // Check if the text in the text box is valid
+    if (dt_time_format_is_valid(textBoxText)) {
+        sscanf(textBoxText, "%d:%d", &timeIntervalHr, &timeIntervalMin);
+        // Make sure that the time interval plus the start time isnt into the next day
+        if (((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) < (24 * 60)) &&
+            ((timeIntervalHr * 60 + timeIntervalMin) > 0)) {
+            ShowWindow(textBoxList[TEXT_BOX_TIME_INTERVAL].label.handle, SW_HIDE);
+            success = TRUE;
+            UpdateWindow(hwnd);
+        } else {
+            ShowWindow(textBoxList[TEXT_BOX_TIME_INTERVAL].label.handle, SW_SHOW);
+            success = FALSE;
+            UpdateWindow(hwnd);
+        }
+    } else {
+        ShowWindow(textBoxList[TEXT_BOX_TIME_INTERVAL].label.handle, SW_SHOW);
+        success = FALSE;
+        UpdateWindow(hwnd);
+    }
+    free(textBoxText);
+    return success;
+}
+
 int cameraViewOn = FALSE;
 
 void gui_set_camera_view(HWND hwnd) {
@@ -396,7 +501,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxList[i].label.handle =
                     create_label(textBoxList[i].label.text, textBoxList[i].label.startX, textBoxList[i].label.startY,
                                  textBoxList[i].label.width, textBoxList[i].label.height, hwnd, NULL);
-                ShowWindow(textBoxList[i].label.handle, SW_SHOW);
+                // ShowWindow(textBoxList[i].label.handle, SW_HIDE);
             }
 
             // CREATE DROP BOXES
@@ -503,7 +608,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if ((HWND)lParam == textBoxList[TEXT_BOX_START_TIME].handle) {
                 textBoxFlags |= TEXT_BOX_START_TIME_FLAG;
-                printf("CUNT 2\n");
             }
 
             if ((HWND)lParam == textBoxList[TEXT_BOX_END_TIME].handle) {
@@ -516,134 +620,65 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             // This if statment will be evaluated as true when the user click off the start time textbox
             if (((HWND)lParam != textBoxList[TEXT_BOX_START_TIME].handle) &&
-                (textBoxFlags & TEXT_BOX_START_TIME_FLAG)) {
-                printf("CUNT 1\n");
+                (textBoxFlags & TEXT_BOX_START_TIME_FLAG) && (cameraViewOn == FALSE)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_START_TIME_FLAG;
 
-                // pull the text from the text box
-                int textBoxCharLen = GetWindowTextLength(textBoxStartTime) + 1;
-                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
-                GetWindowText(textBoxStartTime, textBoxText, textBoxCharLen);
-
-                // Check if the text in the text box is valid
-                if (dt_is_valid_hour_min_period(textBoxText)) {
-                    printf("CUNT 3\n");
-                    ShowWindow(textBoxList[TEXT_BOX_START_TIME].label.handle, SW_HIDE);
-                    char period[3];
-                    sscanf(textBoxText, "%d:%d %2s", &startTimeHr, &startTimeMin, period);
-                    // The info is stored in 24 hour time so if it is pm add 12 hrs, if it is 12, take 12
-                    if (startTimeHr == 12) {
-                        startTimeHr -= 12;
-                    }
-                    if (chars_same(period, "pm\0") == TRUE) {
-                        startTimeHr += 12;
-                    }
-                    // TODO: Send the bpacket to change the start time
-                } else {
-                    // Write, in red, invalid input over the textbox
-                    ShowWindow(textBoxList[TEXT_BOX_START_TIME].label.handle, SW_SHOW);
-                    printf("CUNT 4\n");
+                uint8_t success = click_off_start_tb(hwnd);
+                if (success == TRUE) {
+                    // SEND SOME KIND OF BPACKET
+                    printf("Valid start time\n");
                 }
-                free(textBoxText);
+
                 // Set the flags so the other textboxes will be checked if this change made them invalid
-                textBoxFlags |= (TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
                 textBoxFlags |= (TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
             // This if statment will be evaluated as true when the user click off the end time textbox
-            if (((HWND)lParam != textBoxList[TEXT_BOX_END_TIME].handle) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG)) {
+            if (((HWND)lParam != textBoxList[TEXT_BOX_END_TIME].handle) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG) &&
+                (cameraViewOn == FALSE)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_END_TIME_FLAG;
 
-                // pull the text from the text box
-                int textBoxCharLen = GetWindowTextLength(textBoxEndTime) + 1;
-                char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
-                GetWindowText(textBoxEndTime, textBoxText, textBoxCharLen);
-
-                // Check if the text in the text box is valid and that the end time is after the start time
-                if (dt_is_valid_hour_min_period(textBoxText)) {
-                    char period[3];
-                    sscanf(textBoxText, "%d:%d %2s", &endTimeHr, &endTimeMin, period);
-
-                    // Make sure that the end time is after the start time
-                    if ((startTimeHr * 60 + startTimeMin) >= (endTimeHr * 60 + endTimeMin)) {
-                        // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12
-                        // hours
-                        if (endTimeHr == 12) {
-                            endTimeHr -= 12;
-                        }
-                        if (chars_same(period, "pm\0") == TRUE) {
-                            endTimeHr += 12;
-                        }
-                    } else {
-                        // invalid_text_input(textBoxEndTime);
-                        // The info is stored in 24 hour time so if it is pm add 12 hrs and if its a 12, minus 12
-                        // hours
-                        if (endTimeHr == 12) {
-                            endTimeHr -= 12;
-                        }
-                        if (chars_same(period, "pm\0") == TRUE) {
-                            endTimeHr += 12;
-                        }
-
-                        // Make sure that the end time is after the start time
-                        if ((startTimeHr * 60 + startTimeMin) >= (endTimeHr * 60 + endTimeMin)) {
-                            // invalid_text_input(textBoxEndTime);
-                        }
-
-                        // TODO: Send the bpacket to change the start time
-                    }
-                    free(textBoxText);
-                    // Set the flags so the other textboxes will be checked if this change made them invalid
-                    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+                uint8_t success = click_off_end_tb(hwnd);
+                if (success == TRUE) {
+                    // SEND SOME KIND OF BPACKET
+                    printf("Valid end time\n");
                 }
 
-                // This if statment will be evaluated as true when the user click off the time interval time textbox
-                if (((HWND)lParam != textBoxList[TEXT_BOX_TIME_INTERVAL].handle) &&
-                    (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG)) {
-                    // Unset the flag
-                    textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
-
-                    // pull the text from the text box
-                    int textBoxCharLen = GetWindowTextLength(textBoxTimeInterval) + 1;
-                    char* textBoxText  = (char*)malloc(textBoxCharLen * sizeof(char));
-                    GetWindowText(textBoxTimeInterval, textBoxText, textBoxCharLen);
-
-                    // Check if the text in the text box is valid
-                    if (dt_is_valid_hour_min(textBoxText)) {
-                        msg = WM_PAINT;
-                        sscanf(textBoxText, "%d:%d", &timeIntervalHr, &timeIntervalMin);
-                        // Make sure that the time interval plus the start time isnt into the next day
-                        if ((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) > (24 * 60)) {
-                            // uThe info is stored in 24 hour time so if it is pm add 12 hrs
-                            // // invalid_text_input(textBoxTimeInterval);
-                        }
-                    } else {
-                        // Write, in red, invalid input over the textbox
-                        // // invalid_text_input(textBoxTimeInterval);
-                    }
-                    free(textBoxText);
-                    // Set the flags so the other textboxes will be checked if this change made them invalid
-                    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
-                }
-
-                break;
-
-                case WM_PAINT: // This is called anytime the window needs to be redrawn
-                    // if (cameraViewOn == TRUE) {
-                    //     DrawPixels(hwnd);
-                    // }
-                    break;
-                case WM_DESTROY:
-                    // close the application
-                    PostQuitMessage(0);
-                    *flags |= GUI_CLOSE;
-                    break;
-
-                default:
-                    return DefWindowProc(hwnd, msg, wParam, lParam);
+                // Set the flags so the other textboxes will be checked if this change made them invalid
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
+
+            // This if statment will be evaluated as true when the user click off the time interval time textbox
+            if (((HWND)lParam != textBoxList[TEXT_BOX_TIME_INTERVAL].handle) &&
+                (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG) && (cameraViewOn == FALSE)) {
+                // Unset the flag
+                textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
+                uint8_t success = click_off_interval_tb(hwnd);
+                if (success == TRUE) {
+                    // SEND SOME KIND OF BPACKET
+                    printf("Valid time interval\n");
+                }
+                // Set the flags so the other textboxes will be checked if this change made them invalid
+                textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
+            }
+
+            break;
+
+        case WM_PAINT: // This is called anytime the window needs to be redrawn
+            // if (cameraViewOn == TRUE) {
+            //     DrawPixels(hwnd);
+            // }
+            break;
+        case WM_DESTROY:
+            // close the application
+            PostQuitMessage(0);
+            *flags |= GUI_CLOSE;
+            break;
+
+        default:
+            return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
 }

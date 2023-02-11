@@ -77,8 +77,8 @@
 #define WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 13)
 #define WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 14)
 #define WATCHDOG_BPK_R_GET_STATUS            (BPACKET_SPECIFIC_R_OFFSET + 15)
-#define WATCHDOG_BPK_R_READ_SETTINGS         (BPACKET_SPECIFIC_R_OFFSET + 16)
-#define WATCHDOG_BPK_R_WRITE_SETTINGS        (BPACKET_SPECIFIC_R_OFFSET + 17)
+#define WATCHDOG_BPK_R_GET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 16)
+#define WATCHDOG_BPK_R_SET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 17)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
@@ -179,7 +179,7 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
 uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings) {
 
     // Assert valid bpacket request
-    if ((bpacket->request != WATCHDOG_BPK_R_READ_SETTINGS) && (bpacket->request != WATCHDOG_BPK_R_WRITE_SETTINGS)) {
+    if ((bpacket->request != WATCHDOG_BPK_R_GET_SETTINGS) && (bpacket->request != WATCHDOG_BPK_R_SET_SETTINGS)) {
         return WATCHDOG_INVALID_REQUEST;
     }
 

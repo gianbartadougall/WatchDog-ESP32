@@ -72,6 +72,7 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
     uint8_t sender   = bpacket->sender;
 
     switch (bpacket->request) {
+
         case WATCHDOG_BPK_R_TAKE_PHOTO:
             camera_capture_and_save_image(bpacket);
             break;

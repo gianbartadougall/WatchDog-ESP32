@@ -299,6 +299,14 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
     return FALSE;
 }
 
+uint8_t comms_stm32_request_pending(uint8_t bufferId) {
+    if (rxBufProcessedIndexes[bufferId] == rxBufIndexes[bufferId]) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 void comms_stm32_log_invalid_byte(uint8_t bufferId, uint8_t byte) {
     char m[30];
     sprintf(m, " BUF[%i][%i]", bufferId, byte);

@@ -20,7 +20,7 @@ uint8_t chars_contains(char* string, char* substring) {
     uint16_t numBytes       = chars_get_num_bytes(string);
     uint16_t subStrNumBytes = chars_get_num_bytes(substring);
 
-    for (int i = 0; i <= numBytes - subStrNumBytes; i++) { // 0 - 2
+    for (int i = 0; i <= numBytes - subStrNumBytes; i++) {
 
         for (int j = 0; j < subStrNumBytes; j++) {
 

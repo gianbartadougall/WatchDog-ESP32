@@ -66,7 +66,6 @@ Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR)
 	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi -lgdi32
 
 $(C_SOURCES):
-	$(info SRCS $(C_SOURCES))
 	$(C_COMPILER) $(FLAGS) -c -o $(BUILD_DIR)/$(notdir $(basename $@)).o $@
 
 $(LIB_SP_OBJECTS_BUILD_DIR):

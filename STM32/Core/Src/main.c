@@ -97,11 +97,11 @@ int main(void) {
     hardware_config_init();
     watchdog_init();
 
-    log_message("Starting\r\n");
-    // rtc_testing();
-    watchdog_update();
+    watchdog_enter_state_machine();
 
-    while (1) {}
+    while (1) {
+        // watchdog_update();
+    }
 
     return 0;
 }

@@ -167,6 +167,11 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             char errorMsg[50];
             bpacket_get_error(result, errorMsg);
             printf("%s", errorMsg);
+            for (int i = 0; i < responseSize; i++) {
+                printf("%c", response[i]);
+            }
+            printf("\n");
+            continue;
         }
 
         if ((bpacket.code != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
@@ -269,7 +274,7 @@ void comms_port_test(void) {
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    for (int i = 1; port_list[i] != NULL; i++) {
+    for (int i = 0; port_list[i] != NULL; i++) {
         struct sp_port* port = port_list[i];
 
         if (com_ports_open_port(port) != SP_OK) {
@@ -282,9 +287,8 @@ void comms_port_test(void) {
         bpacket_t getRTCTime;
         bpacket_buffer_t getPacketBuffer;
 
-        char imageName[] = "img1.jpg\0";
-        // bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
-        //                  BPACKET_CODE_EXECUTE, 0, NULL);
+        // bpacket_create_sp(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
+        //                  BPACKET_CODE_EXECUTE, "img1.jpg\0");
         bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_WRITE_TO_FILE,
                          BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);

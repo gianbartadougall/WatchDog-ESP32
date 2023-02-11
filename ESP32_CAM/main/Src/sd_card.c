@@ -336,7 +336,7 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
 
     // Create path for image
     char filePath[60];
-    sprintf(filePath, "%s/%s/img%i.jpg", MOUNT_POINT_PATH, IMAGE_DATA_FOLDER, imageNumber);
+    sprintf(filePath, "%s/%s/image%i_09_30_25_02_2022.jpg", MOUNT_POINT_PATH, IMAGE_DATA_FOLDER, imageNumber);
 
     FILE* imageFile = fopen(filePath, "wb");
     if (imageFile == NULL) {

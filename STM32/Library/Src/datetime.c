@@ -90,6 +90,86 @@ uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year) {
     return TRUE;
 }
 
+uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2) {
+
+    if (t1->hour < t2->hour) {
+        return TRUE;
+    }
+
+    if ((t1->hour == t2->hour) && (t1->minute < t2->minute)) {
+        return TRUE;
+    }
+
+    if ((t1->hour == t2->hour) && (t1->minute == t2->minute) && (t1->second <= t2->second)) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd) {
+
+    time->second += timeToAdd.second;
+    if (time->second > 60) {
+        time->second -= 60;
+        time->minute++;
+    }
+
+    time->minute += timeToAdd.minute;
+    if (time->minute > 60) {
+        time->minute -= 60;
+        time->hour++;
+    }
+
+    time->hour += timeToAdd.hour;
+    if (time->minute > 23) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+void dt_datetime_increment_day(dt_datetime_t* datetime) {
+
+    uint8_t nextMonth = FALSE;
+
+    if (datetime->date.month == FEBRUARY && YEAR_IS_LEAP_YEAR(datetime->date.year) == TRUE) {
+        if (datetime->date.day == 29) {
+            nextMonth = TRUE;
+        }
+    }
+
+    if (daysInMonth[datetime->date.month] == datetime->date.day) {
+        nextMonth = TRUE;
+    }
+
+    if (nextMonth == TRUE) {
+        datetime->date.day = 1;
+        datetime->date.month++;
+    } else {
+        datetime->date.day++;
+    }
+
+    // Correct for decemeber
+    if (datetime->date.month > DECEMBER) {
+        datetime->date.month = JANUARY;
+    }
+}
+
+uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t time) {
+
+    // Confirm the time is valid
+    if (dt_time_is_valid(&time) != TRUE) {
+        return FALSE;
+    }
+
+    datetime->time.second = time.second;
+    datetime->time.minute = time.minute;
+    datetime->time.hour   = time.hour;
+
+    return TRUE;
+}
+
 uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour) {
 
     // Confirm seconds are valid
@@ -109,6 +189,7 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour) {
 
     return TRUE;
 }
+
 uint8_t is_leap_year(int year) {
     return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0);
 }

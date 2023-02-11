@@ -33,17 +33,22 @@
    - Transfering data from ESP32 to computer (DONE)
    - Running a test (DONE)
    - Streaming photos from ESP32 to GUI (DONE)
- - ESP32 recieve all of the above and change those settings (DONE)
+- ESP32 recieve all of the above and change those settings (DONE)
    - Save all these settings on SD card on the ESP32 (DONE)
- - Get the STM32 working in deep sleep mode
- - Change the names of the images to a hex ID with a text file that relates ids to the date and time and temperature data
- - Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning
+- Get the STM32 working in deep sleep mode
+   - Setup interrupt so the ESP32 will wake up at the set times to take a photo before going back to sleep
+   - Setup UART interrupt so the STM32 will wake up if it receives something on the UART line. It will then
+      go back to deep sleep mode once it has processed the task
+- Get the SD card working with long file names (DONE)
+- Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning
+- Setup ADC to measure voltage of the battery on the ESP32 and blink an LED a certain number of times to indicate the
+   estimated time left
 
 # Hardware
 - PCB
    - On / off button
    - Area for battery to be connected
-   - Buck converter
+   - Low quiescent current linear voltage regulator
    - Button to make the system take a test photo?
    - Hardware to protect the camera/ensure the camera has a clear view of the item it needs to take a photo of. Historically (using Raspberry Pi) this has been done with a servo
 - Casing

@@ -37,3 +37,5 @@ void comms_stm32_init(void);
 uint8_t comms_stm32_get_bpacket(bpacket_t* bpacket);
 
 void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes);
+
+uint8_t comms_stm32_request_pending(uint8_t bufferId);

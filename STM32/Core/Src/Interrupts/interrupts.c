@@ -15,6 +15,7 @@
 /* Private Includes */
 #include "log.h"
 #include "comms_stm32.h"
+#include "watchdog.h"
 #include "hardware_config.h"
 
 void USART1_IRQHandler(void) {
@@ -78,4 +79,34 @@ void USART2_IRQHandler(void) {
     char msg[50];
     sprintf(msg, "%lx\r\n", USART2->ISR);
     log_message(msg);
+}
+
+void RTC_Alarm_IRQHandler(void) {
+
+    // Check if alarm A was triggered
+    if ((STM32_RTC->ISR &= RTC_ISR_ALRAF) != 0) {
+        log_message("Triggered!\r\n");
+
+        // Clear the EXTI interrupt flag
+        EXTI->PR1 |= (0x01 << 18);
+
+        // Clear the RTC Flag
+        STM32_RTC->ISR &= ~(RTC_ISR_ALRAF);
+
+        // Increment the alarm time
+        watchdog_rtc_alarm_triggered();
+
+        return;
+    }
+
+    // Check if alarm B was triggered
+    if ((STM32_RTC->ISR &= RTC_ISR_ALRBF) != 0) {
+        STM32_RTC->ISR &= ~(RTC_ISR_ALRBF);
+        log_message("Alarm B triggered\r\n");
+        return;
+    }
+
+    char m[30];
+    sprintf(m, "%li\r\n", STM32_RTC->ISR);
+    log_message(m);
 }

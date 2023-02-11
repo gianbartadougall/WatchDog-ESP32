@@ -21,6 +21,7 @@
 #include "utilities.h"
 #include "chars.h"
 #include "watchdog_defines.h"
+#include "bpacket.h"
 
 // #define STB_IMAGE_IMPLEMENTATION // Required for stb_image
 #include "stb_image.h"
@@ -52,9 +53,6 @@
 
 #define WINDOW_WIDTH  1300
 #define WINDOW_HEIGHT 768
-
-#define RED   255
-#define WHITE 0
 
 #define ROW_1  10
 #define ROW_2  (ROW_1 + LABEL_HEIGHT + GAP_HEIGHT)
@@ -98,7 +96,9 @@
 #define TEXT_BOX_END_TIME_FLAG      (0x01 << 1)
 #define TEXT_BOX_TIME_INTERVAL_FLAG (0x01 << 2)
 
-// Struct fo, labelStartTimeErrorr draw, buttonHelping
+#define CAMERA_VIEW SW_HIDE
+#define NORMAL_VIEW SW_SHOW
+
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -122,7 +122,21 @@ bpacket_circular_buffer_t* mainToGuiCircularBuffer;
 // Macro that takes the bpacket out of the circular buffer at the read index
 #define MTG_CB_CURRENT_BPACKET (mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])
 
-/* ALL THE LABEL INFORMATION IS HERE */
+/*
+ * Here all of the structs are made and populated with all of the current information of from the ESP32, start time,
+ * end time, time interval, etc
+ */
+
+dt_time_t startTime;
+dt_time_t endTime;
+uint8_t intervalMinute;
+uint8_t intervalHour;
+uint8_t resolution;
+wd_camera_settings_t cameraSettings;
+
+/*
+ALL THE LABEL INFORMATION IS HERE
+*/
 
 #define NUMBER_OF_LABELS        11
 #define LONGEST_LABEL_TITLE     50
@@ -149,10 +163,10 @@ char* labelTitleList[LONGEST_LABEL_TITLE] = {" Status",
                                              " DATA",
                                              " CAMERA SETTINGS",
                                              " Camera Resolution",
-                                             " Start Time(hh:mm am)",
-                                             " End Time(hh:mm am)",
-                                             "Time Interval(hh:mm)",
-                                             "THIS WILL TELL YOU WHEN THE PHOTOS ARE TAKEN"};
+                                             " Start Time             (hh:mm am)",
+                                             " End Time              (hh:mm am)",
+                                             " Time Interval        (hh:mm)",
+                                             " THIS WILL TELL YOU WHEN THE PHOTOS ARE TAKEN"};
 int labelStartXList[NUMBER_OF_LABELS] = {COL_6, COL_6, COL_6, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1};
 int labelStartYList[NUMBER_OF_LABELS] = {ROW_1, ROW_2, ROW_3,  ROW_1,  ROW_4, ROW_7,
                                          ROW_8, ROW_9, ROW_10, ROW_11, ROW_12};
@@ -189,7 +203,9 @@ void initalise_label_structs(label_info_t* labelList) {
     }
 }
 
-/* ALL THE BUTTON INFORMATION IS HERE */
+/*
+ALL THE BUTTON INFORMATION IS HERE
+*/
 
 #define NUMBER_OF_BUTTONS    6
 #define LONGEST_BUTTON_TITLE 50
@@ -236,7 +252,9 @@ void initalise_button_structs(button_info_t* buttonList) {
     }
 }
 
-/* ALL THE TEXT BOX INFORMATION IS HERE */
+/*
+ALL THE TEXT BOX INFORMATION IS HERE
+*/
 
 #define NUMBER_OF_TEXT_BOXES   3
 #define TEXT_BOX_START_TIME    0
@@ -282,7 +300,9 @@ void initalise_text_box_structs(text_box_info_t* textBoxList) {
     }
 }
 
-/* ALL THE DROPBOX INFORMATION IS HERE */
+/*
+ALL THE DROPBOX INFORMATION IS HERE
+*/
 
 HWND dropDownCameraResolution;
 
@@ -292,7 +312,9 @@ const char* cameraResolutionStrings[50]                  = {"320x240",  "352x288
 framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
     FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
 
-/* FUNCTIONS TO CREATE BUTTONS, LABELS, DROPBOXES and TEXTBOXES */
+/*
+FUNCTIONS TO CREATE BUTTONS, LABELS, DROPBOXES and TEXTBOXES
+*/
 
 HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
@@ -321,7 +343,9 @@ HWND create_text_box(char* title, int startX, int startY, int width, int height,
                           height, hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
-/* THESE FUNCTIONS ARE FOR WHAT HAPPENS WHEN THE USER CLICKS OFF A TEXT BOX */
+/*
+THESE FUNCTIONS ARE FOR WHAT HAPPENS WHEN THE USER CLICKS OFF A TEXT BOX
+*/
 uint8_t click_off_start_tb(HWND hwnd) {
     uint8_t success;
 
@@ -344,7 +368,6 @@ uint8_t click_off_start_tb(HWND hwnd) {
         if (chars_same(period, "pm\0") == TRUE) {
             startTimeHr += 12;
         }
-        printf("start time: %i:%i\n", startTimeHr, startTimeMin);
         // TODO: Send the bpacket to change the start time
     } else {
         // Write, in red, invalid input over the textbox
@@ -428,63 +451,37 @@ uint8_t click_off_interval_tb(HWND hwnd) {
 
 int cameraViewOn = FALSE;
 
-void gui_set_camera_view(HWND hwnd) {
+// This function is for changing from normal -> camera view and back, takes CAMERA_VIEW and NORMAL_VIEW view macros,
+// these are just SW_HIDE and SW_SHOW respectively
+void gui_change_view(int cameraViewMode, HWND hwnd) {
 
-    // Show all the text boxes
+    // Text boxes
     for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
-        ShowWindow(textBoxList[i].handle, SW_HIDE);
-        ShowWindow(textBoxList[i].label.handle, SW_HIDE);
+        ShowWindow(textBoxList[i].handle, cameraViewMode);
+        ShowWindow(textBoxList[i].label.handle, cameraViewMode);
     }
 
-    // Hide all the drop downs
-    ShowWindow(dropDownCameraResolution, SW_HIDE);
+    // Drop downs
+    ShowWindow(dropDownCameraResolution, cameraViewMode);
 
-    // Hide all the labels
+    // The labels
     for (int i = 0; i < NUMBER_OF_LABELS; i++) {
-        ShowWindow(labelList[i].handle, SW_HIDE);
+        ShowWindow(labelList[i].handle, cameraViewMode);
     }
 
-    // Hide all the buttons
+    // The buttons
     for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
-        ShowWindow(buttonList[i].handle, SW_HIDE);
-    }
-    ShowWindow(buttonHelp, SW_HIDE);
-
-    // Show the buttons used in camera view
-    ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_SHOW);
-    UpdateWindow(hwnd);
-}
-
-void gui_set_normal_view(HWND hwnd) {
-
-    // Show all the text boxes
-    for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
-        ShowWindow(textBoxList[i].handle, SW_SHOW);
-        ShowWindow(textBoxList[i].label.handle, SW_SHOW);
+        ShowWindow(buttonList[i].handle, cameraViewMode);
     }
 
-    // Show all the drop downs
-    ShowWindow(dropDownCameraResolution, SW_SHOW);
+    if (cameraViewMode == CAMERA_VIEW) {
+        ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_SHOW);
 
-    // Show all the labels
-    for (int i = 0; i < NUMBER_OF_LABELS; i++) {
-        ShowWindow(labelList[i].handle, SW_SHOW);
+    } else if (cameraViewMode == NORMAL_VIEW) {
+        ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
+        textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
     }
 
-    // Show all the buttons
-    for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
-        ShowWindow(buttonList[i].handle, SW_SHOW);
-    }
-    ShowWindow(buttonHelp, SW_SHOW);
-
-    // Hide the normal view button
-    ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
-
-    // Set the "clicked of the texbox" flag so if the input in them is valid the red text will be written over them
-    // again
-    textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
-
-    // make the changes
     UpdateWindow(hwnd);
 }
 
@@ -493,7 +490,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         case WM_CREATE:;
 
-            // create TEXT BOXES
+            // CREATE TEXT BOXES
             initalise_text_box_structs(&textBoxList[0]);
             for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
                 textBoxList[i].handle = create_text_box("Text_Box", textBoxList[i].startX, textBoxList[i].startY,
@@ -505,7 +502,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
 
             // CREATE DROP BOXES
-
+            // TODO: need to make it so the drop box starts on the current resolution
             dropDownCameraResolution = create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
                                                       NULL, NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings, 0);
 
@@ -531,6 +528,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // Handle button clicks
             if ((HWND)lParam == buttonList[BUTTON_OPEN_SD_CARD].handle) {
                 *flags |= GUI_TURN_RED_LED_ON;
+                // TODO: decide what is going to happen when this button is clicked
 
                 bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
                                  BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
@@ -540,6 +538,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
+                // TODO: decide what is going to happen when this button is clicked
 
                 bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
                                  BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
@@ -550,7 +549,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if ((HWND)lParam == buttonList[BUTTON_CAMERA_VIEW].handle) {
                 cameraViewOn = TRUE;
-                gui_set_camera_view(hwnd);
+                gui_change_view(CAMERA_VIEW, hwnd);
 
                 printf("Starting livestream\n");
                 InvalidateRect(hwnd, NULL, TRUE);
@@ -559,6 +558,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.startY = ROW_3;
                 rectangle.width  = 600;
                 rectangle.height = 480;
+                // TODO: need to make this so it updates when the photos are sent
                 draw_image(hwnd, "img6.jpg", &rectangle);
             }
 
@@ -576,7 +576,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.width  = 600;
                 rectangle.height = 480;
                 draw_rectangle(hwnd, &rectangle, 255, 255, 255);
-                gui_set_normal_view(hwnd);
+                gui_change_view(NORMAL_VIEW, hwnd);
 
                 // Hide all buttons and show camera view
                 // printf("Stopping livestream\n");
@@ -584,6 +584,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if ((HWND)lParam == buttonList[BUTTON_RUN_TEST].handle) {
                 printf("Testing system\n");
+                // TODO: decide what this button is exactly going to do
             }
 
             if ((HWND)lParam == buttonList[BUTTON_HELP].handle) {
@@ -600,7 +601,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     TCHAR buffer[256];
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
-                    // NEED TO UPDATE THE FLAG HERE
+                    // TODO: send bpacket of which camera resolution is wanted
                 }
             }
 
@@ -627,7 +628,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 uint8_t success = click_off_start_tb(hwnd);
                 if (success == TRUE) {
                     // SEND SOME KIND OF BPACKET
-                    printf("Valid start time\n");
+                    printf("Valid start time. Sending to STM32\n");
+                    bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
+                                     WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+                    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -683,52 +688,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
-// Just leaving this here incase we need to draw something pixel by pixel
-// void draw_pixels() {
-// Loop through every pixel
-// int y;
-// int x;
-// for (y = 0; y < newHeight; y++) {
-//     for (x = 0; x < newWidth; x++) {
-//         if (n == 3) {
-//             int r = outputData[(y * newWidth * n) + x * n + 0];
-//             int g = outputData[(y * newWidth * n) + x * n + 1];
-//             int b = outputData[(y * newWidth * n) + x * n + 2];
-//             SetPixel(hdc, x, y, RGB(r, g, b));
-//         }
-//         // Extract the R, G, B components
-//         // int r = (y * width) + x + 0;
-//         // int g = (y * width) + x + 1;
-//         // int b = (y * width) + x + 2;
-//         // printf("%i %i %i ", r, g, b);
-//         // SetPixel(hdc, x, y, RGB(r, g, b));
-//     }
-//     // printf("\n");
-// }
-
-// for (int i = 0; i < 1000; i++) {
-
-//     int x = rand() % r.right;
-//     int y = rand() % r.bottom;
-//     SetPixel(hdc, x, y, RGB(255, 0, 0));
-// }
-
-// free(outputData);
-// stbi_image_free(data);
-// EndPaint(hwnd, &ps);
-// }
-
-// This Function isnt used either?
-// void gui_update() {
-//     MSG msg;
-
-//     if (GetMessage(&msg, NULL, 0, 0) > 0) {
-//         TranslateMessage(&msg);
-//         DispatchMessage(&msg);
-//     }
-// }
-
-// This function is called in the main.c as a new thread, so this is basically the main of GUI
+// Main function for the Maple thread
 DWORD WINAPI gui(void* arg) {
 
     gui_initalisation_t* guiInit = (gui_initalisation_t*)arg;
@@ -802,11 +762,11 @@ DWORD WINAPI gui(void* arg) {
             // The bpacket is now recieved, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
         }
-        switch (recievedBpacket->request) {
-            case WATCHDOG_BPK_R_GET_DATETIME:
+        // switch (recievedBpacket->request) {
+        //     case WATCHDOG_BPK_R_GET_DATETIME:
 
-                break;
-        }
+        //         break;
+        // }
     }
 
     return FALSE;
@@ -929,3 +889,52 @@ void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uin
     DeleteObject(hBrush);
     EndPaint(hwnd, &ps);
 }
+
+/* FUNCTIONS THAT WE ARENT USING ANYMORE*/
+
+// Just leaving this here incase we need to draw something pixel by pixel
+// void draw_pixels() {
+// Loop through every pixel
+// int y;
+// int x;
+// for (y = 0; y < newHeight; y++) {
+//     for (x = 0; x < newWidth; x++) {
+//         if (n == 3) {
+//             int r = outputData[(y * newWidth * n) + x * n + 0];
+//             int g = outputData[(y * newWidth * n) + x * n + 1];
+//             int b = outputData[(y * newWidth * n) + x * n + 2];
+//             SetPixel(hdc, x, y, RGB(r, g, b));
+//         }
+//         // Extract the R, G, B components
+//         // int r = (y * width) + x + 0;
+//         // int g = (y * width) + x + 1;
+//         // int b = (y * width) + x + 2;
+//         // printf("%i %i %i ", r, g, b);
+//         // SetPixel(hdc, x, y, RGB(r, g, b));
+//     }
+//     // printf("\n");
+// }
+
+// for (int i = 0; i < 1000; i++) {
+
+//     int x = rand() % r.right;
+//     int y = rand() % r.bottom;
+//     SetPixel(hdc, x, y, RGB(255, 0, 0));
+// }
+
+// free(outputData);
+// stbi_image_free(data);
+// EndPaint(hwnd, &ps);
+// }
+
+// This Function isnt used either?
+// void gui_update() {
+//     MSG msg;
+
+//     if (GetMessage(&msg, NULL, 0, 0) > 0) {
+//         TranslateMessage(&msg);
+//         DispatchMessage(&msg);
+//     }
+// }
+
+// This function is called in the main.c as a new thread, so this is basically the main of GUI

@@ -539,9 +539,6 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
             }
 
             if (bpacket->code == BPACKET_CODE_SUCCESS) {
-                char msg[50];
-                sprintf(msg, "Red LED off success with req: %i\r\n", WATCHDOG_BPK_R_LED_RED_ON);
-                watchdog_send_message_to_maple(msg);
                 watchdog_report_success(WATCHDOG_BPK_R_LED_RED_ON);
                 break;
             }
@@ -558,9 +555,6 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
             }
 
             if (bpacket->code == BPACKET_CODE_SUCCESS) {
-                char msg[50];
-                sprintf(msg, "Red LED off success with req: %i\r\n", WATCHDOG_BPK_R_LED_RED_OFF);
-                watchdog_send_message_to_maple(msg);
                 watchdog_report_success(WATCHDOG_BPK_R_LED_RED_OFF);
                 break;
             }
@@ -702,12 +696,21 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
         case WATCHDOG_BPK_R_TAKE_PHOTO: // Send command to ESP32 to take a photo
 
-            // Record the current temperature
+            // Record the current temperature from both temperature sensors
+            if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
+                watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to read temperature");
+            }
+
+            ds18b20_temp_t temp1;
+            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_1, &temp) != TRUE) {
+                watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to copy temperature");
+            }
+
             if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
                 watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to read temperature");
             }
 
-            ds18b20_temp_t temp;
+            ds18b20_temp_t temp2;
             if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp) != TRUE) {
                 watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to copy temperature");
             }

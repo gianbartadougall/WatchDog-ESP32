@@ -56,9 +56,22 @@
 #define DS18B20_SENSOR_ID_1 (DS18B20_ID_OFFSET + 0)
 #define DS18B20_SENSOR_ID_2 (DS18B20_ID_OFFSET + 1)
 
+#define DS18B20_ASSERT_VALID_TEMPERATURE(temp)         \
+    do {                                               \
+        if ((temp.sign == 0) && (temp.decimal > 60)) { \
+            return FALSE;                              \
+        }                                              \
+                                                       \
+        if ((temp.sign == 1) && (temp.decimal > 10)) { \
+            return FALSE;                              \
+        }                                              \
+                                                       \
+        return TRUE;                                   \
+    } while (0)
+
 /* Public Enumerations and Strucutres */
 typedef struct ds18b20_temp_t {
-    uint16_t decimal;
+    uint8_t decimal;
     uint16_t fraction;
     uint8_t sign; // 0 = positive number, 1 = negative number
 } ds18b20_temp_t;

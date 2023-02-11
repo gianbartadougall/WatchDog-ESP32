@@ -53,4 +53,6 @@ uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year);
 
 uint8_t dt_time_format_is_valid(char* time);
 
+void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod);
+
 #endif // DATETIME_H

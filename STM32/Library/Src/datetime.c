@@ -222,3 +222,27 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     }
     return TRUE;
 }
+
+void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod) {
+    uint8_t minute;
+    minute = timeStruct.minute;
+    uint8_t hour;
+    hour = timeStruct.hour;
+    char period[3];
+    if (hour >= 12) {
+        sprintf(period, "pm");
+    } else {
+        sprintf(period, "am");
+    }
+    if (hour > 12) {
+        hour -= 12;
+    }
+    if (hour == 0) {
+        hour += 12;
+    }
+    if (hasPeriod == TRUE) {
+        sprintf(timeString, "%i:%i %s", hour, minute, period);
+    } else if (hasPeriod == FALSE) {
+        sprintf(timeString, "%i:%i", hour, minute);
+    }
+}

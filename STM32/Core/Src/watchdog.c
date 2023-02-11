@@ -41,7 +41,7 @@
 #define S9_STM32_WAKE             11
 
 #define TIMEOUT         5000
-#define COUNT_DOWN_TIME 60000
+#define COUNT_DOWN_TIME 5000
 
 /* Private Variables */
 dt_datetime_t datetime;
@@ -320,7 +320,7 @@ void watchdog_enter_state_machine(void) {
 
                 // Update the alarm if a valid one was calculated
                 if (nextAlarmFound == TRUE) {
-                    watchdog_send_message_to_maple("Alarm updated");
+                    watchdog_send_message_to_maple("Alarm updated\r\n");
                     stm32_rtc_set_alarmA(&alarmDateTime);
                 }
 
@@ -343,36 +343,33 @@ void watchdog_enter_state_machine(void) {
                 watchdog_send_message_to_maple("Executing request\r\n");
 
                 // Execute requests until none left
-                uint32_t countDown = SysTick->VAL;
+                uint32_t processNextPacket = TRUE;
 
-                while (1) {
+                while (processNextPacket == TRUE) {
+
+                    // Clear flag
+                    processNextPacket = FALSE;
 
                     // Process anything Maple sends to the STM32
                     if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
+                        watchdog_send_message_to_maple("Got request from maple\r\n");
                         if (stm32_match_maple_request(&mapleBpacket) != TRUE) {
                             process_watchdog_stm32_request(&mapleBpacket);
                         }
 
-                        // Reset countdown timer
-                        countDown = SysTick->VAL;
+                        // Set flag incase there is another incoming packet afterwards
+                        processNextPacket = TRUE;
                     }
 
                     // Process anything the ESP32 sends to Maple
                     if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
+                        watchdog_send_message_to_maple("Got request from ESP32\r\n");
                         if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
                             process_watchdog_stm32_request(&esp32Bpacket);
                         }
 
-                        // Reset countdown timer
-                        countDown = SysTick->VAL;
-                    }
-
-                    if ((SysTick->VAL > countDown) && ((SysTick->VAL - countDown) > 5000)) {
-                        break;
-                    }
-
-                    if ((SysTick->VAL < countDown) && ((countDown - SysTick->VAL) > 5000)) {
-                        break;
+                        // Set flag incase there is another incoming packet afterwards
+                        processNextPacket = TRUE;
                     }
                 }
 
@@ -383,21 +380,26 @@ void watchdog_enter_state_machine(void) {
                 watchdog_send_message_to_maple("Starting count down\r\n");
 
                 uint32_t countDownEnd;
-                uint8_t overflow1;
+                uint8_t overflow1 = FALSE;
                 if ((UINT_32_BIT_MAX_VALUE - SysTick->VAL) < COUNT_DOWN_TIME) {
+                    watchdog_send_message_to_maple("Overflow detected\r\n");
                     countDownEnd = COUNT_DOWN_TIME - (UINT_32_BIT_MAX_VALUE - SysTick->VAL);
+                    overflow1    = TRUE;
                 } else {
-                    countDownEnd = SysTick->VAL + COUNT_DOWN_TIME;
+                    countDownEnd = HAL_GetTick() + COUNT_DOWN_TIME;
+                    char k[50];
+                    sprintf(k, "%li %li\r\n", HAL_GetTick(), countDownEnd);
+                    watchdog_send_message_to_maple(k);
                 }
 
-                while ((SysTick->VAL <= countDownEnd) || (overflow1 == TRUE && countDownEnd < SysTick->VAL)) {
+                while ((HAL_GetTick() <= countDownEnd) || (overflow1 == TRUE && countDownEnd < HAL_GetTick())) {
 
-                    if (overflow1 == TRUE && countDownEnd <= SysTick->VAL) {
+                    if (overflow1 == TRUE && countDownEnd <= HAL_GetTick()) {
                         overflow1 = FALSE;
                     }
 
                     // Check if there is a command to process
-                    while (comms_process_rxbuffer(MAPLE_UART, &mapleBpacket) != TRUE) {
+                    if (comms_stm32_request_pending(MAPLE_UART) != TRUE) {
                         continue;
                     }
 
@@ -408,7 +410,7 @@ void watchdog_enter_state_machine(void) {
                 if (state != S7_EXECUTE_REQUEST) {
                     state = S3_STM32_SLEEP;
                 }
-
+                watchdog_send_message_to_maple("Exiting count down\r\n");
                 break;
 
             default:
@@ -508,7 +510,7 @@ void watchdog_send_message_to_maple(char* string) {
 
     bpacket_t bpacket;
     bpacket_buffer_t packetBuffer;
-    bpacket_create_sp(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_GET_R_MESSAGE,
+    bpacket_create_sp(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, BPACKET_GEN_R_MESSAGE,
                       BPACKET_CODE_SUCCESS, string);
     bpacket_to_buffer(&bpacket, &packetBuffer);
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
@@ -547,7 +549,7 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
             watchdog_report_success(bpacket->request);
             break;
 
-        case BPACKET_GET_R_MESSAGE:
+        case BPACKET_GEN_R_MESSAGE:
             log_send_bdata(bpacket->bytes, bpacket->numBytes);
             break;
 

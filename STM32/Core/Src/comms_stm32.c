@@ -16,7 +16,7 @@
 #include "watchdog_defines.h"
 #include "chars.h"
 
-#define PACKET_BUFFER_SIZE 1
+#define PACKET_BUFFER_SIZE 10
 
 #define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * PACKET_BUFFER_SIZE)
 
@@ -65,19 +65,9 @@ void comms_stm32_init(void) {
     }
 }
 
-void commms_stm32_increment_circ_buff_index(uint32_t* index, uint32_t bufferLength) {
-
-    if (*index == (bufferLength - 1)) {
-        *index = 0;
-        return;
-    }
-
-    *index += 1;
-}
-
 void comms_add_to_buffer(uint8_t bufferId, uint8_t byte) {
     BUFFER(bufferId) = byte;
-    commms_stm32_increment_circ_buff_index(&rxBufIndexes[bufferId], RX_BUFFER_SIZE);
+    bpacket_increment_circ_buff_index(&rxBufIndexes[bufferId], RX_BUFFER_SIZE);
 }
 
 uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
@@ -85,7 +75,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
     while (rxBufProcessedIndexes[bufferId] != rxBufIndexes[bufferId]) {
 
         uint8_t byte = rxBuffers[bufferId][rxBufProcessedIndexes[bufferId]];
-        commms_stm32_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
+        bpacket_increment_circ_buff_index(&rxBufProcessedIndexes[bufferId], RX_BUFFER_SIZE);
 
         if (expectedByteId[bufferId] == BPACKET_DATA_BYTE_ID) {
 

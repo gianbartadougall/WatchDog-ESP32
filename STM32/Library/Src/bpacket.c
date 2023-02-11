@@ -40,12 +40,14 @@ void bpacket_increment_circular_buffer_index(uint8_t* writeIndex) {
     }
 }
 
-void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex) {
-    (*cbIndex)++;
+void bpacket_increment_circ_buff_index(uint32_t* index, uint32_t maxBufferIndex) {
 
-    if (*cbIndex > bufferMaxIndex) {
-        (*cbIndex) = 0;
+    if (*index == (maxBufferIndex - 1)) {
+        *index = 0;
+        return;
     }
+
+    *index += 1;
 }
 
 uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,

@@ -97,10 +97,10 @@ int main(void) {
     hardware_config_init();
     watchdog_init();
 
-    // watchdog_enter_state_machine();
+    watchdog_enter_state_machine();
 
     while (1) {
-        watchdog_update();
+        // watchdog_update();
     }
 
     return 0;

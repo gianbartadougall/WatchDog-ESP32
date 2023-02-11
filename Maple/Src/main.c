@@ -17,15 +17,11 @@
 
 /* C Library Includes */
 #include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <windows.h>   // Use for multi threading
-#include <sys/timeb.h> // Used for time functionality
-#include "time.h"      // Use for ms timer
+#include <windows.h> // Use for multi threading
+#include "time.h"    // Use for ms timer
 
-/* C Library Includes for Display Images */
-#include "stb_image.h"
-
+/* C Library Includes for COM Port Interfacing */
 #include <libserialport.h>
 
 /* Personal Includes */
@@ -33,7 +29,6 @@
 #include "uart_lib.h"
 #include "watchdog_defines.h"
 #include "bpacket.h"
-#include "com_ports.h"
 #include "gui.h"
 #include "datetime.h"
 #include "uart_lib.h"
@@ -55,9 +50,6 @@ void maple_print_uart_response(void);
 uint8_t maple_match_args(char** args, int numArgs);
 void maple_command_line(void);
 
-#define RX_BUFFER_SIZE (BPACKET_BUFFER_LENGTH_BYTES * 50)
-uint8_t rxBuffer[RX_BUFFER_SIZE];
-
 uint8_t guiWriteIndex  = 0;
 uint8_t guiReadIndex   = 0;
 uint8_t mainWriteIndex = 0;
@@ -66,38 +58,28 @@ uint8_t mainReadIndex  = 0;
 bpacket_t guiToMainBpackets[BPACKET_CIRCULAR_BUFFER_SIZE];
 bpacket_t mainToGuiBpackets[BPACKET_CIRCULAR_BUFFER_SIZE];
 
-uint8_t packetBufferIndex  = 0;
-uint8_t packetPendingIndex = 0;
+uint32_t packetBufferIndex  = 0;
+uint32_t packetPendingIndex = 0;
 bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
 
-uint8_t currentByte = 0;
-uint8_t pastByte1   = BPACKET_STOP_BYTE_UPPER;
-uint8_t pastByte2   = 0;
-uint8_t pastByte3   = 0;
+struct sp_port* activePort = NULL;
 
-struct sp_port* activePort1 = NULL;
+uint8_t maple_send_bpacket(bpacket_t* bpacket) {
+    bpacket_buffer_t packetBuffer;
+    bpacket_to_buffer(bpacket, &packetBuffer);
 
-void maple_increment_packet_buffer_index(void) {
-    packetBufferIndex++;
-
-    if (packetBufferIndex == PACKET_BUFFER_SIZE) {
-        packetBufferIndex = 0;
+    if (sp_blocking_write(activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
+        return FALSE;
     }
-}
 
-void maple_increment_packet_pending_index(void) {
-    packetPendingIndex++;
-
-    if (packetPendingIndex == PACKET_BUFFER_SIZE) {
-        packetPendingIndex = 0;
-    }
+    return TRUE;
 }
 
 void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
                                    uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
     bpacket_t bpacket;
     bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, numDataBytes, data);
-    if (com_ports_send_bpacket(&bpacket) != TRUE) {
+    if (maple_send_bpacket(&bpacket) != TRUE) {
         return;
     }
 }
@@ -105,128 +87,9 @@ void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t nu
 void maple_create_and_send_sbpacket(uint8_t receiver, uint8_t request, char* string) {
     bpacket_t bpacket;
     bpacket_create_sp(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, string);
-    if (com_ports_send_bpacket(&bpacket) != TRUE) {
+    if (maple_send_bpacket(&bpacket) != TRUE) {
         return;
     }
-}
-
-uint8_t maple_copy_file(char* filePath, char* cpyFileName) {
-
-    FILE* target;
-    target = fopen(cpyFileName, "wb"); // Read binary
-
-    if (target == NULL) {
-        printf("Could not open file\n");
-        fclose(target);
-        return FALSE;
-    }
-
-    // Confirm file path <= max number of bytes that can be sent
-    int filePathNumBytes = chars_get_num_bytes(filePath);
-    if (filePathNumBytes > BPACKET_MAX_NUM_DATA_BYTES) {
-        printf("File path is too long\n");
-        fclose(target);
-        return FALSE;
-    }
-
-    // Convert file path to binary data
-    uint8_t bpacketBuffer[filePathNumBytes];
-    for (int i = 0; i < filePathNumBytes; i++) {
-        bpacketBuffer[i] = (uint8_t)filePath[i];
-    }
-
-    // Send command to copy file. Keeping reading until no more data to send across
-    maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_COPY_FILE, filePathNumBytes, bpacketBuffer);
-
-    int packetsFinished = FALSE;
-    int count           = 0;
-    while (packetsFinished == FALSE) {
-
-        // Wait until the packet is ready
-        count = 0;
-        while (packetPendingIndex == packetBufferIndex) {
-
-            if (count == 1000) {
-                printf("Timeout 1000ms\n");
-                return FALSE;
-            }
-
-            Sleep(1);
-            count++;
-        }
-
-        if (packetBuffer[packetPendingIndex].request != BPACKET_CODE_IN_PROGRESS &&
-            packetBuffer[packetPendingIndex].request != BPACKET_CODE_SUCCESS) {
-            printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
-            fclose(target);
-            return FALSE;
-        }
-
-        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
-            packetsFinished = TRUE;
-        }
-
-        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-            fputc(packetBuffer[packetPendingIndex].bytes[i], target);
-        }
-
-        maple_increment_packet_pending_index();
-    }
-
-    fclose(target);
-
-    return TRUE;
-}
-
-uint8_t maple_receive_camera_view(char* fileName) {
-
-    FILE* target;
-    target = fopen(fileName, "wb"); // Read binary
-
-    if (target == NULL) {
-        printf("Could not open file\n");
-        fclose(target);
-        return FALSE;
-    }
-
-    int packetsFinished = FALSE;
-    int count           = 0;
-    while (packetsFinished == FALSE) {
-
-        // Wait until the packet is ready
-        count = 0;
-        while (packetPendingIndex == packetBufferIndex) {
-
-            if (count == 1000) {
-                printf("Timeout 1000ms\n");
-                return FALSE;
-            }
-
-            Sleep(1);
-            count++;
-        }
-
-        if (packetBuffer[packetPendingIndex].request != BPACKET_CODE_IN_PROGRESS &&
-            packetBuffer[packetPendingIndex].request != BPACKET_CODE_SUCCESS) {
-            printf("PACKET ERROR FOUND. Request %i\n", packetBuffer[packetPendingIndex].request);
-            fclose(target);
-            return FALSE;
-        }
-
-        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
-            packetsFinished = TRUE;
-        }
-
-        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-            fputc(packetBuffer[packetPendingIndex].bytes[i], target);
-        }
-
-        maple_increment_packet_pending_index();
-    }
-
-    fclose(target);
-
-    return TRUE;
 }
 
 void maple_print_bpacket_data(bpacket_t* bpacket) {
@@ -261,7 +124,7 @@ void maple_print_uart_response(void) {
             packetsFinished = TRUE;
         }
 
-        maple_increment_packet_pending_index();
+        bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
     }
 }
 
@@ -279,7 +142,7 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
         bpacket->bytes[i] = packetBuffer[packetPendingIndex].bytes[i];
     }
 
-    maple_increment_packet_pending_index();
+    bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
 
     if (bpacket->request != BPACKET_CODE_SUCCESS) {
         return FALSE;
@@ -288,19 +151,13 @@ uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
     return TRUE;
 }
 
-void update_past_bytes(void) {
-    pastByte3 = pastByte2;
-    pastByte2 = pastByte1;
-    pastByte1 = currentByte;
-}
-
 int maple_read_port(void* buf, size_t count, unsigned int timeout_ms) {
 
-    if (activePort1 == NULL) {
+    if (activePort == NULL) {
         return 0;
     }
 
-    return sp_blocking_read(activePort1, buf, count, timeout_ms);
+    return sp_blocking_read(activePort, buf, count, timeout_ms);
 }
 
 DWORD WINAPI maple_listen_rx(void* arg) {
@@ -335,7 +192,8 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             expectedByteId = BPACKET_START_BYTE_UPPER_ID;
 
             // Increment the packet buffer. Reset the buffer index
-            maple_increment_packet_buffer_index();
+            bpacket_increment_circ_buff_index(&packetBufferIndex, PACKET_BUFFER_SIZE);
+            // maple_increment_packet_buffer_index();
             bpacketByteIndex = 0;
             continue;
         }
@@ -434,20 +292,20 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
     uint8_t portFound = FALSE;
     for (int i = 0; port_list[i] != NULL; i++) {
 
-        activePort1 = port_list[i];
+        activePort = port_list[i];
 
         // Open the port
-        enum sp_return result = sp_open(activePort1, SP_MODE_READ_WRITE);
+        enum sp_return result = sp_open(activePort, SP_MODE_READ_WRITE);
         if (result != SP_OK) {
             return result;
         }
 
         // Configure the port settings for communication
-        sp_set_baudrate(activePort1, 115200);
-        sp_set_bits(activePort1, 8);
-        sp_set_parity(activePort1, SP_PARITY_NONE);
-        sp_set_stopbits(activePort1, 1);
-        sp_set_flowcontrol(activePort1, SP_FLOWCONTROL_NONE);
+        sp_set_baudrate(activePort, 115200);
+        sp_set_bits(activePort, 8);
+        sp_set_parity(activePort, SP_PARITY_NONE);
+        sp_set_stopbits(activePort, 1);
+        sp_set_flowcontrol(activePort, SP_FLOWCONTROL_NONE);
 
         // Send a ping
         bpacket_t bpacket;
@@ -455,7 +313,7 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
         bpacket_create_p(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
                          BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&bpacket, &bpacketBuffer);
-        if (sp_blocking_write(activePort1, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) < 0) {
+        if (sp_blocking_write(activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) < 0) {
             printf("Unable to write\n");
             continue;
         }
@@ -478,13 +336,13 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
                     }
                 }
 
-                maple_increment_packet_pending_index();
+                bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
             }
         }
 
         // Close port and check next port if this was not the correct port
         if (portFound != TRUE) {
-            sp_close(activePort1);
+            sp_close(activePort);
             continue;
         }
 
@@ -514,18 +372,9 @@ int main(int argc, char** argv) {
         return FALSE;
     }
 
-    printf("Connected to port %s\n", sp_get_port_name(activePort1));
+    printf("Connected to port %s\n", sp_get_port_name(activePort));
 
     maple_command_line();
-
-    // Read incoming response
-
-    // if (com_ports_open_connection(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
-    //     printf("Unable to connect to Watchdog\n");
-    //     return FALSE;
-    // }
-
-    // maple_command_line();
 
     bpacket_circular_buffer_t guiToMainCircularBuffer;
     bpacket_create_circular_buffer(&guiToMainCircularBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
@@ -573,7 +422,8 @@ int main(int argc, char** argv) {
                 packetBuffer[packetPendingIndex];
 
             // Increase packet pending index so code it is know that the incoming data was dealt with
-            maple_increment_packet_pending_index();
+            bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
+
             // Increae write index of the main to gui circular buffer so that it can be parsed to
             // the GUI
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer.writeIndex);
@@ -628,7 +478,7 @@ void maple_command_line(void) {
         // Print response
         while (packetPendingIndex < packetBufferIndex) {
             maple_print_bpacket_data(&packetBuffer[packetPendingIndex]);
-            maple_increment_packet_pending_index();
+            bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
         }
     }
 }
@@ -686,15 +536,6 @@ uint8_t maple_match_args(char** args, int numArgs) {
         if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
             chars_same(args[2], "off\0") == TRUE) {
             maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-            return TRUE;
-        }
-
-        if (chars_same(args[0], "cpy\0") == TRUE) {
-            if (maple_copy_file(args[1], args[2]) == TRUE) {
-                printf(ASCII_COLOR_GREEN "Succesfully transfered file\n" ASCII_COLOR_WHITE);
-            } else {
-                printf(ASCII_COLOR_RED "Failed to transfer file\n" ASCII_COLOR_WHITE);
-            }
             return TRUE;
         }
     }

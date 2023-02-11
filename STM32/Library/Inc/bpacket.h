@@ -239,6 +239,8 @@ void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCha
 
 void bpacket_print_bytes(bpacket_t* bpacket);
 
+void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex);
+
 void bpacket_get_error(uint8_t bpacketError, char* errorMsg);
 
 /* Bpacket helper functions */

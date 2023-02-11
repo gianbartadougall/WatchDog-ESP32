@@ -45,7 +45,7 @@
 
 /* Private Variables */
 dt_datetime_t datetime;
-bpacket_t mapleBpacket, esp32Bpacket;
+// bpacket_t mapleBpacket, esp32Bpacket;
 uint8_t state    = S0_READ_WATCHDOG_SETTINGS;
 uint8_t sleeping = FALSE;
 
@@ -191,7 +191,8 @@ void watchdog_enter_state_machine(void) {
 
                 // TODO: Set stm32 to sleep
 
-                if (comms_stm32_request_pending(MAPLE_UART) == TRUE) {
+                if ((comms_stm32_request_pending(MAPLE_UART) == TRUE) ||
+                    (comms_stm32_request_pending(ESP32_UART) == TRUE)) {
                     state    = S7_EXECUTE_REQUEST;
                     sleeping = FALSE;
                     watchdog_send_message_to_maple("Waking up\r\n");
@@ -351,10 +352,11 @@ void watchdog_enter_state_machine(void) {
                     processNextPacket = FALSE;
 
                     // Process anything Maple sends to the STM32
-                    if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
+                    bpacket_t bpacket1, bpacket2;
+                    if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
                         watchdog_send_message_to_maple("Got request from maple\r\n");
-                        if (stm32_match_maple_request(&mapleBpacket) != TRUE) {
-                            process_watchdog_stm32_request(&mapleBpacket);
+                        if (stm32_match_maple_request(&bpacket1) != TRUE) {
+                            process_watchdog_stm32_request(&bpacket1);
                         }
 
                         // Set flag incase there is another incoming packet afterwards
@@ -362,10 +364,10 @@ void watchdog_enter_state_machine(void) {
                     }
 
                     // Process anything the ESP32 sends to Maple
-                    if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
+                    if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
                         watchdog_send_message_to_maple("Got request from ESP32\r\n");
-                        if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
-                            process_watchdog_stm32_request(&esp32Bpacket);
+                        if (stm32_match_esp32_request(&bpacket2) != TRUE) {
+                            process_watchdog_stm32_request(&bpacket2);
                         }
 
                         // Set flag incase there is another incoming packet afterwards
@@ -382,14 +384,10 @@ void watchdog_enter_state_machine(void) {
                 uint32_t countDownEnd;
                 uint8_t overflow1 = FALSE;
                 if ((UINT_32_BIT_MAX_VALUE - SysTick->VAL) < COUNT_DOWN_TIME) {
-                    watchdog_send_message_to_maple("Overflow detected\r\n");
                     countDownEnd = COUNT_DOWN_TIME - (UINT_32_BIT_MAX_VALUE - SysTick->VAL);
                     overflow1    = TRUE;
                 } else {
                     countDownEnd = HAL_GetTick() + COUNT_DOWN_TIME;
-                    char k[50];
-                    sprintf(k, "%li %li\r\n", HAL_GetTick(), countDownEnd);
-                    watchdog_send_message_to_maple(k);
                 }
 
                 while ((HAL_GetTick() <= countDownEnd) || (overflow1 == TRUE && countDownEnd < HAL_GetTick())) {
@@ -398,8 +396,9 @@ void watchdog_enter_state_machine(void) {
                         overflow1 = FALSE;
                     }
 
-                    // Check if there is a command to process
-                    if (comms_stm32_request_pending(MAPLE_UART) != TRUE) {
+                    // Continue waiting if there is no request from ESP32 or Maple
+                    if ((comms_stm32_request_pending(MAPLE_UART) != TRUE) &&
+                        (comms_stm32_request_pending(ESP32_UART) != TRUE)) {
                         continue;
                     }
 
@@ -533,28 +532,63 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
     switch (bpacket->request) {
 
         case WATCHDOG_BPK_R_LED_RED_ON:
-            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_CODE_EXECUTE, 0, NULL);
+
+            if (bpacket->code == BPACKET_CODE_EXECUTE) {
+                watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_CODE_EXECUTE, 0, NULL);
+                break;
+            }
+
+            if (bpacket->code == BPACKET_CODE_SUCCESS) {
+                char msg[50];
+                sprintf(msg, "Red LED off success with req: %i\r\n", WATCHDOG_BPK_R_LED_RED_ON);
+                watchdog_send_message_to_maple(msg);
+                watchdog_report_success(WATCHDOG_BPK_R_LED_RED_ON);
+                break;
+            }
+
+            watchdog_send_message_to_maple("Invalid code for LED on!\r\n");
+
             break;
 
         case WATCHDOG_BPK_R_LED_RED_OFF:
-            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_CODE_EXECUTE, 0, NULL);
+
+            if (bpacket->code == BPACKET_CODE_EXECUTE) {
+                watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_CODE_EXECUTE, 0, NULL);
+                break;
+            }
+
+            if (bpacket->code == BPACKET_CODE_SUCCESS) {
+                char msg[50];
+                sprintf(msg, "Red LED off success with req: %i\r\n", WATCHDOG_BPK_R_LED_RED_OFF);
+                watchdog_send_message_to_maple(msg);
+                watchdog_report_success(WATCHDOG_BPK_R_LED_RED_OFF);
+                break;
+            }
+
+            watchdog_send_message_to_maple("Invalid code for LED off!\r\n");
+
             break;
 
-        case BPACKET_GEN_R_PING:;
-            uint8_t ping = WATCHDOG_PING_CODE_STM32;
-            watchdog_create_and_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
-            break;
+        case BPACKET_GEN_R_PING:
 
-        case BPACKET_CODE_SUCCESS:
-            watchdog_report_success(bpacket->request);
+            if (bpacket->code == BPACKET_CODE_EXECUTE) {
+                uint8_t ping = WATCHDOG_PING_CODE_STM32;
+                watchdog_create_and_send_bpacket_to_maple(BPACKET_GEN_R_PING, BPACKET_CODE_SUCCESS, 1, &ping);
+                break;
+            }
+
+            watchdog_send_message_to_maple("Invalid code for Ping!\r\n");
+
             break;
 
         case BPACKET_GEN_R_MESSAGE:
             log_send_bdata(bpacket->bytes, bpacket->numBytes);
             break;
 
-        default:
-            watchdog_report_error(bpacket->request, "Unknown request");
+        default:;
+            char errorMsg[30];
+            sprintf(errorMsg, "Unknown request %i\r\n", bpacket->request);
+            watchdog_send_message_to_maple(errorMsg);
     }
 }
 
@@ -733,7 +767,7 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             // TODO: Implement
             break;
 
-        default:;
+        default:
             return FALSE;
     }
 
@@ -742,19 +776,19 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
 void watchdog_update(void) {
 
-    // Process anything the ESP32 sends to the STM32
-    if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
-        if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
-            process_watchdog_stm32_request(&esp32Bpacket);
-        }
-    }
+    // // Process anything the ESP32 sends to the STM32
+    // if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
+    //     if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
+    //         process_watchdog_stm32_request(&esp32Bpacket);
+    //     }
+    // }
 
-    // Process anything Maple sends to the STM32
-    if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
-        if (stm32_match_maple_request(&mapleBpacket) != TRUE) {
-            process_watchdog_stm32_request(&mapleBpacket);
-        }
-    }
+    // // Process anything Maple sends to the STM32
+    // if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
+    //     if (stm32_match_maple_request(&mapleBpacket) != TRUE) {
+    //         process_watchdog_stm32_request(&mapleBpacket);
+    //     }
+    // }
 }
 
 void watchdog_esp32_on(void) {

@@ -77,8 +77,8 @@
 #define WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 13)
 #define WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 14)
 #define WATCHDOG_BPK_R_GET_STATUS            (BPACKET_SPECIFIC_R_OFFSET + 15)
-#define WATCHDOG_BPK_R_READ_SETTINGS         (BPACKET_SPECIFIC_R_OFFSET + 16)
-#define WATCHDOG_BPK_R_WRITE_SETTINGS        (BPACKET_SPECIFIC_R_OFFSET + 17)
+#define WATCHDOG_BPK_R_SET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 16)
+#define WATCHDOG_BPK_R_GET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 17)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
@@ -113,8 +113,6 @@ typedef struct wd_status_t {
 typedef struct wd_settings_t {
     wd_camera_settings_t cameraSettings;
     wd_camera_capture_time_settings_t captureTime;
-    uint8_t id;
-    uint8_t status;
 } wd_settings_t;
 
 #define WD_ASSERT_VALID_CAMERA_RESOLUTION(resolution)            \
@@ -162,7 +160,7 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
     bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->code     = code;
-    bpacket->numBytes = 9;
+    bpacket->numBytes = 7;
     bpacket->bytes[0] = wdSettings->cameraSettings.resolution;
     bpacket->bytes[1] = wdSettings->captureTime.startTime.minute;
     bpacket->bytes[2] = wdSettings->captureTime.startTime.hour;
@@ -170,8 +168,6 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
     bpacket->bytes[4] = wdSettings->captureTime.endTime.hour;
     bpacket->bytes[5] = wdSettings->captureTime.intervalTime.minute;
     bpacket->bytes[6] = wdSettings->captureTime.intervalTime.hour;
-    bpacket->bytes[7] = wdSettings->id;
-    bpacket->bytes[8] = wdSettings->status;
 
     return TRUE;
 }
@@ -179,7 +175,7 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
 uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings) {
 
     // Assert valid bpacket request
-    if ((bpacket->request != WATCHDOG_BPK_R_READ_SETTINGS) && (bpacket->request != WATCHDOG_BPK_R_WRITE_SETTINGS)) {
+    if ((bpacket->request != WATCHDOG_BPK_R_GET_SETTINGS) && (bpacket->request != WATCHDOG_BPK_R_SET_SETTINGS)) {
         return WATCHDOG_INVALID_REQUEST;
     }
 
@@ -209,8 +205,6 @@ uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings) {
     wdSettings->captureTime.endTime.hour        = bpacket->bytes[4];
     wdSettings->captureTime.intervalTime.minute = bpacket->bytes[5];
     wdSettings->captureTime.intervalTime.hour   = bpacket->bytes[6];
-    wdSettings->id                              = bpacket->bytes[7];
-    wdSettings->status                          = bpacket->bytes[8];
 
     return TRUE;
 }

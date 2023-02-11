@@ -18,13 +18,39 @@
 #include "datetime.h"
 #include <stdio.h>
 
+#define MOUNT_POINT_PATH ("/sdcard")
+
+#define WATCHDOG_FOLDER_NAME               ("WATCHDOG")
+#define WATCHDOG_FOLDER_PATH               ("/WATCHDOG")
+#define WATCHDOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG")
+
+#define SETTINGS_FOLDER_NAME               ("SETTINGS")
+#define SETTINGS_FOLDER_PATH               ("/SETTINGS")
+#define SETTINGS_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/SETTINGS")
+
+#define LOG_FOLDER_NAME               ("LOGS")
+#define LOG_FOLDER_PATH               ("/LOGS")
+#define LOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS")
+
+#define SETTINGS_FILE_NAME               ("s.wd")
+#define SETTINGS_FILE_NAME_PATH          ("/s.wd")
+#define SETTINGS_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/SETTINGS/s.wd")
+
+#define LOG_FILE_NAME               ("logs.txt")
+#define LOG_FILE_NAME_PATH          ("/logs.txt")
+#define LOG_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS/logs.txt")
+
+#define ERROR_FILE_NAME               ("err.txt")
+#define ERROR_FILE_NAME_PATH          ("/err.txts")
+#define ERROR_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS/err.txt")
+
+// Deprecated and should no longer be used
 #define SYSTEM_LOG_FILE        ("logs.txt")
 #define IMAGE_DATA_FOLDER      ("WATCHDOG/DATA")
 #define ROOT_IMAGE_DATA_FOLDER ("/sdcard/WATCHDOG/DATA")
-
-#define MOUNT_POINT_PATH     ("/sdcard")
-#define WATCHDOG_FOLDER_PATH ("/sdcard/WATCHDOG")
-#define ROOT_LOG_FOLDER_PATH ("/sdcard/WATCHDOG/LOGS")
+// #define WATCHDOG_FOLDER_PATH      ("/sdcard/WATCHDOG")
+#define SETTINGS_FOLDER_ROOT_PATH ("/sdcard/SETTINGS")
+#define ROOT_LOG_FOLDER_PATH      ("/sdcard/WATCHDOG/LOGS")
 
 // The values of the #defines here have been taken
 // from the enums of the framesizes defined in
@@ -47,25 +73,34 @@
 #define WATCHDOG_BPK_R_LED_RED_OFF           (BPACKET_SPECIFIC_R_OFFSET + 7)
 #define WATCHDOG_BPK_R_CAMERA_VIEW           (BPACKET_SPECIFIC_R_OFFSET + 8)
 #define WATCHDOG_BPK_R_GET_DATETIME          (BPACKET_SPECIFIC_R_OFFSET + 9)
-#define WATCHDOG_BPK_R_SETTETIME             (BPACKET_SPECIFIC_R_OFFSET + 10)
-#define WATCHDOG_BPK_R_GET_CAMERA_SETTINGS   (BPACKET_SPECIFIC_R_OFFSET + 11)
-#define WATCHDOG_BPK_R_SET_CAMERA_SETTINGS   (BPACKET_SPECIFIC_R_OFFSET + 12)
+#define WATCHDOG_BPK_R_SET_DATETIME          (BPACKET_SPECIFIC_R_OFFSET + 10)
 #define WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 13)
 #define WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 14)
 #define WATCHDOG_BPK_R_GET_STATUS            (BPACKET_SPECIFIC_R_OFFSET + 15)
+#define WATCHDOG_BPK_R_READ_SETTINGS         (BPACKET_SPECIFIC_R_OFFSET + 16)
+#define WATCHDOG_BPK_R_WRITE_SETTINGS        (BPACKET_SPECIFIC_R_OFFSET + 17)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
 
+#define WATCHDOG_ERROR_OFFSET              2 // So error codes are never = TRUE/FALSE
+#define WATCHDOG_INVALID_CAMERA_RESOLUTION (WATCHDOG_ERROR_OFFSET + 0)
+#define WATCHDOG_INVALID_START_TIME        (WATCHDOG_ERROR_OFFSET + 1)
+#define WATCHDOG_INVALID_END_TIME          (WATCHDOG_ERROR_OFFSET + 2)
+#define WATCHDOG_INVALID_INTERVAL_TIME     (WATCHDOG_ERROR_OFFSET + 3)
+#define WATCHDOG_INVALID_REQUEST           (WATCHDOG_ERROR_OFFSET + 4)
+
 /* Public Enumerations */
 
 typedef struct wd_camera_settings_t {
-    dt_time_t startTime;
-    dt_time_t endTime;
-    uint8_t intervalMinute;
-    uint8_t intervalHour;
     uint8_t resolution;
 } wd_camera_settings_t;
+
+typedef struct wd_camera_capture_time_settings_t {
+    dt_time_t startTime;
+    dt_time_t endTime;
+    dt_time_t intervalTime;
+} wd_camera_capture_time_settings_t;
 
 typedef struct wd_status_t {
     uint8_t id;
@@ -74,6 +109,20 @@ typedef struct wd_status_t {
     uint8_t numImages;
     uint8_t sdCardFreeSpaceMb;
 } wd_status_t;
+
+typedef struct wd_settings_t {
+    wd_camera_settings_t cameraSettings;
+    wd_camera_capture_time_settings_t captureTime;
+    uint8_t id;
+    uint8_t status;
+} wd_settings_t;
+
+#define WD_ASSERT_VALID_CAMERA_RESOLUTION(resolution)            \
+    do {                                                         \
+        if (wd_camera_resolution_is_valid(resolution) != TRUE) { \
+            return BPACKET_ERR_INVALID_RECEIVER;                 \
+        }                                                        \
+    } while (0)
 
 /* Function Prototypes */
 uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
@@ -90,7 +139,81 @@ uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sende
                              wd_status_t* status);
 uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status);
 
+uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                               wd_settings_t* wdSettings);
+uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings);
+
+void wd_get_error(uint8_t wdError, char* errorMsg);
+
 #ifdef WATCHDOG_FUNCTIONS
+
+uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                               wd_settings_t* wdSettings) {
+
+    /* Assert all the settings are valid */
+    WD_ASSERT_VALID_CAMERA_RESOLUTION(wdSettings->cameraSettings.resolution);
+
+    DATETIME_ASSERT_VALID_TIME(&wdSettings->captureTime.startTime, WATCHDOG_INVALID_START_TIME);
+    DATETIME_ASSERT_VALID_TIME(&wdSettings->captureTime.endTime, WATCHDOG_INVALID_START_TIME);
+    DATETIME_ASSERT_VALID_TIME(&wdSettings->captureTime.intervalTime, WATCHDOG_INVALID_INTERVAL_TIME);
+
+    /* All settings valid. Parse settings into bpacket*/
+    bpacket->receiver = receiver;
+    bpacket->sender   = sender;
+    bpacket->request  = request;
+    bpacket->code     = code;
+    bpacket->numBytes = 9;
+    bpacket->bytes[0] = wdSettings->cameraSettings.resolution;
+    bpacket->bytes[1] = wdSettings->captureTime.startTime.minute;
+    bpacket->bytes[2] = wdSettings->captureTime.startTime.hour;
+    bpacket->bytes[3] = wdSettings->captureTime.endTime.minute;
+    bpacket->bytes[4] = wdSettings->captureTime.endTime.hour;
+    bpacket->bytes[5] = wdSettings->captureTime.intervalTime.minute;
+    bpacket->bytes[6] = wdSettings->captureTime.intervalTime.hour;
+    bpacket->bytes[7] = wdSettings->id;
+    bpacket->bytes[8] = wdSettings->status;
+
+    return TRUE;
+}
+
+uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings) {
+
+    // Assert valid bpacket request
+    if ((bpacket->request != WATCHDOG_BPK_R_READ_SETTINGS) && (bpacket->request != WATCHDOG_BPK_R_WRITE_SETTINGS)) {
+        return WATCHDOG_INVALID_REQUEST;
+    }
+
+    // Assert valid camera resolution
+    WD_ASSERT_VALID_CAMERA_RESOLUTION(bpacket->bytes[0]);
+
+    // Assert valid start time
+    if (dt_time_valid(0, bpacket->bytes[1], bpacket->bytes[2]) != TRUE) {
+        return WATCHDOG_INVALID_START_TIME;
+    }
+
+    // Assert valid end time
+    if (dt_time_valid(0, bpacket->bytes[3], bpacket->bytes[4]) != TRUE) {
+        return WATCHDOG_INVALID_END_TIME;
+    }
+
+    // Assert valid interval time
+    if (dt_time_valid(0, bpacket->bytes[5], bpacket->bytes[6]) != TRUE) {
+        return WATCHDOG_INVALID_INTERVAL_TIME;
+    }
+
+    /* All settings valid. Parse settings into bpacket*/
+    wdSettings->cameraSettings.resolution       = bpacket->bytes[0];
+    wdSettings->captureTime.startTime.minute    = bpacket->bytes[1];
+    wdSettings->captureTime.startTime.hour      = bpacket->bytes[2];
+    wdSettings->captureTime.endTime.minute      = bpacket->bytes[3];
+    wdSettings->captureTime.endTime.hour        = bpacket->bytes[4];
+    wdSettings->captureTime.intervalTime.minute = bpacket->bytes[5];
+    wdSettings->captureTime.intervalTime.hour   = bpacket->bytes[6];
+    wdSettings->id                              = bpacket->bytes[7];
+    wdSettings->status                          = bpacket->bytes[8];
+
+    return TRUE;
+}
 
 uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                                dt_datetime_t* datetime) {
@@ -101,8 +224,8 @@ uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
         return BPACKET_ERR_INVALID_REQUEST;
     }
 
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_CODE(code);
 
     // Confirm the time is valid
@@ -169,98 +292,44 @@ uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime) {
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
-                                      uint8_t code, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_camera_resolution_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
+                                        uint8_t code, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) && (request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION) &&
-        (request != BPACKET_CODE_SUCCESS)) {
-        return FALSE;
+    if ((request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) && (request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION)) {
+        return WATCHDOG_INVALID_REQUEST;
     }
 
-    if (BPACKET_ADDRESS_IS_INVALID(receiver) || BPACKET_ADDRESS_IS_INVALID(sender) ||
-        BPACKET_REQUEST_IS_INVALID(request) || BPACKET_CODE_IS_INVALID(code)) {
-        return FALSE;
-    }
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
+    BPACKET_ASSERT_VALID_CODE(code);
 
     // Confirm the resolution is valid
     if (wd_camera_resolution_is_valid(cameraSettings->resolution) != TRUE) {
-        return FALSE;
-    }
-
-    // Confirm the start and end times are valid
-    if ((dt_time_is_valid(&cameraSettings->startTime) != TRUE) ||
-        (dt_time_is_valid(&cameraSettings->endTime) != TRUE)) {
-        return FALSE;
-    }
-
-    // Confirm the interval minute is valid
-    if ((cameraSettings->intervalMinute % 15) != 0) {
-        return FALSE;
-    }
-
-    // Confirm the interval hour is valid
-    if (cameraSettings->intervalMinute > 11) {
-        return FALSE;
+        return WATCHDOG_INVALID_CAMERA_RESOLUTION;
     }
 
     bpacket->receiver = receiver;
     bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->code     = code;
-    bpacket->numBytes = 7;
-    bpacket->bytes[0] = cameraSettings->startTime.minute;
-    bpacket->bytes[1] = cameraSettings->startTime.hour;
-    bpacket->bytes[2] = cameraSettings->endTime.minute;
-    bpacket->bytes[3] = cameraSettings->endTime.hour;
-    bpacket->bytes[4] = cameraSettings->intervalMinute;
-    bpacket->bytes[5] = cameraSettings->intervalHour;
-    bpacket->bytes[6] = cameraSettings->resolution;
+    bpacket->numBytes = 1;
+    bpacket->bytes[0] = cameraSettings->resolution;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_bpacket_to_camera_resolution(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
     if ((bpacket->request != WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION) &&
-        (bpacket->request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION) && (bpacket->request != BPACKET_CODE_SUCCESS)) {
-        return FALSE;
+        (bpacket->request != WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION)) {
+        return WATCHDOG_INVALID_REQUEST;
     }
 
-    // Confirm the resolution is valid
-    if (wd_camera_resolution_is_valid(bpacket->bytes[6]) != TRUE) {
-        return FALSE;
-    }
+    WD_ASSERT_VALID_CAMERA_RESOLUTION(bpacket->bytes[0]);
 
-    // Confirm the start and end times are valid
-    dt_time_t startTime, endTime;
-    startTime.minute = bpacket->bytes[0];
-    startTime.hour   = bpacket->bytes[1];
-    endTime.minute   = bpacket->bytes[2];
-    endTime.hour     = bpacket->bytes[3];
-
-    if ((dt_time_is_valid(&startTime) != TRUE) || (dt_time_is_valid(&endTime) != TRUE)) {
-        return FALSE;
-    }
-
-    // Confirm the interval minute is valid
-    if ((bpacket->bytes[4] % 15) != 0) {
-        return FALSE;
-    }
-
-    // Confirm the interval hour is valid
-    if (bpacket->bytes[5] > 11) {
-        return FALSE;
-    }
-
-    cameraSettings->startTime.minute = startTime.minute;
-    cameraSettings->startTime.hour   = startTime.hour;
-    cameraSettings->endTime.minute   = endTime.minute;
-    cameraSettings->endTime.hour     = endTime.hour;
-    cameraSettings->intervalMinute   = bpacket->bytes[4];
-    cameraSettings->intervalHour     = bpacket->bytes[5];
-    cameraSettings->resolution       = bpacket->bytes[6];
+    cameraSettings->resolution = bpacket->bytes[0];
 
     return TRUE;
 }
@@ -289,7 +358,7 @@ uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sende
         return FALSE;
     }
 
-    if (BPACKET_ADDRESS_IS_INVALID(receiver) || BPACKET_ADDRESS_IS_INVALID(sender) ||
+    if (BPACKET_RECEIVER_IS_INVALID(receiver) || BPACKET_SENDER_IS_INVALID(sender) ||
         BPACKET_REQUEST_IS_INVALID(request) || BPACKET_CODE_IS_INVALID(code)) {
         return FALSE;
     }
@@ -333,6 +402,30 @@ uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
     status->sdCardFreeSpaceMb = bpacket->bytes[4];
 
     return TRUE;
+}
+
+void wd_get_error(uint8_t wdError, char* errorMsg) {
+
+    switch (wdError) {
+        case WATCHDOG_INVALID_CAMERA_RESOLUTION:
+            sprintf(errorMsg, "WD def err: Invalid camera resolution\r\n");
+            break;
+        case WATCHDOG_INVALID_START_TIME:
+            sprintf(errorMsg, "WD def err: Invalid start time\r\n");
+            break;
+        case WATCHDOG_INVALID_END_TIME:
+            sprintf(errorMsg, "WD def err: Invalid end time\r\n");
+            break;
+        case WATCHDOG_INVALID_INTERVAL_TIME:
+            sprintf(errorMsg, "WD def err: Invalid interval minute or hour\r\n");
+            break;
+        case WATCHDOG_INVALID_REQUEST:
+            sprintf(errorMsg, "WD def err: Invalid request\r\n");
+            break;
+        default:
+            sprintf(errorMsg, "WD def err: Unknown WD error code %i\r\n", wdError);
+            break;
+    }
 }
 
 #endif

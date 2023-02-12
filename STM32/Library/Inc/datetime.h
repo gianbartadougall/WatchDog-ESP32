@@ -54,6 +54,8 @@ uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd);
 
 uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2);
 
+void dt_datetime_to_string(dt_datetime_t* datetime, char* string);
+
 #define DATETIME_ASSERT_VALID_TIME(time, error) \
     do {                                        \
         if (dt_time_is_valid(time) != TRUE) {   \

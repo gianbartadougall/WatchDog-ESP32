@@ -366,6 +366,10 @@ void watchdog_enter_state_machine(void) {
                     // Process anything the ESP32 sends to Maple
                     if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
                         watchdog_send_message_to_maple("Got request from ESP32\r\n");
+                        bpacket_char_array_t bc;
+                        bpacket_data_to_string(&bpacket2, &bc);
+                        bc.string[bc.numBytes] = '\0';
+                        watchdog_send_message_to_maple(bc.string);
                         if (stm32_match_esp32_request(&bpacket2) != TRUE) {
                             process_watchdog_stm32_request(&bpacket2);
                         }
@@ -730,15 +734,14 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
                 wd_photo_data_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
                                          WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE, &datetime, &temp1, &temp2);
 
-            char tempMsg[100];
-            sprintf(tempMsg, "Settings for ESP32 were Rec: %i Send: %i Req: %i Code: %i\r\n", BPACKET_ADDRESS_ESP32,
-                    BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE);
-            watchdog_send_message_to_maple(tempMsg);
+            ds18b20_temp_t t1, t2;
+            dt_datetime_t dt;
+            uint8_t res = wd_bpacket_to_photo_data(bpacket, &dt, &t1, &t2);
 
-            sprintf(tempMsg, "Sending to ESP32 Rec: %i Send: %i Req: %i Code: %i numBytes: %i\r\n",
-                    photoRequest.receiver, photoRequest.sender, photoRequest.request, photoRequest.code,
-                    photoRequest.numBytes);
-            watchdog_send_message_to_maple(tempMsg);
+            if (result != TRUE) {
+                watchdog_report_error(res, "Failed to convert back");
+                break;
+            }
 
             if (result == TRUE) {
                 watchdog_send_bpacket_to_esp32(&photoRequest);

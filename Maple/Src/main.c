@@ -571,7 +571,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
 
             if (chars_same(args[0], "photo\0") == TRUE) {
                 maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_ADDRESS_STM32, 0, NULL);
-                if (maple_response_is_valid(WATCHDOG_BPK_R_TAKE_PHOTO, 5000) == TRUE) {
+                if (maple_response_is_valid(WATCHDOG_BPK_R_TAKE_PHOTO, 10000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
                     printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);

@@ -40,6 +40,7 @@
    - Setup UART interrupt so the STM32 will wake up if it receives something on the UART line. It will then
       go back to deep sleep mode once it has processed the task
 - Get the SD card working with long file names (DONE)
+- Make the photos taken on the SD card save with the rtc time. Also make the temperature data be stored in the data file
 - Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning
 - Setup ADC to measure voltage of the battery on the ESP32 and blink an LED a certain number of times to indicate the
    estimated time left
@@ -64,3 +65,4 @@
 - Button for viewing the data on the ESP32 from the GUI
 - Checking data input in the GUI before sending it to the ESP32
 - Read the screen resolution of the device it is on to pick the size of the window
+- Make the SD card log to itself when data is copied from the SD Card to the computer

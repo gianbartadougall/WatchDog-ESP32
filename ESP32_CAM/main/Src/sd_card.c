@@ -22,6 +22,8 @@
 #include "chars.h"
 #include "hardware_config.h"
 #include "esp32_uart.h"
+#include "ds18b20.h"
+#include "datetime.h"
 
 #include "uart_comms.h"
 #include "watchdog_defines.h"
@@ -324,23 +326,51 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
     uint8_t receiver = bpacket->receiver;
     uint8_t sender   = bpacket->sender;
 
+    // Extract the RTC and temperatre data from the bpacket
+    ds18b20_temp_t temp1, temp2;
+    dt_datetime_t datetime;
+    uint8_t result = wd_bpacket_to_photo_data(bpacket, &datetime, &temp1, &temp2);
+
+    if (result != TRUE) {
+        char err[50];
+        wd_get_error(result, err);
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_IN_PROGRESS, err);
+        esp32_uart_send_bpacket(bpacket);
+        return FALSE;
+    }
+
     // Try open the SD card
     if (sd_card_open() != TRUE) {
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Could not open the SD card\0");
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
     // Create the data folder path if required
     if (sd_card_create_path(IMAGE_DATA_FOLDER, bpacket) != TRUE) {
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR,
+                          "Could not create path to data folder\0");
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 
+    char imgNumString[8];
+    sprintf(imgNumString, "%s%s%i", (imageNumber < 100) ? "0" : "", (imageNumber < 10) ? "0" : "", imageNumber);
+
+    char datetimeString[40];
+    sprintf(datetimeString, "%i%s%i%s%i_%s%i%s%i", datetime.date.year - 2000, datetime.date.month < 10 ? "0" : "",
+            datetime.date.month, datetime.date.day < 10 ? "0" : "", datetime.date.day,
+            datetime.time.hour < 10 ? "0" : "", datetime.time.hour, datetime.time.minute < 10 ? "0" : "",
+            datetime.time.minute);
+
     // Create path for image
-    char filePath[60];
-    sprintf(filePath, "%s/%s/image%i_09_30_25_02_2022.jpg", MOUNT_POINT_PATH, IMAGE_DATA_FOLDER, imageNumber);
+    char filePath[80];
+    sprintf(filePath, "%s/%s/img%s_%s.jpg", MOUNT_POINT_PATH, IMAGE_DATA_FOLDER, imgNumString, datetimeString);
 
     FILE* imageFile = fopen(filePath, "wb");
     if (imageFile == NULL) {
         bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Image file failed to open\0");
+        esp32_uart_send_bpacket(bpacket);
         return FALSE;
     }
 

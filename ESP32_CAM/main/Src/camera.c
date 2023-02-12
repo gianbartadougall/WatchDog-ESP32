@@ -14,6 +14,8 @@
 #include "sd_card.h"
 #include "esp32_uart.h"
 #include "utilities.h"
+#include "ds18b20.h"
+#include "datetime.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -142,6 +144,7 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
+// void camera_capture_and_save_image(bpacket_t* bpacket) {
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Save the address

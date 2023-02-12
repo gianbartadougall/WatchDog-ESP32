@@ -181,20 +181,21 @@ uint8_t wd_photo_data_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t s
     bpacket->sender    = sender;
     bpacket->request   = request;
     bpacket->code      = code;
-    bpacket->numBytes  = 13;
+    bpacket->numBytes  = 14;
     bpacket->bytes[0]  = datetime->time.second;
     bpacket->bytes[1]  = datetime->time.minute;
     bpacket->bytes[2]  = datetime->time.hour;
     bpacket->bytes[3]  = datetime->date.day;
     bpacket->bytes[4]  = datetime->date.month;
-    bpacket->bytes[5]  = datetime->date.year;
-    bpacket->bytes[6]  = temp1->sign;
-    bpacket->bytes[7]  = temp1->decimal;
-    bpacket->bytes[8]  = ((temp1->fraction & 0xFF00) >> 8);
-    bpacket->bytes[9]  = temp1->fraction & 0x00FF;
-    bpacket->bytes[10] = temp2->decimal;
-    bpacket->bytes[11] = ((temp2->fraction & 0xFF00) >> 8);
-    bpacket->bytes[12] = temp2->fraction & 0x00FF;
+    bpacket->bytes[5]  = ((datetime->date.year & 0xFF00) >> 8);
+    bpacket->bytes[6]  = (datetime->date.year & 0x00FF);
+    bpacket->bytes[7]  = temp1->sign;
+    bpacket->bytes[8]  = temp1->decimal;
+    bpacket->bytes[9]  = ((temp1->fraction & 0xFF00) >> 8);
+    bpacket->bytes[10] = temp1->fraction & 0x00FF;
+    bpacket->bytes[11] = temp2->decimal;
+    bpacket->bytes[12] = ((temp2->fraction & 0xFF00) >> 8);
+    bpacket->bytes[13] = temp2->fraction & 0x00FF;
 
     return TRUE;
 }
@@ -208,7 +209,7 @@ uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds
     }
 
     // Assert the bpacket length is valid
-    if (bpacket->numBytes != 13) {
+    if (bpacket->numBytes != 14) {
         return WATCHDOG_INVALID_BPACKET_SIZE;
     }
 
@@ -218,7 +219,7 @@ uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds
     }
 
     // Assert the date is valid
-    if (dt_time_valid(bpacket->bytes[3], bpacket->bytes[4], bpacket->bytes[5]) != TRUE) {
+    if (dt_date_valid(bpacket->bytes[3], bpacket->bytes[4], (bpacket->bytes[5] << 8) | bpacket->bytes[6]) != TRUE) {
         return WATCHDOG_INVALID_DATE;
     }
 
@@ -227,12 +228,12 @@ uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds
     datetime->time.hour   = bpacket->bytes[2];
     datetime->date.day    = bpacket->bytes[3];
     datetime->date.month  = bpacket->bytes[4];
-    datetime->date.year   = bpacket->bytes[5];
-    temp1->sign           = bpacket->bytes[6];
-    temp1->decimal        = bpacket->bytes[7];
-    temp1->fraction       = ((bpacket->bytes[8] << 8) | bpacket->bytes[9]);
-    temp2->decimal        = bpacket->bytes[10];
-    temp2->fraction       = ((bpacket->bytes[11] << 8) | bpacket->bytes[12]);
+    datetime->date.year   = ((bpacket->bytes[5] << 8) | bpacket->bytes[6]);
+    temp1->sign           = bpacket->bytes[7];
+    temp1->decimal        = bpacket->bytes[8];
+    temp1->fraction       = ((bpacket->bytes[9] << 8) | bpacket->bytes[10]);
+    temp2->decimal        = bpacket->bytes[11];
+    temp2->fraction       = ((bpacket->bytes[12] << 8) | bpacket->bytes[13]);
 
     return TRUE;
 }
@@ -497,21 +498,35 @@ uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
 void wd_get_error(uint8_t wdError, char* errorMsg) {
 
     switch (wdError) {
+
         case WATCHDOG_INVALID_CAMERA_RESOLUTION:
             sprintf(errorMsg, "WD def err: Invalid camera resolution\r\n");
             break;
+
         case WATCHDOG_INVALID_START_TIME:
             sprintf(errorMsg, "WD def err: Invalid start time\r\n");
             break;
+
         case WATCHDOG_INVALID_END_TIME:
             sprintf(errorMsg, "WD def err: Invalid end time\r\n");
             break;
+
         case WATCHDOG_INVALID_INTERVAL_TIME:
             sprintf(errorMsg, "WD def err: Invalid interval minute or hour\r\n");
             break;
+
         case WATCHDOG_INVALID_REQUEST:
             sprintf(errorMsg, "WD def err: Invalid request\r\n");
             break;
+
+        case WATCHDOG_INVALID_DATE:
+            sprintf(errorMsg, "WD def err: Invalid date\r\n");
+            break;
+
+        case WATCHDOG_INVALID_BPACKET_SIZE:
+            sprintf(errorMsg, "WD def err: Invalid bpacket size\r\n");
+            break;
+
         default:
             sprintf(errorMsg, "WD def err: Unknown WD error code %i\r\n", wdError);
             break;

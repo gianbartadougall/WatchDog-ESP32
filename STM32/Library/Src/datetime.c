@@ -263,3 +263,8 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     }
     return TRUE;
 }
+
+void dt_datetime_to_string(dt_datetime_t* datetime, char* string) {
+    sprintf(string, "%i:%i:%i %i/%i/%i", datetime->time.hour, datetime->time.minute, datetime->time.second,
+            datetime->date.day, datetime->date.month, datetime->date.year);
+}

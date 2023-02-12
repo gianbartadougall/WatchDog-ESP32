@@ -65,8 +65,15 @@ bpacket_t packetBuffer[PACKET_BUFFER_SIZE];
 struct sp_port* activePort = NULL;
 
 uint8_t maple_send_bpacket(bpacket_t* bpacket) {
+    printf("Rec: %i Send: %i Req: %i Code: %i\r\n", bpacket->receiver, bpacket->sender, bpacket->request,
+           bpacket->code);
     bpacket_buffer_t packetBuffer;
     bpacket_to_buffer(bpacket, &packetBuffer);
+    printf("Sending %i bytes to STM32: ", packetBuffer.numBytes);
+    for (int i = 0; i < packetBuffer.numBytes; i++) {
+        printf("%i ", packetBuffer.buffer[i]);
+    }
+    printf("\n");
 
     if (sp_blocking_write(activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
         return FALSE;
@@ -75,10 +82,30 @@ uint8_t maple_send_bpacket(bpacket_t* bpacket) {
     return TRUE;
 }
 
+bpacket_t* maple_get_next_bpacket_response(void) {
+
+    if (packetPendingIndex == packetBufferIndex) {
+        return NULL;
+    }
+
+    bpacket_t* buffer = &packetBuffer[packetPendingIndex];
+    bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
+    return buffer;
+}
+
 void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
                                    uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
     bpacket_t bpacket;
-    bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, numDataBytes, data);
+    uint8_t result =
+        bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, BPACKET_CODE_EXECUTE, numDataBytes, data);
+
+    if (result != TRUE) {
+        char errMsg[50];
+        bpacket_get_error(result, errMsg);
+        printf("Failed to create bpacket withe error: %s %i\r\n", errMsg, BPACKET_CODE_EXECUTE);
+        return;
+    }
+
     if (maple_send_bpacket(&bpacket) != TRUE) {
         return;
     }
@@ -86,7 +113,17 @@ void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t nu
 
 void maple_create_and_send_sbpacket(uint8_t receiver, uint8_t request, char* string) {
     bpacket_t bpacket;
-    bpacket_create_sp(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, request, string);
+
+    uint8_t result =
+        bpacket_create_sp(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, BPACKET_CODE_EXECUTE, string);
+
+    if (result != TRUE) {
+        char errMsg[50];
+        bpacket_get_error(result, errMsg);
+        printf("Failed to create string bpacket with error: %s", errMsg);
+        return;
+    }
+
     if (maple_send_bpacket(&bpacket) != TRUE) {
         return;
     }
@@ -94,17 +131,13 @@ void maple_create_and_send_sbpacket(uint8_t receiver, uint8_t request, char* str
 
 void maple_print_bpacket_data(bpacket_t* bpacket) {
 
-    printf("Request: %i\n", bpacket->request);
-    char data[bpacket->numBytes + 1];
-
-    // Copy all the data across
-    for (int i = 0; i < bpacket->numBytes; i++) {
-        data[i] = bpacket->bytes[i];
+    if (bpacket->request != BPACKET_GEN_R_MESSAGE) {
+        printf("Request: %i Len: %i Data: ", bpacket->request, bpacket->numBytes);
     }
 
-    data[bpacket->numBytes] = '\0';
-
-    printf("%s\n", data);
+    for (int i = 0; i < bpacket->numBytes; i++) {
+        printf("%c", bpacket->bytes[i]);
+    }
 }
 
 void maple_print_uart_response(void) {
@@ -115,40 +148,17 @@ void maple_print_uart_response(void) {
         // Wait until the packet is ready
         while (packetPendingIndex == packetBufferIndex) {}
 
+        bpacket_t* bpacket = maple_get_next_bpacket_response();
+
         // Packet ready. Print its contents
-        for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-            printf("%c", packetBuffer[packetPendingIndex].bytes[i]);
+        for (int i = 0; i < bpacket->numBytes; i++) {
+            printf("%c", bpacket->bytes[i]);
         }
 
-        if (packetBuffer[packetPendingIndex].request == BPACKET_CODE_SUCCESS) {
+        if (bpacket->request == BPACKET_CODE_SUCCESS) {
             packetsFinished = TRUE;
         }
-
-        bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
     }
-}
-
-uint8_t maple_get_uart_single_response(bpacket_t* bpacket) {
-
-    // Wait until the packet is ready
-    while (packetPendingIndex == packetBufferIndex) {}
-
-    // Packet ready. Copy contents to given bpacket
-    bpacket->request  = packetBuffer[packetPendingIndex].request;
-    bpacket->numBytes = packetBuffer[packetPendingIndex].numBytes;
-
-    // Packet ready. Print its contents
-    for (int i = 0; i < packetBuffer[packetPendingIndex].numBytes; i++) {
-        bpacket->bytes[i] = packetBuffer[packetPendingIndex].bytes[i];
-    }
-
-    bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
-
-    if (bpacket->request != BPACKET_CODE_SUCCESS) {
-        return FALSE;
-    }
-
-    return TRUE;
 }
 
 int maple_read_port(void* buf, size_t count, unsigned int timeout_ms) {
@@ -191,9 +201,26 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             // End of packet reached. Reset the system
             expectedByteId = BPACKET_START_BYTE_UPPER_ID;
 
+            // Print out the data of the bpacket if the bpacket was a message
+            if (packetBuffer[packetBufferIndex].request == BPACKET_GEN_R_MESSAGE) {
+                printf(ASCII_COLOR_BLUE);
+                for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
+                    printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
+                }
+                printf(ASCII_COLOR_WHITE);
+            }
+
+            if (packetBuffer[packetBufferIndex].code == BPACKET_CODE_ERROR) {
+                printf(ASCII_COLOR_RED);
+                for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
+                    printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
+                }
+                printf(ASCII_COLOR_WHITE);
+            }
+
             // Increment the packet buffer. Reset the buffer index
             bpacket_increment_circ_buff_index(&packetBufferIndex, PACKET_BUFFER_SIZE);
-            // maple_increment_packet_buffer_index();
+
             bpacketByteIndex = 0;
             continue;
         }
@@ -290,7 +317,7 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
 
     // Loop through all the ports
     uint8_t portFound = FALSE;
-    for (int i = 0; port_list[i] != NULL; i++) {
+    for (int i = 1; port_list[i] != NULL; i++) {
 
         activePort = port_list[i];
 
@@ -313,6 +340,7 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
         bpacket_create_p(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
                          BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&bpacket, &bpacketBuffer);
+
         if (sp_blocking_write(activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) < 0) {
             printf("Unable to write\n");
             continue;
@@ -433,6 +461,44 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+uint8_t maple_response_is_valid(uint8_t expectedRequest, uint16_t timeout) {
+
+    // Print response
+    clock_t startTime = clock();
+    while ((clock() - startTime) < timeout) {
+
+        bpacket_t* bpacket = maple_get_next_bpacket_response();
+
+        // If there is next response yet then skip
+        if (bpacket == NULL) {
+            continue;
+        }
+
+        // Skip if the bpacket is just a message
+        if (bpacket->request == BPACKET_GEN_R_MESSAGE) {
+            continue;
+        }
+
+        // Confirm the received bpacket matches the correct request and code
+        if (bpacket->request != expectedRequest) {
+            printf("Rec: %i Snd: %i Req: %i Code: %i num bytes: %i\r\n", bpacket->receiver, bpacket->sender,
+                   bpacket->request, bpacket->code, bpacket->numBytes);
+            // printf("Expected request %i but got %i\n", expectedRequest, bpacket->request);
+            return FALSE;
+        }
+
+        if (bpacket->code != BPACKET_CODE_SUCCESS) {
+            printf("Expected code %i but got %i\n", BPACKET_CODE_SUCCESS, bpacket->request);
+            return FALSE;
+        }
+
+        return TRUE;
+    }
+
+    printf("Failed to get response\n");
+    return FALSE;
+}
+
 /**
  * @brief This function takes in user input from the command line and processes
  * it. This function is deprecated since the GUI interface has been made
@@ -474,12 +540,6 @@ void maple_command_line(void) {
         for (int i = 0; i < numArgs; i++) {
             free(args[i]);
         }
-
-        // Print response
-        while (packetPendingIndex < packetBufferIndex) {
-            maple_print_bpacket_data(&packetBuffer[packetPendingIndex]);
-            bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
-        }
     }
 }
 
@@ -490,54 +550,82 @@ void maple_command_line(void) {
  */
 uint8_t maple_match_args(char** args, int numArgs) {
 
-    if (numArgs == 1) {
+    switch (numArgs) {
 
-        if (chars_same(args[0], "help\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_ADDRESS_STM32, BPACKET_GEN_R_HELP, 0, NULL);
-            maple_print_uart_response();
-            return TRUE;
-        }
+        case 1:
 
-        if (chars_same(args[0], "clc\0")) {
-            printf(ASCII_CLEAR_SCREEN);
-            return TRUE;
-        }
+            if (chars_same(args[0], "help\0") == TRUE) {
+                maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, BPACKET_ADDRESS_STM32, 0, NULL);
+                return TRUE;
+            }
 
-        if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LIST_DIR, "\0");
-            maple_print_uart_response();
-            return TRUE;
-        }
+            if (chars_same(args[0], "clc\0")) {
+                printf(ASCII_CLEAR_SCREEN);
+                return TRUE;
+            }
 
-        if (chars_same(args[0], "photo\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_TAKE_PHOTO, 0, NULL);
-            maple_print_uart_response();
-            return TRUE;
-        }
-    }
+            if (chars_same(args[0], "ls\0") == TRUE) {
+                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, BPACKET_ADDRESS_ESP32, "\0");
+                return TRUE;
+            }
 
-    if (numArgs == 2) {
+            if (chars_same(args[0], "photo\0") == TRUE) {
+                maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_ADDRESS_STM32, 0, NULL);
+                if (maple_response_is_valid(WATCHDOG_BPK_R_TAKE_PHOTO, 5000) == TRUE) {
+                    printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+                } else {
+                    printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                }
 
-        if (chars_same(args[0], "ls\0") == TRUE) {
-            maple_create_and_send_sbpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LIST_DIR, args[1]);
-            maple_print_uart_response();
-            return TRUE;
-        }
-    }
+                return TRUE;
+            }
 
-    if (numArgs == 3) {
+            break;
 
-        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
-            chars_same(args[2], "on\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-            return TRUE;
-        }
+        case 2:
 
-        if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
-            chars_same(args[2], "off\0") == TRUE) {
-            maple_create_and_send_bpacket(BPACKET_ADDRESS_ESP32, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-            return TRUE;
-        }
+            if (chars_same(args[0], "ls\0") == TRUE) {
+                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, BPACKET_ADDRESS_ESP32, args[1]);
+                return TRUE;
+            }
+
+            if (chars_same(args[0], "cpy\0") == TRUE) {
+                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_COPY_FILE, BPACKET_ADDRESS_ESP32, args[1]);
+                return TRUE;
+            }
+
+            break;
+
+        case 3:
+
+            if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+                chars_same(args[2], "on\0") == TRUE) {
+                maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_ESP32, 0, NULL);
+                if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == TRUE) {
+                    printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+                } else {
+                    printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                }
+
+                return TRUE;
+            }
+
+            if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
+                chars_same(args[2], "off\0") == TRUE) {
+                maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_ADDRESS_ESP32, 0, NULL);
+                if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == TRUE) {
+                    printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+                } else {
+                    printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                }
+
+                return TRUE;
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     return FALSE;

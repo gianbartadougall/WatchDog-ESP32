@@ -424,7 +424,7 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     bpacket_t bpacket1;
     bpacket_buffer_t bpacketBuffer1;
-    bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GET_R_MESSAGE,
+    bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
                       BPACKET_CODE_SUCCESS, "About to send image");
     bpacket_to_buffer(&bpacket1, &bpacketBuffer1);
     esp32_uart_send_bpacket(&bpacket1);

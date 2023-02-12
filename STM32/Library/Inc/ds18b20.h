@@ -56,17 +56,16 @@
 #define DS18B20_SENSOR_ID_1 (DS18B20_ID_OFFSET + 0)
 #define DS18B20_SENSOR_ID_2 (DS18B20_ID_OFFSET + 1)
 
-#define DS18B20_ASSERT_VALID_TEMPERATURE(temp)         \
-    do {                                               \
-        if ((temp.sign == 0) && (temp.decimal > 60)) { \
-            return FALSE;                              \
-        }                                              \
-                                                       \
-        if ((temp.sign == 1) && (temp.decimal > 10)) { \
-            return FALSE;                              \
-        }                                              \
-                                                       \
-        return TRUE;                                   \
+#define DS18B20_ASSERT_VALID_TEMPERATURE(temp)           \
+    do {                                                 \
+        if ((temp->sign == 0) && (temp->decimal > 60)) { \
+            return FALSE;                                \
+        }                                                \
+                                                         \
+        if ((temp->sign == 1) && (temp->decimal > 10)) { \
+            return FALSE;                                \
+        }                                                \
+                                                         \
     } while (0)
 
 /* Public Enumerations and Strucutres */

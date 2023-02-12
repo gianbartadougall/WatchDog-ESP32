@@ -582,7 +582,7 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
         default:;
             char errorMsg[30];
             sprintf(errorMsg, "Unknown request %i\r\n", bpacket->request);
-            watchdog_send_message_to_maple(errorMsg);
+            watchdog_report_error(bpacket->request, errorMsg);
     }
 }
 
@@ -594,6 +594,11 @@ void watchdog_print_wd_error(uint8_t result) {
 
 uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
 
+    char tempMsg[100];
+    sprintf(tempMsg, "Rec: %i Send: %i Req: %i Code: %i numBytes: %i\r\n", bpacket->receiver, bpacket->sender,
+            bpacket->request, bpacket->code, bpacket->numBytes);
+    watchdog_send_message_to_maple(tempMsg);
+
     switch (bpacket->request) {
 
         case WATCHDOG_BPK_R_TAKE_PHOTO: // ESP32 Response to request from STM32 to take a photo
@@ -604,8 +609,8 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
                 watchdog_report_success(WATCHDOG_BPK_R_TAKE_PHOTO);
 #endif
 
-                // Update RTC Alarm to next time
-
+                // TODO: Need to update RTC Alarm
+                watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Need to update RTC alarm\r\n\0");
                 break;
             }
 
@@ -702,7 +707,7 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             }
 
             ds18b20_temp_t temp1;
-            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_1, &temp) != TRUE) {
+            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_1, &temp1) != TRUE) {
                 watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to copy temperature");
             }
 
@@ -711,7 +716,7 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             }
 
             ds18b20_temp_t temp2;
-            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp) != TRUE) {
+            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp2) != TRUE) {
                 watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to copy temperature");
             }
 
@@ -720,13 +725,29 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
             // Get the real time clock time and date. Put it in a packet and send to the ESP32
             bpacket_t photoRequest;
-            uint8_t result = wd_datetime_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
-                                                    WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE, &datetime);
+
+            uint8_t result =
+                wd_photo_data_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
+                                         WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE, &datetime, &temp1, &temp2);
+
+            char tempMsg[100];
+            sprintf(tempMsg, "Settings for ESP32 were Rec: %i Send: %i Req: %i Code: %i\r\n", BPACKET_ADDRESS_ESP32,
+                    BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE);
+            watchdog_send_message_to_maple(tempMsg);
+
+            sprintf(tempMsg, "Sending to ESP32 Rec: %i Send: %i Req: %i Code: %i numBytes: %i\r\n",
+                    photoRequest.receiver, photoRequest.sender, photoRequest.request, photoRequest.code,
+                    photoRequest.numBytes);
+            watchdog_send_message_to_maple(tempMsg);
 
             if (result == TRUE) {
                 watchdog_send_bpacket_to_esp32(&photoRequest);
             } else {
-                watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to convert datetime to bpacket");
+                char errMsg[50];
+                wd_get_error(result, errMsg);
+                char msg[130];
+                sprintf(msg, "Failed to convert photo data to bpacket with error: %s\r\n", errMsg);
+                watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, msg);
             }
 
             break;

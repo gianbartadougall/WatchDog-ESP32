@@ -61,7 +61,7 @@ uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2);
         }                                       \
     } while (0)
 
-#define DATETIME_ASSERT_VALID_DATA(date, error) \
+#define DATETIME_ASSERT_VALID_DATE(date, error) \
     do {                                        \
         if (dt_date_is_valid(date) != TRUE) {   \
             return error;                       \

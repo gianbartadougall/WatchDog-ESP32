@@ -116,8 +116,6 @@ typedef struct wd_status_t {
 typedef struct wd_settings_t {
     wd_camera_settings_t cameraSettings;
     wd_camera_capture_time_settings_t captureTime;
-    uint8_t id;
-    uint8_t status;
 } wd_settings_t;
 
 #define WD_ASSERT_VALID_CAMERA_RESOLUTION(resolution)            \
@@ -253,7 +251,7 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
     bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->code     = code;
-    bpacket->numBytes = 9;
+    bpacket->numBytes = 7;
     bpacket->bytes[0] = wdSettings->cameraSettings.resolution;
     bpacket->bytes[1] = wdSettings->captureTime.startTime.minute;
     bpacket->bytes[2] = wdSettings->captureTime.startTime.hour;
@@ -261,8 +259,6 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
     bpacket->bytes[4] = wdSettings->captureTime.endTime.hour;
     bpacket->bytes[5] = wdSettings->captureTime.intervalTime.minute;
     bpacket->bytes[6] = wdSettings->captureTime.intervalTime.hour;
-    bpacket->bytes[7] = wdSettings->id;
-    bpacket->bytes[8] = wdSettings->status;
 
     return TRUE;
 }
@@ -300,8 +296,6 @@ uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings) {
     wdSettings->captureTime.endTime.hour        = bpacket->bytes[4];
     wdSettings->captureTime.intervalTime.minute = bpacket->bytes[5];
     wdSettings->captureTime.intervalTime.hour   = bpacket->bytes[6];
-    wdSettings->id                              = bpacket->bytes[7];
-    wdSettings->status                          = bpacket->bytes[8];
 
     return TRUE;
 }

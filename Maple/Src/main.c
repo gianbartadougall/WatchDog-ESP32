@@ -37,6 +37,11 @@
 #define MAPLE_MAX_ARGS     5
 #define PACKET_BUFFER_SIZE 50
 
+bpacket_circular_buffer_t guiToMainCircularBuffer;
+bpacket_circular_buffer_t mainToGuiCircularBuffer;
+
+#define GTM_CB_CURRENT_BPACKET (guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex])
+
 /* Example of how to get a list of serial ports on the system.
  *
  * This example file is released to the public domain. */
@@ -388,10 +393,10 @@ int main(int argc, char** argv) {
 
     HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
-    if (!thread) {
-        printf("Thread failed\n");
-        return 0;
-    }
+    // if (!thread) {
+    //     printf("Thread failed\n");
+    //     return 0;
+    // }
 
     // Try connect to the device
     if (maple_connect_to_device(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
@@ -439,6 +444,12 @@ int main(int argc, char** argv) {
     while (1) {
         // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
+            uint8_t sendStatus = com_ports_send_bpacket(GTM_CB_CURRENT_BPACKET);
+            if (sendStatus != TRUE) {
+                char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
+                bpacket_get_error(sendStatus, sendBpErrorMsg);
+                printf("%s\n", sendBpErrorMsg);
+            }
 
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
         }

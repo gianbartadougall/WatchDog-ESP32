@@ -1,0 +1,8 @@
+This text file has all the quirks of the GUI that will need to be put into the user manual
+    - If the user inputs a trailing space the input will be considered invalid
+    - An end time before a start time is considered invalid
+    - A time incremement that, when added to the start time, results in a time in the next day is invalid
+    - There must be a space between the time and the am/pm
+    - The minutes of all the textboxes must be represents as two numbers, even if it is 00
+    - The earliest year that can be used is 2022 and the latest is 2100 \
+    - The thing will get the time from your computer so make sure that your date and time are correct.

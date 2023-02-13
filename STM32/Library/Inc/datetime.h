@@ -41,6 +41,10 @@ uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year)
 
 uint8_t dt_is_valid_hour_min_period(char* date);
 
+uint8_t dt_is_valid_hour_min(char* time);
+
+uint8_t dt_is_valid_date(char* date);
+
 uint8_t dt_time_is_valid(dt_time_t* time);
 uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour);
 
@@ -55,6 +59,10 @@ uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd);
 uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2);
 
 void dt_datetime_to_string(dt_datetime_t* datetime, char* string);
+
+uint8_t dt_time_format_is_valid(char* time);
+
+void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod);
 
 #define DATETIME_ASSERT_VALID_TIME(time, error) \
     do {                                        \

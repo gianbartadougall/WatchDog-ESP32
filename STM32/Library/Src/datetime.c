@@ -224,18 +224,46 @@ uint8_t dt_is_valid_date(char* date) {
 }
 
 uint8_t dt_is_valid_hour_min(char* time) {
-    int hour, min;
-    if (chars_get_num_bytes(time) > 5) {
+
+    if (dt_time_format_is_valid(time) != TRUE) {
         return FALSE;
     }
+
+    int hour, min;
     if (sscanf(time, "%d:%d", &hour, &min) != 2) {
         return FALSE;
     }
+
     if ((min < 0) || min >= 60) {
         return FALSE;
     }
-    if ((hour <= 0) || hour > 12) {
+    if ((hour <= 0) || hour > 23) {
         return FALSE;
+    }
+    return TRUE;
+}
+
+uint8_t dt_time_format_is_valid(char* time) {
+
+    int colonCount = 0;
+    int i;
+    for (i = 0; time[i] != '\0'; i++) {
+
+        if (i > 4) {
+            return FALSE;
+        }
+
+        if (time[i] == ':' && colonCount < 1) {
+            colonCount++;
+            if (time[i + 1] == '\0' || time[i + 2] == '\0') {
+                return FALSE;
+            }
+            continue;
+        }
+
+        if (time[i] < '0' || time[i] > '9') {
+            return FALSE;
+        }
     }
     return TRUE;
 }
@@ -244,12 +272,24 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
     if (chars_get_num_bytes(time) > 8) {
         return FALSE;
     }
-    if (time[5] != ' ') {
+    int hour, min;
+    int firstZero = 0;
+    int isSpace   = 0;
+    char period[3];
+    int num;
+    if ((num = sscanf(time, "%d:%d %2s", &hour, &min, period)) != 3) {
         return FALSE;
     }
-    int hour, min;
-    char period[3];
-    if (sscanf(time, "%d:%d %2s", &hour, &min, period) != 3) {
+    if (time[0] == '0' || hour > 9) {
+        firstZero = 1;
+    }
+    if (time[1 + firstZero] != ':') {
+        return FALSE;
+    }
+    if (time[4 + firstZero] == ' ') {
+        isSpace = 1;
+    }
+    if (chars_get_num_bytes(time) > (6 + isSpace + firstZero)) {
         return FALSE;
     }
     if ((min < 0) || min >= 60) {
@@ -267,4 +307,28 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
 void dt_datetime_to_string(dt_datetime_t* datetime, char* string) {
     sprintf(string, "%i:%i:%i %i/%i/%i", datetime->time.hour, datetime->time.minute, datetime->time.second,
             datetime->date.day, datetime->date.month, datetime->date.year);
+}
+
+void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod) {
+    uint8_t minute;
+    minute = timeStruct.minute;
+    uint8_t hour;
+    hour = timeStruct.hour;
+    char period[3];
+    if (hour >= 12) {
+        sprintf(period, "pm");
+    } else {
+        sprintf(period, "am");
+    }
+    if (hour > 12) {
+        hour -= 12;
+    }
+    if (hour == 0) {
+        hour += 12;
+    }
+    if (hasPeriod == TRUE) {
+        sprintf(timeString, "%i:%i %s", hour, minute, period);
+    } else if (hasPeriod == FALSE) {
+        sprintf(timeString, "%i:%i", hour, minute);
+    }
 }

@@ -670,6 +670,8 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
                 break;
             }
 
+            watchdog_report_error(WATCHDOG_BPK_R_GET_SETTINGS, "ESP32 returned unknown code");
+
             break;
 
         case WATCHDOG_BPK_R_SET_SETTINGS:
@@ -781,16 +783,18 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
             break;
 
-        case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
+        case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:
+            watchdog_report_error(WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION, "This feature has not been implemented yet");
             // TODO: Implement
             break;
 
-        case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:;
+        case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
+            watchdog_report_error(WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION, "This feature has not been implemented yet");
             // TODO: Implement
             break;
 
         case WATCHDOG_BPK_R_GET_STATUS:
-
+            watchdog_report_error(WATCHDOG_BPK_R_GET_STATUS, "This feature has not been implemented yet");
             // TODO: Implement
             break;
 

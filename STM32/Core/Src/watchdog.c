@@ -366,10 +366,6 @@ void watchdog_enter_state_machine(void) {
                     // Process anything the ESP32 sends to Maple
                     if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
                         watchdog_send_message_to_maple("Got request from ESP32\r\n");
-                        bpacket_char_array_t bc;
-                        bpacket_data_to_string(&bpacket2, &bc);
-                        bc.string[bc.numBytes] = '\0';
-                        watchdog_send_message_to_maple(bc.string);
                         if (stm32_match_esp32_request(&bpacket2) != TRUE) {
                             process_watchdog_stm32_request(&bpacket2);
                         }
@@ -796,6 +792,11 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
         case WATCHDOG_BPK_R_GET_STATUS:
             watchdog_report_error(WATCHDOG_BPK_R_GET_STATUS, "This feature has not been implemented yet");
             // TODO: Implement
+            break;
+
+        case WATCHDOG_BPK_R_GET_SETTINGS:
+            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_GET_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
+
             break;
 
         default:

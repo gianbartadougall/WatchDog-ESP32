@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 /* Personal Includes */
 #include "gui.h"
@@ -616,8 +617,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.startY = ROW_3;
                 rectangle.width  = 600;
                 rectangle.height = 480;
-                // TODO: need to make this so it updates when the photos are sent
-                draw_image(hwnd, "img6.jpg", &rectangle);
+                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                 BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
+                                 WATCHDOG_BPK_R_STREAM_IMAGE, 0, NULL);
+                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+
+                draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
             }
 
             if (LOWORD(wParam) == BUTTON_HELP_HANDLE) {
@@ -748,8 +753,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
+int folder_exists(const char* path) {
+    struct stat st;
+    int result = stat(path, &st);
+    if (result == 0 && S_ISDIR(st.st_mode)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 // Main function for the Maple thread
 DWORD WINAPI gui(void* arg) {
+
+    const char* path = "Watchdog";
+    if (folder_exists(path) == FALSE) {
+        printf("Watchdog file not found");
+        // TODO: make the file
+        return FALSE;
+    }
 
     gui_initalisation_t* guiInit = (gui_initalisation_t*)arg;
     watchdog                     = guiInit->watchdog;
@@ -862,6 +883,16 @@ DWORD WINAPI gui(void* arg) {
                 printf("The code of the Bpacket wasn't 'success'\n"); // TODO: make this a better print
             }
 
+            if (receivedBpacket->request == GUI_BPK_R_UPDATE_STREAM_IMAGE) {
+                // Clear the screen
+                rectangle_t rectangle;
+                rectangle.startX = COL_1;
+                rectangle.startY = ROW_2;
+                rectangle.width  = 600;
+                rectangle.height = 480;
+                draw_rectangle(hwnd, &rectangle, 255, 255, 255);
+                draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
+            }
             // The bpacket is now received, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
         }

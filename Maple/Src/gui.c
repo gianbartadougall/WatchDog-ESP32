@@ -530,9 +530,14 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 }
 
 void send_current_settings(void) {
-    bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_SET_SETTINGS,
-                     sizeof(wd_settings_t), NULL);
+    uint8_t result = wd_settings_to_bpacket(
+        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
     bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
     return;
 }
@@ -551,9 +556,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxList[i].label.handle =
                     create_label(textBoxList[i].label.text, textBoxList[i].label.startX, textBoxList[i].label.startY,
                                  textBoxList[i].label.width, textBoxList[i].label.height, hwnd, NULL);
+                ShowWindow(textBoxList[i].label.handle, SW_HIDE);
             }
-            // SetWindowText(textBoxList[TEXT_BOX_START_TIME].handle, "BRUH");
-            // SetFocus(textBoxList[TEXT_BOX_START_TIME].handle);
 
             // CREATE DROP BOXES
             dropDownCameraResolution = create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
@@ -631,9 +635,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.height = 480;
                 draw_rectangle(hwnd, &rectangle, 255, 255, 255);
                 gui_change_view(NORMAL_VIEW, hwnd);
-
-                // Hide all buttons and show camera view
-                // printf("Stopping livestream\n");
             }
 
             if ((HWND)lParam == buttonList[BUTTON_RUN_TEST].handle) {
@@ -655,6 +656,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     TCHAR buffer[256];
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
+                    settings.cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
+                    send_current_settings();
                     // TODO: send bpacket of which camera resolution is wanted
                 }
             }
@@ -805,7 +808,6 @@ DWORD WINAPI gui(void* arg) {
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
 
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_SETTINGS) {
-                printf("CUNT 5\n");
                 wd_bpacket_to_settings(receivedBpacket, &settings);
                 settingsFlag = TRUE;
                 text_box_default_text(settings);
@@ -819,8 +821,6 @@ DWORD WINAPI gui(void* arg) {
             // }
         }
     }
-
-    printf("CUNT 6\n");
 
     // Create the window
     // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT
@@ -854,7 +854,12 @@ DWORD WINAPI gui(void* arg) {
             receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
             if (receivedBpacket->code != TRUE) {
-                printf("The code of the Bpacket wasn't 'success'"); // TODO: make this a better print
+
+                char msg[50];
+                bpacket_get_info(receivedBpacket, msg);
+                printf(msg);
+
+                printf("The code of the Bpacket wasn't 'success'\n"); // TODO: make this a better print
             }
 
             // The bpacket is now received, now it can be one of a bunch of possible requets.

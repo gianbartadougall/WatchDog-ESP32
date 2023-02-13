@@ -473,6 +473,8 @@ int main(int argc, char** argv) {
                 printf("%s\n", sendBpErrorMsg);
             }
 
+            // printf("Sending Request %i\n", GTM_CB_CURRENT_BPACKET->request);
+
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer1.readIndex);
         }
 

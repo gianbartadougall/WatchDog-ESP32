@@ -354,9 +354,11 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
         return FALSE;
     }
 
+    // Create formatted image number in the format of xxx
     char imgNumString[8];
     sprintf(imgNumString, "%s%s%i", (imageNumber < 100) ? "0" : "", (imageNumber < 10) ? "0" : "", imageNumber);
 
+    // Create formatted date time in the format yymmdd_hhmm
     char datetimeString[40];
     sprintf(datetimeString, "%i%s%i%s%i_%s%i%s%i", datetime.date.year - 2000, datetime.date.month < 10 ? "0" : "",
             datetime.date.month, datetime.date.day < 10 ? "0" : "", datetime.date.day,

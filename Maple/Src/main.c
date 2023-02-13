@@ -208,15 +208,29 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
             // Print out the data of the bpacket if the bpacket was a message
             if (packetBuffer[packetBufferIndex].request == BPACKET_GEN_R_MESSAGE) {
-                printf(ASCII_COLOR_BLUE);
-                for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
-                    printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
-                }
-                printf(ASCII_COLOR_WHITE);
-            }
 
-            if (packetBuffer[packetBufferIndex].code == BPACKET_CODE_ERROR) {
-                printf(ASCII_COLOR_RED);
+                switch (packetBuffer[packetBufferIndex].code) {
+
+                    case BPACKET_CODE_SUCCESS:
+                        printf(ASCII_COLOR_GREEN);
+                        break;
+
+                    case BPACKET_CODE_DEBUG:
+                        printf(ASCII_COLOR_BLUE);
+                        break;
+
+                    case BPACKET_CODE_TODO:
+                        printf(ASCII_COLOR_MAGENTA);
+                        break;
+
+                    case BPACKET_CODE_ERROR:
+                        printf(ASCII_COLOR_RED);
+                        break;
+
+                    default:
+                        break;
+                }
+
                 for (int i = 0; i < packetBuffer[packetBufferIndex].numBytes; i++) {
                     printf("%c", packetBuffer[packetBufferIndex].bytes[i]);
                 }
@@ -462,10 +476,15 @@ int main(int argc, char** argv) {
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer1.readIndex);
         }
 
-        // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular buffer
+        // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular
+        // buffer
         if (packetBufferIndex != packetPendingIndex) {
 
             bpacket_t* receivedBpacket = maple_get_next_bpacket_response();
+
+            if (receivedBpacket->request == BPACKET_GEN_R_MESSAGE) {
+                continue;
+            }
 
             mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex] = receivedBpacket;
 

@@ -45,24 +45,20 @@
 #define BPACKET_CODE_IN_PROGRESS 2
 #define BPACKET_CODE_UNKNOWN     3
 #define BPACKET_CODE_EXECUTE     4
-#define BPACKET_CODE_EMPTY_1     5 // Free spot for code to be added in future if needed
-#define BPACKET_CODE_EMPTY_2     6 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_TODO        5
+#define BPACKET_CODE_DEBUG       6
 #define BPACKET_CODE_EMPTY_3     7 // Free spot for code to be added in future if needed
 #define BPACKET_CODE_EMPTY_4     8 // Free spot for code to be added in future if needed
 #define BPACKET_MAX_CODE_VALUE   8
 
 #define BPACKET_MAX_REQUEST_VALUE 63 // Allow maximum of 63 different request values
 
-// #define BPACKET_BYTE_TO_CODE(byte)                  (byte & 0x07)
-// #define BPACKET_BYTE_TO_REQUEST(byte)               (byte >> 3)
-// #define BPACKET_REQUEST_CODE_TO_BYTE(request, code) ((request << 3) | code)
-
 #define BPACKET_MIN_REQUEST_INDEX 2 // Start at 2 so no code is the same as TRUE/FALSE
 #define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 1)
 #define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 2)
 #define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 3)
 #define BPACKET_GEN_R_MESSAGE     (BPACKET_MIN_REQUEST_INDEX + 4) // Used for debugging purposes and general messages
-#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 5) // This is the offset applied to specific projects
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 6) // This is the offset applied to specific projects
 
 #define BPACKET_CODE_IS_INVALID(code)         ((code > BPACKET_CODE_EXECUTE) == TRUE)
 #define BPACKET_SENDER_IS_INVALID(sender)     ((sender > BPACKET_ADDRESS_15) == TRUE)

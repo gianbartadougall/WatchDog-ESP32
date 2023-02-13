@@ -14,8 +14,19 @@
 /* C Library Includes */
 #include "stdint.h"
 
-#define BPACKET_START_BYTE 'A'
-#define BPACKET_STOP_BYTE  'B'
+// 16 bit start and end byte means when checking
+// there is a 1 in 2^32 chance of getting a start
+// and stop byte together randomly. The start and
+// stop bytes were chosen so they wouldn't occur
+// very frequently together
+#define BPACKET_START_BYTE_UPPER 'B'
+#define BPACKET_START_BYTE_LOWER 'z'
+
+#define BPACKET_STOP_BYTE_UPPER 'j'
+#define BPACKET_STOP_BYTE_LOWER 'Y'
+
+// #define BPACKET_START_BYTE 'A'
+// #define BPACKET_STOP_BYTE  'B'
 
 /**
  * @brief BPacket codes. These gives context to the
@@ -29,31 +40,34 @@
  * BPACKET_CODE_IN_PROGRESS then the sender of the
  * bpacket is stil processing the request
  */
-#define BPACKET_CODE_ERROR        0
-#define BPACKET_CODE_SUCCESS      1
-#define BPACKET_CODE_IN_PROGRESS  2
-#define BPACKET_CODE_UNKNOWN      3
-#define BPACKET_CODE_EXECUTE      4
-#define BPACKET_CODE_EMPTY_1      5 // Free spot for code to be added in future if needed
-#define BPACKET_CODE_EMPTY_2      6 // Free spot for code to be added in future if needed
-#define BPACKET_CODE_EMPTY_3      7 // Free spot for code to be added in future if needed
-#define BPACKET_CODE_EMPTY_4      8 // Free spot for code to be added in future if needed
-#define BPACKET_MAX_CODE_VALUE    8
-#define BPACKET_MAX_REQUEST_VALUE 31
+#define BPACKET_CODE_ERROR       0
+#define BPACKET_CODE_SUCCESS     1
+#define BPACKET_CODE_IN_PROGRESS 2
+#define BPACKET_CODE_UNKNOWN     3
+#define BPACKET_CODE_EXECUTE     4
+#define BPACKET_CODE_EMPTY_1     5 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_2     6 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_3     7 // Free spot for code to be added in future if needed
+#define BPACKET_CODE_EMPTY_4     8 // Free spot for code to be added in future if needed
+#define BPACKET_MAX_CODE_VALUE   8
 
-#define BPACKET_BYTE_TO_CODE(byte)                  (byte & 0x07)
-#define BPACKET_BYTE_TO_REQUEST(byte)               (byte >> 3)
-#define BPACKET_REQUEST_CODE_TO_BYTE(request, code) ((request << 3) | code)
+#define BPACKET_MAX_REQUEST_VALUE 63 // Allow maximum of 63 different request values
+
+// #define BPACKET_BYTE_TO_CODE(byte)                  (byte & 0x07)
+// #define BPACKET_BYTE_TO_REQUEST(byte)               (byte >> 3)
+// #define BPACKET_REQUEST_CODE_TO_BYTE(request, code) ((request << 3) | code)
 
 #define BPACKET_MIN_REQUEST_INDEX 2 // Start at 2 so no code is the same as TRUE/FALSE
 #define BPACKET_GEN_R_HELP        (BPACKET_MIN_REQUEST_INDEX + 1)
 #define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 2)
 #define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 3)
-#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 4) // This is the offset applied to specific projects
+#define BPACKET_GEN_R_MESSAGE     (BPACKET_MIN_REQUEST_INDEX + 4) // Used for debugging purposes and general messages
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 5) // This is the offset applied to specific projects
 
-#define BPACKET_CODE_IS_INVALID(code)       ((code > BPACKET_CODE_EXECUTE) == TRUE)
-#define BPACKET_ADDRESS_IS_INVALID(address) ((address > BPACKET_ADDRESS_15) == TRUE)
-#define BPACKET_REQUEST_IS_INVALID(request) ((request > 31) == TRUE) // Max value for request is 31
+#define BPACKET_CODE_IS_INVALID(code)         ((code > BPACKET_CODE_EXECUTE) == TRUE)
+#define BPACKET_SENDER_IS_INVALID(sender)     ((sender > BPACKET_ADDRESS_15) == TRUE)
+#define BPACKET_RECEIVER_IS_INVALID(receiver) ((receiver > BPACKET_ADDRESS_15) == TRUE)
+#define BPACKET_REQUEST_IS_INVALID(request)   ((request > 31) == TRUE) // Max value for request is 31
 
 /**
  * @brief The address byte in the bpacket is one byte.
@@ -93,38 +107,63 @@
 #define BPACKET_ADDRESS_STM32 BPACKET_ADDRESS_2
 #define BPACKET_ADDRESS_MAPLE BPACKET_ADDRESS_3
 
-#define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 255 as the max number that can fit into one byte is 255
-#define BPACKET_NUM_START_BYTES     1
-#define BPACKET_NUM_ADDRESS_BYTES   1 // The address bytes contain the sender and reciever information
-#define BPACKET_NUM_REQUEST_BYTES   1
+#define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 65535 as the max number that can fit into one byte is 255
+#define BPACKET_NUM_START_BYTES     2
+#define BPACKET_NUM_ADDRESS_BYTES   2 // The address bytes contains one byte for receiver and one for sender
+#define BPACKET_NUM_REQUEST_BYTES   2
 #define BPACKET_NUM_INFO_BYTES      1 // Indicateds number of data bytes (0 - max number of data bytes allowed)
-#define BPACKET_NUM_STOP_BYTES      1
-#define BPACKET_NUM_NON_DATA_BYTES  5
+#define BPACKET_NUM_STOP_BYTES      2
+#define BPACKET_NUM_NON_DATA_BYTES  9
 #define BPACKET_BUFFER_LENGTH_BYTES (BPACKET_MAX_NUM_DATA_BYTES + BPACKET_NUM_NON_DATA_BYTES)
 
 #define BPACKET_CIRCULAR_BUFFER_SIZE 10
 
+// Bpacket data type ids
+#define BPACKET_START_BYTE_UPPER_ID 0
+#define BPACKET_START_BYTE_LOWER_ID 1
+#define BPACKET_STOP_BYTE_UPPER_ID  2
+#define BPACKET_STOP_BYTE_LOWER_ID  3
+#define BPACKET_DATA_BYTE_ID        4
+#define BPACKET_NUM_BYTES_BYTE_ID   5
+#define BPACKET_CODE_BYTE_ID        6
+#define BPACKET_REQUEST_BYTE_ID     7
+#define BPACKET_SENDER_BYTE_ID      8
+#define BPACKET_RECEIVER_BYTE_ID    9
+
 // Bpacket Errors
 #define BPACKET_ERR_OFFSET                 2 // Offset so no error code = TRUE/FALSE
-#define BPACKET_ERR_INVALID_RECEIVER       (BPACKET_ERR_OFFSET + 0)
-#define BPACKET_ERR_INVALID_SENDER         (BPACKET_ERR_OFFSET + 1)
+#define BPACKET_ERR_INVALID_SENDER         (BPACKET_ERR_OFFSET + 0)
+#define BPACKET_ERR_INVALID_RECEIVER       (BPACKET_ERR_OFFSET + 1)
 #define BPACKET_ERR_INVALID_REQUEST        (BPACKET_ERR_OFFSET + 2)
 #define BPACKET_ERR_INVALID_CODE           (BPACKET_ERR_OFFSET + 3)
 #define BPACKET_ERR_INVALID_NUM_DATA_BYTES (BPACKET_ERR_OFFSET + 4)
 #define BPACKET_ERR_INVALID_START_BYTE     (BPACKET_ERR_OFFSET + 5)
 
-#define BPACKET_ASSERT_VALID_ADDRESS(address)    \
+#define BPACKET_START_BYTE(byteUpper, byteLower) \
+    ((byteUpper == BPACKET_START_BYTE_UPPER) && (byteLower == BPACKET_START_BYTE_LOWER))
+
+#define BPACKET_STOP_BYTE(byteUpper, byteLower) \
+    ((byteUpper == BPACKET_STOP_BYTE_UPPER) && (byteLower == BPACKET_STOP_BYTE_LOWER))
+
+#define BPACKET_ASSERT_VALID_SENDER(sender)    \
+    do {                                       \
+        if (sender > BPACKET_MAX_ADDRESS) {    \
+            return BPACKET_ERR_INVALID_SENDER; \
+        }                                      \
+    } while (0)
+
+#define BPACKET_ASSERT_VALID_RECEIVER(receiver)  \
     do {                                         \
-        if (address > BPACKET_MAX_ADDRESS) {     \
+        if (receiver > BPACKET_MAX_ADDRESS) {    \
             return BPACKET_ERR_INVALID_RECEIVER; \
         }                                        \
     } while (0)
 
-#define BPACKET_ASSERT_VALID_REQUEST(request)   \
-    do {                                        \
-        if (request > BPACKET_MAX_ADDRESS) {    \
-            return BPACKET_ERR_INVALID_REQUEST; \
-        }                                       \
+#define BPACKET_ASSERT_VALID_REQUEST(request)      \
+    do {                                           \
+        if (request > BPACKET_MAX_REQUEST_VALUE) { \
+            return BPACKET_ERR_INVALID_REQUEST;    \
+        }                                          \
     } while (0)
 
 #define BPACKET_ASSERT_VALID_CODE(code)      \
@@ -141,11 +180,11 @@
         }                                              \
     } while (0)
 
-#define BPACKET_ASSERT_VALID_START_BYTE(startByte) \
-    do {                                           \
-        if (startByte != BPACKET_START_BYTE) {     \
-            return BPACKET_ERR_INVALID_START_BYTE; \
-        }                                          \
+#define BPACKET_ASSERT_VALID_START_BYTE(startByteUpper, startByteLower)                                     \
+    do {                                                                                                    \
+        if ((startByteUpper != BPACKET_START_BYTE_UPPER) || (BPACKET_START_BYTE_LOWER != startByteLower)) { \
+            return BPACKET_ERR_INVALID_START_BYTE;                                                          \
+        }                                                                                                   \
     } while (0)
 
 typedef struct bpacket_t {
@@ -165,12 +204,12 @@ typedef struct bpacket_t {
 } bpacket_t;
 
 typedef struct bpacket_buffer_t {
-    uint8_t numBytes;
+    uint16_t numBytes; // Bpacket size needs to be a uint16_t because bpacket buffer > 255 bytes when put into a buffer
     uint8_t buffer[BPACKET_BUFFER_LENGTH_BYTES];
 } bpacket_buffer_t;
 
 typedef struct bpacket_char_array_t {
-    uint8_t numBytes;
+    uint16_t numBytes;
     char string[BPACKET_MAX_NUM_DATA_BYTES + 1]; // One extra for null character
 } bpacket_char_array_t;
 
@@ -200,6 +239,11 @@ void bpacket_data_to_string(bpacket_t* bpacket, bpacket_char_array_t* bpacketCha
 
 void bpacket_print_bytes(bpacket_t* bpacket);
 
+void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex);
+
 void bpacket_get_error(uint8_t bpacketError, char* errorMsg);
+
+/* Bpacket helper functions */
+void bpacket_bytes_is_start_byte(void);
 
 #endif // BPACKET_H

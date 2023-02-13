@@ -11,24 +11,19 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-/* Personal Includes */
+/* Public Macros */
 
-/* Public #defines */
-#define PIN_LOW  0
-#define PIN_HIGH 1
-
-#define TRUE  1
+// The definitions for high and low need to be 1 and 0
+// because it they are used in if statement calculations
+// when checking the states of pins which are defined by
+// hardware to be 1 for high and 0 for low. Changing these
+// will break any code that uses these defines
 #define FALSE 0
+#define TRUE  1
 
-/* Public Structures and Enumerations */
-
-/* Public Variable Declarations */
-
-/* Public Function Prototypes */
-
-/**
- * @brief Initialise the system library.
- */
-void utilities_init(void);
+/* Max value for numbers */
+#define UINT_8_BIT_MAX_VALUE  255
+#define UINT_16_BIT_MAX_VALUE 65535
+#define UINT_32_BIT_MAX_VALUE 4294967295
 
 #endif // UTILITIES_H

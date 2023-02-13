@@ -16,6 +16,7 @@
 #include "bpacket.h"
 #include "utilities.h"
 #include "datetime.h"
+#include "ds18b20.h"
 #include <stdio.h>
 
 #define MOUNT_POINT_PATH ("/sdcard")
@@ -77,8 +78,8 @@
 #define WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 13)
 #define WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION (BPACKET_SPECIFIC_R_OFFSET + 14)
 #define WATCHDOG_BPK_R_GET_STATUS            (BPACKET_SPECIFIC_R_OFFSET + 15)
-#define WATCHDOG_BPK_R_SET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 16)
-#define WATCHDOG_BPK_R_GET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 17)
+#define WATCHDOG_BPK_R_GET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 16)
+#define WATCHDOG_BPK_R_SET_SETTINGS          (BPACKET_SPECIFIC_R_OFFSET + 17)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
@@ -89,6 +90,8 @@
 #define WATCHDOG_INVALID_END_TIME          (WATCHDOG_ERROR_OFFSET + 2)
 #define WATCHDOG_INVALID_INTERVAL_TIME     (WATCHDOG_ERROR_OFFSET + 3)
 #define WATCHDOG_INVALID_REQUEST           (WATCHDOG_ERROR_OFFSET + 4)
+#define WATCHDOG_INVALID_DATE              (WATCHDOG_ERROR_OFFSET + 5)
+#define WATCHDOG_INVALID_BPACKET_SIZE      (WATCHDOG_ERROR_OFFSET + 6)
 
 /* Public Enumerations */
 
@@ -141,9 +144,97 @@ uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sen
                                wd_settings_t* wdSettings);
 uint8_t wd_bpacket_to_settings(bpacket_t* bpacket, wd_settings_t* wdSettings);
 
+uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds18b20_temp_t* temp1,
+                                 ds18b20_temp_t* temp2);
+
+uint8_t wd_photo_data_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                                 dt_datetime_t* datetime, ds18b20_temp_t* temp1, ds18b20_temp_t* temp2);
+
 void wd_get_error(uint8_t wdError, char* errorMsg);
 
 #ifdef WATCHDOG_FUNCTIONS
+
+uint8_t wd_photo_data_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                                 dt_datetime_t* datetime, ds18b20_temp_t* temp1, ds18b20_temp_t* temp2) {
+
+    // Confirm the bpacket has the correct request
+    if (request != WATCHDOG_BPK_R_TAKE_PHOTO) {
+        return WATCHDOG_INVALID_REQUEST;
+    }
+
+    // Assert the sender and receiver are valid
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
+    BPACKET_ASSERT_VALID_CODE(code);
+
+    // Assert the date and time are valid
+    DATETIME_ASSERT_VALID_TIME(&datetime->time, WATCHDOG_INVALID_START_TIME);
+    DATETIME_ASSERT_VALID_DATE(&datetime->date, WATCHDOG_INVALID_DATE);
+
+    // Assert the temperatures are valid
+    DS18B20_ASSERT_VALID_TEMPERATURE(temp1);
+    DS18B20_ASSERT_VALID_TEMPERATURE(temp2);
+
+    bpacket->receiver  = receiver;
+    bpacket->sender    = sender;
+    bpacket->request   = request;
+    bpacket->code      = code;
+    bpacket->numBytes  = 14;
+    bpacket->bytes[0]  = datetime->time.second;
+    bpacket->bytes[1]  = datetime->time.minute;
+    bpacket->bytes[2]  = datetime->time.hour;
+    bpacket->bytes[3]  = datetime->date.day;
+    bpacket->bytes[4]  = datetime->date.month;
+    bpacket->bytes[5]  = ((datetime->date.year & 0xFF00) >> 8);
+    bpacket->bytes[6]  = (datetime->date.year & 0x00FF);
+    bpacket->bytes[7]  = temp1->sign;
+    bpacket->bytes[8]  = temp1->decimal;
+    bpacket->bytes[9]  = ((temp1->fraction & 0xFF00) >> 8);
+    bpacket->bytes[10] = temp1->fraction & 0x00FF;
+    bpacket->bytes[11] = temp2->decimal;
+    bpacket->bytes[12] = ((temp2->fraction & 0xFF00) >> 8);
+    bpacket->bytes[13] = temp2->fraction & 0x00FF;
+
+    return TRUE;
+}
+
+uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds18b20_temp_t* temp1,
+                                 ds18b20_temp_t* temp2) {
+
+    // Assert the request is valid
+    if (bpacket->request != WATCHDOG_BPK_R_TAKE_PHOTO) {
+        return WATCHDOG_INVALID_REQUEST;
+    }
+
+    // Assert the bpacket length is valid
+    if (bpacket->numBytes != 14) {
+        return WATCHDOG_INVALID_BPACKET_SIZE;
+    }
+
+    // Assert the time is valid
+    if (dt_time_valid(bpacket->bytes[0], bpacket->bytes[1], bpacket->bytes[2]) != TRUE) {
+        return WATCHDOG_INVALID_START_TIME;
+    }
+
+    // Assert the date is valid
+    if (dt_date_valid(bpacket->bytes[3], bpacket->bytes[4], (bpacket->bytes[5] << 8) | bpacket->bytes[6]) != TRUE) {
+        return WATCHDOG_INVALID_DATE;
+    }
+
+    datetime->time.second = bpacket->bytes[0];
+    datetime->time.minute = bpacket->bytes[1];
+    datetime->time.hour   = bpacket->bytes[2];
+    datetime->date.day    = bpacket->bytes[3];
+    datetime->date.month  = bpacket->bytes[4];
+    datetime->date.year   = ((bpacket->bytes[5] << 8) | bpacket->bytes[6]);
+    temp1->sign           = bpacket->bytes[7];
+    temp1->decimal        = bpacket->bytes[8];
+    temp1->fraction       = ((bpacket->bytes[9] << 8) | bpacket->bytes[10]);
+    temp2->decimal        = bpacket->bytes[11];
+    temp2->fraction       = ((bpacket->bytes[12] << 8) | bpacket->bytes[13]);
+
+    return TRUE;
+}
 
 uint8_t wd_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                                wd_settings_t* wdSettings) {
@@ -401,21 +492,35 @@ uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
 void wd_get_error(uint8_t wdError, char* errorMsg) {
 
     switch (wdError) {
+
         case WATCHDOG_INVALID_CAMERA_RESOLUTION:
             sprintf(errorMsg, "WD def err: Invalid camera resolution\r\n");
             break;
+
         case WATCHDOG_INVALID_START_TIME:
             sprintf(errorMsg, "WD def err: Invalid start time\r\n");
             break;
+
         case WATCHDOG_INVALID_END_TIME:
             sprintf(errorMsg, "WD def err: Invalid end time\r\n");
             break;
+
         case WATCHDOG_INVALID_INTERVAL_TIME:
             sprintf(errorMsg, "WD def err: Invalid interval minute or hour\r\n");
             break;
+
         case WATCHDOG_INVALID_REQUEST:
             sprintf(errorMsg, "WD def err: Invalid request\r\n");
             break;
+
+        case WATCHDOG_INVALID_DATE:
+            sprintf(errorMsg, "WD def err: Invalid date\r\n");
+            break;
+
+        case WATCHDOG_INVALID_BPACKET_SIZE:
+            sprintf(errorMsg, "WD def err: Invalid bpacket size\r\n");
+            break;
+
         default:
             sprintf(errorMsg, "WD def err: Unknown WD error code %i\r\n", wdError);
             break;

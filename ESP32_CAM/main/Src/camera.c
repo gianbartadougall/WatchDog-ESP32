@@ -14,6 +14,8 @@
 #include "sd_card.h"
 #include "esp32_uart.h"
 #include "utilities.h"
+#include "ds18b20.h"
+#include "datetime.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -74,8 +76,8 @@ static camera_config_t camera_config = {
 
     .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG - This was the deafultPIXFORMAT_RGB565
     .frame_size =
-        FRAMESIZE_WQXGA, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of
-                         // the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+        FRAMESIZE_UXGA, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of
+                        // the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
 
     .jpeg_quality = 8, // 0-63, for OV series camera sensors, lower number means higher quality
     .fb_count     = 1, // When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
@@ -142,22 +144,24 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
+// void camera_capture_and_save_image(bpacket_t* bpacket) {
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Save the address
+    uint8_t request  = bpacket->request;
     uint8_t receiver = bpacket->receiver;
     uint8_t sender   = bpacket->sender;
 
     // Confirm camera has been initialised
     if (cameraInitalised != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Camera was unitailised\0");
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Camera was unitailised\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
 
     // Confirm the SD card can be mounted
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "SD card could not open\0");
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card could not open\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -168,7 +172,7 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
-        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_FAILED, "Failed to take a photo\0");
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Failed to take a photo\0");
         esp32_uart_send_bpacket(bpacket);
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
     } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != TRUE) {
@@ -177,7 +181,7 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
         char msg[100];
         sprintf(msg, "Image was %zu bytes", pic->len);
         sd_card_log(SYSTEM_LOG_FILE, msg);
-        bpacket_create_sp(bpacket, sender, receiver, BPACKET_R_SUCCESS, msg);
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, msg);
         esp32_uart_send_bpacket(bpacket);
     }
 

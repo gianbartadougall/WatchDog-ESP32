@@ -40,14 +40,23 @@ void bpacket_increment_circular_buffer_index(uint8_t* writeIndex) {
     }
 }
 
+void bpacket_increment_circ_buff_index(uint32_t* index, uint32_t maxBufferIndex) {
+
+    if (*index == (maxBufferIndex - 1)) {
+        *index = 0;
+        return;
+    }
+
+    *index += 1;
+}
+
 uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                          uint8_t numDataBytes, uint8_t* data) {
 
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_REQUEST(request);
     BPACKET_ASSERT_VALID_CODE(code);
-    BPACKET_ASSERT_VALID_NUM_BYTES(numDataBytes);
 
     bpacket->receiver = receiver;
     bpacket->sender   = sender;
@@ -68,8 +77,8 @@ uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, u
 uint8_t bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                           char* string) {
 
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_REQUEST(request);
     BPACKET_ASSERT_VALID_CODE(code);
     BPACKET_ASSERT_VALID_NUM_BYTES(chars_get_num_bytes(string));
@@ -90,36 +99,47 @@ uint8_t bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, 
 
 void bpacket_to_buffer(bpacket_t* bpacket, bpacket_buffer_t* packetBuffer) {
 
-    packetBuffer->buffer[0] = BPACKET_START_BYTE;
-    packetBuffer->buffer[1] = BPACKET_SENDER_RECEIVER_TO_BYTE(bpacket->sender, bpacket->receiver);
-    packetBuffer->buffer[2] = BPACKET_REQUEST_CODE_TO_BYTE(bpacket->request, bpacket->code);
-    packetBuffer->buffer[3] = bpacket->numBytes;
+    // Set the first two bytes to start bytes
+    packetBuffer->buffer[0] = BPACKET_START_BYTE_UPPER;
+    packetBuffer->buffer[1] = BPACKET_START_BYTE_LOWER;
+
+    // Set the sender and receiver bytes
+    packetBuffer->buffer[2] = bpacket->receiver;
+    packetBuffer->buffer[3] = bpacket->sender;
+
+    // Set the request and code
+    packetBuffer->buffer[4] = bpacket->request;
+    packetBuffer->buffer[5] = bpacket->code;
+
+    // Set the length
+    packetBuffer->buffer[6] = bpacket->numBytes;
 
     // Copy data into buffer
     int i;
     for (i = 0; i < bpacket->numBytes; i++) {
-        packetBuffer->buffer[i + 4] = bpacket->bytes[i];
+        packetBuffer->buffer[i + 7] = bpacket->bytes[i];
     }
 
-    packetBuffer->buffer[i + 4] = BPACKET_STOP_BYTE;
+    // Set the stop bytes at the end
+    packetBuffer->buffer[i + 7] = BPACKET_STOP_BYTE_UPPER;
+    packetBuffer->buffer[i + 8] = BPACKET_STOP_BYTE_LOWER;
 
     packetBuffer->numBytes = bpacket->numBytes + BPACKET_NUM_NON_DATA_BYTES;
 }
 
 uint8_t bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
 
-    uint8_t receiver     = BPACKET_BYTE_TO_RECEIVER(data[1]);
-    uint8_t sender       = BPACKET_BYTE_TO_SENDER(data[1]);
-    uint8_t request      = BPACKET_BYTE_TO_REQUEST(data[2]);
-    uint8_t code         = BPACKET_BYTE_TO_CODE(data[2]);
-    uint8_t numDataBytes = data[3];
+    uint8_t receiver     = data[2];
+    uint8_t sender       = data[3];
+    uint8_t request      = data[4];
+    uint8_t code         = data[5];
+    uint8_t numDataBytes = data[6];
 
-    BPACKET_ASSERT_VALID_START_BYTE(data[0]);
-    BPACKET_ASSERT_VALID_ADDRESS(sender);
-    BPACKET_ASSERT_VALID_ADDRESS(receiver);
+    BPACKET_ASSERT_VALID_START_BYTE(data[0], data[1]);
+    BPACKET_ASSERT_VALID_RECEIVER(receiver);
+    BPACKET_ASSERT_VALID_SENDER(sender);
     BPACKET_ASSERT_VALID_REQUEST(request);
     BPACKET_ASSERT_VALID_CODE(code);
-    BPACKET_ASSERT_VALID_NUM_BYTES(numDataBytes);
 
     bpacket->receiver = receiver;
     bpacket->sender   = sender;
@@ -129,7 +149,7 @@ uint8_t bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LE
 
     // Copy the data to the packet
     for (int i = 0; i < bpacket->numBytes; i++) {
-        bpacket->bytes[i] = data[i + 4]; // The data starts on the 5th byte thus adding 4 (starting from 1)
+        bpacket->bytes[i] = data[i + 7]; // The data starts on the 8th byte thus adding 7 (starting from 1)
     }
 
     return TRUE;
@@ -157,25 +177,25 @@ void bpacket_get_error(uint8_t bpacketError, char* errorMsg) {
 
     switch (bpacketError) {
         case BPACKET_ERR_INVALID_RECEIVER:
-            sprintf(errorMsg, "Invalid receiver address\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid receiver address\r\n");
             break;
         case BPACKET_ERR_INVALID_SENDER:
-            sprintf(errorMsg, "Invalid sender address\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid sender address\r\n");
             break;
         case BPACKET_ERR_INVALID_REQUEST:
-            sprintf(errorMsg, "Invalid request\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid request\r\n");
             break;
         case BPACKET_ERR_INVALID_CODE:
-            sprintf(errorMsg, "Invalid code\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid code\r\n");
             break;
         case BPACKET_ERR_INVALID_NUM_DATA_BYTES:
-            sprintf(errorMsg, "Invalid number of data bytes\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid number of data bytes\r\n");
             break;
         case BPACKET_ERR_INVALID_START_BYTE:
-            sprintf(errorMsg, "Invalid start byte\r\n");
+            sprintf(errorMsg, "Bpacket err: Invalid start byte\r\n");
             break;
         default:
-            sprintf(errorMsg, "Unknown error code %i\r\n", bpacketError);
+            sprintf(errorMsg, "Bpacket err: Unknown error code %i\r\n", bpacketError);
             break;
     }
 }

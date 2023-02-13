@@ -51,8 +51,31 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour);
 uint8_t dt_date_is_valid(dt_date_t* date);
 uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year);
 
+void dt_datetime_increment_day(dt_datetime_t* datetime);
+uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t time);
+
+uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd);
+
+uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2);
+
+void dt_datetime_to_string(dt_datetime_t* datetime, char* string);
+
 uint8_t dt_time_format_is_valid(char* time);
 
 void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod);
+
+#define DATETIME_ASSERT_VALID_TIME(time, error) \
+    do {                                        \
+        if (dt_time_is_valid(time) != TRUE) {   \
+            return error;                       \
+        }                                       \
+    } while (0)
+
+#define DATETIME_ASSERT_VALID_DATE(date, error) \
+    do {                                        \
+        if (dt_date_is_valid(date) != TRUE) {   \
+            return error;                       \
+        }                                       \
+    } while (0)
 
 #endif // DATETIME_H

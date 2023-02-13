@@ -43,8 +43,9 @@
  * the decimal point is always 4 and does not need to be stored
  */
 typedef struct ds18b20_t {
+    uint8_t id;
     uint64_t rom;
-    uint16_t decimal;
+    uint8_t decimal;
     uint16_t fraction;
     uint8_t sign; // 0 = positive number, 1 = negative number
 } ds18b20_t;

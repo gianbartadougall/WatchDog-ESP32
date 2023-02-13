@@ -10,7 +10,6 @@ STB_DIRECTORY = ../Drivers/stb_image/Src
 C_SOURCES = \
 Src/main.c \
 Src/gui.c \
-Src/com_ports.c \
 ../STM32/Core/Src/watchdog_defines.c \
 ../STM32/Core/Src/Utilities/chars.c \
 ../STM32/Library/Src/bpacket.c \
@@ -74,7 +73,6 @@ Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR) $(STB_OBJECTS_BUILD_D
 	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi -lgdi32
 
 $(C_SOURCES):
-	$(info SRCS $(C_SOURCES))
 	$(C_COMPILER) $(FLAGS) -c -o $(BUILD_DIR)/$(notdir $(basename $@)).o $@
 
 $(LIB_SP_OBJECTS_BUILD_DIR):

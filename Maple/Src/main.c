@@ -37,10 +37,10 @@
 #define MAPLE_MAX_ARGS     5
 #define PACKET_BUFFER_SIZE 50
 
-bpacket_circular_buffer_t guiToMainCircularBuffer;
-bpacket_circular_buffer_t mainToGuiCircularBuffer;
+bpacket_circular_buffer_t guiToMainCircularBuffer1;
+bpacket_circular_buffer_t mainToGuiCircularBuffer1;
 
-#define GTM_CB_CURRENT_BPACKET (guiToMainCircularBuffer.circularBuffer[*guiToMainCircularBuffer.readIndex])
+#define GTM_CB_CURRENT_BPACKET (guiToMainCircularBuffer1.circularBuffer[*guiToMainCircularBuffer1.readIndex])
 
 /* Example of how to get a list of serial ports on the system.
  *
@@ -393,10 +393,10 @@ int main(int argc, char** argv) {
 
     HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
 
-    // if (!thread) {
-    //     printf("Thread failed\n");
-    //     return 0;
-    // }
+    if (!thread) {
+        printf("Thread failed\n");
+        return 0;
+    }
 
     // Try connect to the device
     if (maple_connect_to_device(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
@@ -409,11 +409,11 @@ int main(int argc, char** argv) {
 
     maple_command_line();
 
-    bpacket_circular_buffer_t guiToMainCircularBuffer;
-    bpacket_create_circular_buffer(&guiToMainCircularBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
+    bpacket_circular_buffer_t guiToMainCircularBuffer1;
+    bpacket_create_circular_buffer(&guiToMainCircularBuffer1, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
 
-    bpacket_circular_buffer_t mainToGuiCircularBuffer;
-    bpacket_create_circular_buffer(&mainToGuiCircularBuffer, &mainWriteIndex, &guiReadIndex, &mainToGuiBpackets[0]);
+    bpacket_circular_buffer_t mainToGuiCircularBuffer1;
+    bpacket_create_circular_buffer(&mainToGuiCircularBuffer1, &mainWriteIndex, &guiReadIndex, &mainToGuiBpackets[0]);
 
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
@@ -431,8 +431,8 @@ int main(int argc, char** argv) {
     gui_initalisation_t guiInit;
     guiInit.watchdog  = &watchdogInfo;
     guiInit.flags     = &flags;
-    guiInit.guiToMain = &guiToMainCircularBuffer;
-    guiInit.mainToGui = &mainToGuiCircularBuffer;
+    guiInit.guiToMain = &guiToMainCircularBuffer1;
+    guiInit.mainToGui = &mainToGuiCircularBuffer1;
 
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
@@ -443,21 +443,21 @@ int main(int argc, char** argv) {
 
     while (1) {
         // If a bpacket is recieved from the Gui, deal with it in here
-        if (*guiToMainCircularBuffer.readIndex != *guiToMainCircularBuffer.writeIndex) {
-            uint8_t sendStatus = com_ports_send_bpacket(GTM_CB_CURRENT_BPACKET);
+        if (*guiToMainCircularBuffer1.readIndex != *guiToMainCircularBuffer1.writeIndex) {
+            uint8_t sendStatus = maple_send_bpacket(GTM_CB_CURRENT_BPACKET);
             if (sendStatus != TRUE) {
                 char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
                 bpacket_get_error(sendStatus, sendBpErrorMsg);
                 printf("%s\n", sendBpErrorMsg);
             }
 
-            bpacket_increment_circular_buffer_index(guiToMainCircularBuffer.readIndex);
+            bpacket_increment_circular_buffer_index(guiToMainCircularBuffer1.readIndex);
         }
 
         // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular buffer
         if (packetBufferIndex != packetPendingIndex) {
 
-            *mainToGuiCircularBuffer.circularBuffer[*guiToMainCircularBuffer.writeIndex] =
+            *mainToGuiCircularBuffer1.circularBuffer[*guiToMainCircularBuffer1.writeIndex] =
                 packetBuffer[packetPendingIndex];
 
             // Increase packet pending index so code it is know that the incoming data was dealt with
@@ -465,7 +465,7 @@ int main(int argc, char** argv) {
 
             // Increae write index of the main to gui circular buffer so that it can be parsed to
             // the GUI
-            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer.writeIndex);
+            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer1.writeIndex);
         }
     }
 
@@ -583,6 +583,17 @@ uint8_t maple_match_args(char** args, int numArgs) {
             if (chars_same(args[0], "photo\0") == TRUE) {
                 maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_ADDRESS_STM32, 0, NULL);
                 if (maple_response_is_valid(WATCHDOG_BPK_R_TAKE_PHOTO, 10000) == TRUE) {
+                    printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+                } else {
+                    printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                }
+
+                return TRUE;
+            }
+
+            if (chars_same(args[0], "settings\0") == TRUE) {
+                maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
+                if (maple_response_is_valid(WATCHDOG_BPK_R_GET_SETTINGS, 3000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
                     printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);

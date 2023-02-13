@@ -627,7 +627,8 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
 
             // Log success to Maple
             if (bpacket->code == BPACKET_CODE_SUCCESS) {
-                // // Store watchdog settings in struct
+
+                // Store watchdog settings in struct
                 uint8_t result = wd_bpacket_to_settings(bpacket, &wdSettings);
 
                 if (result != TRUE) {
@@ -696,8 +697,8 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
 uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
     bpacket_buffer_t bpacketBuffer;
-
     uint8_t request = bpacket->request;
+    uint8_t result;
 
     switch (bpacket->request) {
 
@@ -728,18 +729,9 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             // Get the real time clock time and date. Put it in a packet and send to the ESP32
             bpacket_t photoRequest;
 
-            uint8_t result =
+            result =
                 wd_photo_data_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
                                          WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE, &datetime, &temp1, &temp2);
-
-            ds18b20_temp_t t1, t2;
-            dt_datetime_t dt;
-            uint8_t res = wd_bpacket_to_photo_data(bpacket, &dt, &t1, &t2);
-
-            if (result != TRUE) {
-                watchdog_report_error(res, "Failed to convert back");
-                break;
-            }
 
             if (result == TRUE) {
                 watchdog_send_bpacket_to_esp32(&photoRequest);
@@ -794,8 +786,23 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
             // TODO: Implement
             break;
 
-        case WATCHDOG_BPK_R_GET_SETTINGS:
-            watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_GET_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
+        case WATCHDOG_BPK_R_GET_SETTINGS:;
+
+            // Send the watchdog settings back to maple
+            bpacket_t settingsPacket;
+            result = wd_settings_to_bpacket(&settingsPacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
+                                            WATCHDOG_BPK_R_GET_SETTINGS, BPACKET_CODE_SUCCESS, &wdSettings);
+
+            if (result != TRUE) {
+                watchdog_report_error(WATCHDOG_BPK_R_GET_SETTINGS, "Failed to convert settings to bpacket\r\n");
+                break;
+            } else {
+                watchdog_send_message_to_maple("Converted settings to bpacket. Sending to maple\r\n");
+            }
+
+            // Send the bpacket to maple
+            bpacket_to_buffer(&settingsPacket, &bpacketBuffer);
+            comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
             break;
 

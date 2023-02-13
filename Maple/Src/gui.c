@@ -131,7 +131,7 @@ dt_time_t startTime;
 dt_time_t endTime;
 uint8_t intervalMinute;
 uint8_t intervalHour;
-uint8_t resolution;
+// uint8_t resolution;
 wd_camera_settings_t cameraSettings;
 
 /*

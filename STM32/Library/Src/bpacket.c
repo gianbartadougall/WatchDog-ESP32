@@ -199,3 +199,8 @@ void bpacket_get_error(uint8_t bpacketError, char* errorMsg) {
             break;
     }
 }
+
+void bpacket_get_info(bpacket_t* bpacket, char* string) {
+    sprintf(string, "Receiver: %i Sender: %i Request: %i Code: %i num bytes: %i\r\n", bpacket->receiver,
+            bpacket->sender, bpacket->request, bpacket->code, bpacket->numBytes);
+}

@@ -99,6 +99,10 @@
 #define CAMERA_VIEW SW_HIDE
 #define NORMAL_VIEW SW_SHOW
 
+// Struct that contains all of the settings
+wd_settings_t settings;
+uint8_t settingsFlag;
+
 typedef struct rectangle_t {
     int startX;
     int startY;
@@ -269,6 +273,7 @@ int textBoxStartYList[NUMBER_OF_TEXT_BOXES]       = {ROW_9, ROW_10, ROW_11};
 int textBoxWidthList[NUMBER_OF_TEXT_BOXES]        = {TEXT_BOX_WIDTH, TEXT_BOX_WIDTH, TEXT_BOX_WIDTH};
 int textBoxHeightList[NUMBER_OF_TEXT_BOXES]       = {TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT};
 char* textBoxLabelTitleList[NUMBER_OF_TEXT_BOXES] = {"Invalid Input", "Invalid Input", "Invalid Input"};
+char* textBoxDefaultText[NUMBER_OF_TEXT_BOXES]; // Unfortunately this has to made in main by a function call
 
 typedef struct text_box_info_t {
     HWND handle;
@@ -300,6 +305,21 @@ void initalise_text_box_structs(text_box_info_t* textBoxList) {
     }
 }
 
+void text_box_default_text(wd_settings_t settings) {
+    textBoxDefaultText[0] = malloc(9 * sizeof(char));
+    textBoxDefaultText[1] = malloc(9 * sizeof(char));
+    textBoxDefaultText[2] = malloc(9 * sizeof(char));
+    dt_time_to_string(textBoxDefaultText[0], settings.captureTime.startTime, TRUE);
+    dt_time_to_string(textBoxDefaultText[1], settings.captureTime.endTime, TRUE);
+    dt_time_to_string(textBoxDefaultText[2], settings.captureTime.intervalTime, FALSE);
+}
+
+void free_text_box_default_text(void) {
+    free(textBoxDefaultText[0]);
+    free(textBoxDefaultText[1]);
+    free(textBoxDefaultText[2]);
+}
+
 /*
 ALL THE DROPBOX INFORMATION IS HERE
 */
@@ -311,6 +331,29 @@ const char* cameraResolutionStrings[50]                  = {"320x240",  "352x288
                                            "1024x768", "1280x1024", "1600x1200"};
 framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
     FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
+
+int cam_res_to_list_index(uint8_t camRes) {
+    switch (camRes) {
+        case (WD_CAM_RES_320x240):
+            return 0;
+        case (WD_CAM_RES_352x288):
+            return 1;
+        case (WD_CAM_RES_640x480):
+            return 2;
+        case (WD_CAM_RES_800x600):
+            return 3;
+        case (WD_CAM_RES_1024x768):
+            return 4;
+        case (WD_CAM_RES_1280x1024):
+            return 5;
+        case (WD_CAM_RES_1600x1200):
+            return 6;
+        default:
+            printf("error when converting the camera resolution into a list index, cam_res_to_list_index "
+                   "function\n");
+            return 0;
+    }
+}
 
 /*
 FUNCTIONS TO CREATE BUTTONS, LABELS, DROPBOXES and TEXTBOXES
@@ -338,9 +381,10 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
     return dropBox;
 }
 
-HWND create_text_box(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
-    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY, width,
-                          height, hwnd, handle, GetModuleHandle(NULL), NULL);
+HWND create_text_box(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
+                     char* defaultText) {
+    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", defaultText, WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY,
+                          width, height, hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
 /*
@@ -485,6 +529,14 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
     UpdateWindow(hwnd);
 }
 
+void send_current_settings(void) {
+    bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_SET_SETTINGS,
+                     sizeof(wd_settings_t), NULL);
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    return;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
 
@@ -493,18 +545,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // CREATE TEXT BOXES
             initalise_text_box_structs(&textBoxList[0]);
             for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
-                textBoxList[i].handle = create_text_box("Text_Box", textBoxList[i].startX, textBoxList[i].startY,
-                                                        textBoxList[i].width, textBoxList[i].height, hwnd, NULL);
+                textBoxList[i].handle =
+                    create_text_box("Text_Box", textBoxList[i].startX, textBoxList[i].startY, textBoxList[i].width,
+                                    textBoxList[i].height, hwnd, NULL, textBoxDefaultText[i]);
                 textBoxList[i].label.handle =
                     create_label(textBoxList[i].label.text, textBoxList[i].label.startX, textBoxList[i].label.startY,
                                  textBoxList[i].label.width, textBoxList[i].label.height, hwnd, NULL);
-                // ShowWindow(textBoxList[i].label.handle, SW_HIDE);
             }
+            // SetWindowText(textBoxList[TEXT_BOX_START_TIME].handle, "BRUH");
+            // SetFocus(textBoxList[TEXT_BOX_START_TIME].handle);
 
             // CREATE DROP BOXES
-            // TODO: need to make it so the drop box starts on the current resolution
             dropDownCameraResolution = create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                                      NULL, NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings, 0);
+                                                      NULL, NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings,
+                                                      cam_res_to_list_index(settings.cameraSettings.resolution));
 
             // CREATE BUTTONS
             initalise_button_structs(&buttonList[0]);
@@ -627,12 +681,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 uint8_t success = click_off_start_tb(hwnd);
                 if (success == TRUE) {
-                    // SEND SOME KIND OF BPACKET
+                    // Add startTimeHr and startTimeMinute into the
+                    settings.captureTime.startTime.hour   = startTimeHr;
+                    settings.captureTime.startTime.minute = startTimeMin;
                     printf("Valid start time. Sending to STM32\n");
-                    bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
-                                     WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-                    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+                    send_current_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -647,8 +700,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 uint8_t success = click_off_end_tb(hwnd);
                 if (success == TRUE) {
-                    // SEND SOME KIND OF BPACKET
-                    printf("Valid end time\n");
+                    settings.captureTime.endTime.hour   = endTimeHr;
+                    settings.captureTime.endTime.minute = endTimeMin;
+                    printf("Valid end time. Sending to STM32\n");
+                    send_current_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -662,8 +717,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
                 uint8_t success = click_off_interval_tb(hwnd);
                 if (success == TRUE) {
-                    // SEND SOME KIND OF BPACKET
-                    printf("Valid time interval\n");
+                    settings.captureTime.intervalTime.hour   = timeIntervalHr;
+                    settings.captureTime.intervalTime.minute = timeIntervalMin;
+                    printf("Valid time interval. Sending to STM32\n");
+                    send_current_settings();
                 }
                 // Set the flags so the other textboxes will be checked if this change made them invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
@@ -725,6 +782,46 @@ DWORD WINAPI gui(void* arg) {
         return FALSE;
     }
 
+    uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_SETTINGS,
+                                      BPACKET_CODE_EXECUTE, 0, NULL);
+    if (result != TRUE) {
+        char msg[50];
+        bpacket_get_error(result, msg);
+        printf("%s\n", msg);
+    }
+
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+
+    bpacket_t* receivedBpacket;
+    settingsFlag = FALSE;
+
+    // Before it goes into the main loop the settings need to be returned
+    while (settingsFlag == FALSE) {
+
+        if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+
+            receivedBpacket = MTG_CB_CURRENT_BPACKET;
+            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
+
+            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_SETTINGS) {
+                printf("CUNT 5\n");
+                wd_bpacket_to_settings(receivedBpacket, &settings);
+                settingsFlag = TRUE;
+                text_box_default_text(settings);
+                continue;
+            }
+
+            // if (receivedBpacket->request != BPACKET_GEN_R_MESSAGE) {
+            //     char packetInfo[100];
+            //     bpacket_get_info(receivedBpacket, packetInfo);
+            //     printf(packetInfo);
+            // }
+        }
+    }
+
+    printf("CUNT 6\n");
+
     // Create the window
     // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT
     hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "Watchdog", WS_OVERLAPPEDWINDOW, 0, 0, WINDOW_WIDTH,
@@ -737,7 +834,8 @@ DWORD WINAPI gui(void* arg) {
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
-    bpacket_t* recievedBpacket;
+    // Free the memory for the default text box text
+    free_text_box_default_text();
 
     // message loop
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
@@ -750,19 +848,19 @@ DWORD WINAPI gui(void* arg) {
             // draw_image(hwnd, cameraViewFileName, &cameraViewImagePosition);
         }
 
-        // If a Bpacket is recieved from main, deal with it in here
+        // If a Bpacket is received from main, deal with it in here
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
 
-            recievedBpacket = MTG_CB_CURRENT_BPACKET;
+            receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
-            if (recievedBpacket->code != TRUE) {
+            if (receivedBpacket->code != TRUE) {
                 printf("The code of the Bpacket wasn't 'success'"); // TODO: make this a better print
             }
 
-            // The bpacket is now recieved, now it can be one of a bunch of possible requets.
+            // The bpacket is now received, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
         }
-        // switch (recievedBpacket->request) {
+        // switch (receivedBpacket->request) {
         //     case WATCHDOG_BPK_R_GET_DATETIME:
 
         //         break;
@@ -935,6 +1033,3 @@ void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uin
 //         TranslateMessage(&msg);
 //         DispatchMessage(&msg);
 //     }
-// }
-
-// This function is called in the main.c as a new thread, so this is basically the main of GUI

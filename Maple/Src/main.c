@@ -322,7 +322,8 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
 
     // Loop through all the ports
     uint8_t portFound = FALSE;
-    for (int i = 1; port_list[i] != NULL; i++) {
+
+    for (int i = 0; port_list[i] != NULL; i++) {
 
         activePort = port_list[i];
 
@@ -397,6 +398,10 @@ int main(int argc, char** argv) {
         printf("Thread failed\n");
         return 0;
     }
+    if (!thread) {
+        printf("Thread failed\n");
+        return 0;
+    }
 
     // Try connect to the device
     if (maple_connect_to_device(BPACKET_ADDRESS_STM32, WATCHDOG_PING_CODE_STM32) != TRUE) {
@@ -407,7 +412,7 @@ int main(int argc, char** argv) {
 
     printf("Connected to port %s\n", sp_get_port_name(activePort));
 
-    maple_command_line();
+    // maple_command_line();
 
     bpacket_circular_buffer_t guiToMainCircularBuffer1;
     bpacket_create_circular_buffer(&guiToMainCircularBuffer1, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
@@ -434,6 +439,9 @@ int main(int argc, char** argv) {
     guiInit.guiToMain = &guiToMainCircularBuffer1;
     guiInit.mainToGui = &mainToGuiCircularBuffer1;
 
+    guiInit.guiToMain = &guiToMainCircularBuffer1;
+    guiInit.mainToGui = &mainToGuiCircularBuffer1;
+
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
     if (!guiThread) {
@@ -457,11 +465,9 @@ int main(int argc, char** argv) {
         // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular buffer
         if (packetBufferIndex != packetPendingIndex) {
 
-            *mainToGuiCircularBuffer1.circularBuffer[*guiToMainCircularBuffer1.writeIndex] =
-                packetBuffer[packetPendingIndex];
+            bpacket_t* receivedBpacket = maple_get_next_bpacket_response();
 
-            // Increase packet pending index so code it is know that the incoming data was dealt with
-            bpacket_increment_circ_buff_index(&packetPendingIndex, PACKET_BUFFER_SIZE);
+            mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex] = receivedBpacket;
 
             // Increae write index of the main to gui circular buffer so that it can be parsed to
             // the GUI

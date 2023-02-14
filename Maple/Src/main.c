@@ -1075,7 +1075,7 @@ void maple_test(void) {
         clock_t time           = clock();
         while (fileTransfered != TRUE) {
 
-            if ((clock() - time) > 10000) {
+            if ((clock() - time) > 6000) {
                 fclose(streamImage);
                 printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
                 break;
@@ -1084,12 +1084,7 @@ void maple_test(void) {
             // Wait for data
             bpacket_t* packet = maple_get_next_bpacket_response();
 
-            if (packet == NULL) {
-                continue;
-            }
-
-            if (packet->request != WATCHDOG_BPK_R_COPY_FILE) {
-                printf("Skipping packet with request %i\r\n", packet->request);
+            if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
                 continue;
             }
 
@@ -1111,6 +1106,7 @@ void maple_test(void) {
         }
 
         if (fileTransfered != TRUE) {
+            printf("FAiled\n");
             failed = TRUE;
         }
 
@@ -1118,6 +1114,8 @@ void maple_test(void) {
         printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
     }
+
+    // Check the size of the received stream
 
     /* Test Recording Data */
 

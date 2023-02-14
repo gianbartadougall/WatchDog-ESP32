@@ -77,11 +77,6 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
 uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
 
-    bpacket_t b1;
-
-    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                      "Entered match maple function\r\n\0");
-    esp32_uart_send_bpacket(&b1);
     bpacket_char_array_t bpacketCharArray;
     wd_camera_settings_t cameraSettings;
     uint8_t result;
@@ -98,11 +93,7 @@ uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
             sd_card_copy_file(bpacket, &bpacketCharArray);
             break;
 
-        case WATCHDOG_BPK_R_STREAM_IMAGE:;
-
-            bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                              "Entered the mega stream function\r\n\0");
-            esp32_uart_send_bpacket(&b1);
+        case WATCHDOG_BPK_R_STREAM_IMAGE:
             camera_stream_image(bpacket);
             break;
 

@@ -280,6 +280,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         }
 
         // Log data if required
+        // comms_send_byte(bufferId, byte);
         // comms_stm32_log_invalid_byte(bufferId, byte);
 
         // Erraneous byte. Reset the system

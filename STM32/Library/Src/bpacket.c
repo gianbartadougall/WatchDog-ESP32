@@ -222,14 +222,6 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
     uint32_t bytesSent = 0;
     uint32_t index     = 0;
 
-    bpacket_t b1;
-
-    char j[50];
-    sprintf(j, "Starting to send stream data\r\n");
-    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
-    bpacket_to_buffer(&b1, &bpacketBuffer);
-    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
-
     while (bytesSent < numBytesToSend) {
 
         if (index < BPACKET_MAX_NUM_DATA_BYTES) {
@@ -245,11 +237,6 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
         index = 0;
     }
 
-    sprintf(j, "Most data sent\r\n");
-    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
-    bpacket_to_buffer(&b1, &bpacketBuffer);
-    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
-
     // Send the last bpacket
     if (index != 0) {
 
@@ -261,11 +248,6 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
         bpacket_to_buffer(&bpacket, &bpacketBuffer);
         transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
     }
-
-    sprintf(j, "Completed\r\n");
-    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
-    bpacket_to_buffer(&b1, &bpacketBuffer);
-    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
     return TRUE;
 }

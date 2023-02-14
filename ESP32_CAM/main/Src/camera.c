@@ -87,7 +87,7 @@ static camera_config_t camera_config = {
 int cameraInitalised = 0;
 
 /* Function Prototypes */
-uint8_t camera_capture_image(camera_fb_t* image);
+uint8_t camera_capture_image(camera_fb_t** image);
 
 uint8_t camera_init(void) {
 
@@ -147,26 +147,88 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
+// uint8_t camera_send_data(uint8_t receiver, uint8_t sender, uint8_t request, uint8_t* data, uint32_t numBytesToSend) {
+//     bpacket_buffer_t bpacketBuffer;
+//     bpacket_t b1;
+//     char j[50];
+
+//     sprintf(j, "Entered camera send data function\r\n");
+//     bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+//                       j);
+//     bpacket_to_buffer(&b1, &bpacketBuffer);
+//     esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+//     // Create the bpacket
+//     bpacket_t bpacket;
+
+//     if (bpacket_create_p(&bpacket, receiver, sender, request, BPACKET_CODE_IN_PROGRESS, 0, NULL) != TRUE) {
+//         return FALSE;
+//     }
+
+//     // Set the number of bytes to the maximum
+//     bpacket.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+
+//     uint32_t bytesSent = 0;
+//     uint32_t index     = 0;
+
+//     sprintf(j, "Starting to send stream data\r\n");
+//     bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+//                       j);
+//     bpacket_to_buffer(&b1, &bpacketBuffer);
+//     esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+//     while (bytesSent < numBytesToSend) {
+
+//         if (index < BPACKET_MAX_NUM_DATA_BYTES) {
+//             bpacket.bytes[index++] = data[bytesSent++];
+//             continue;
+//         }
+
+//         // Send the bpacket
+//         bpacket_to_buffer(&bpacket, &bpacketBuffer);
+//         esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+//         // Reset the index
+//         index = 0;
+//     }
+
+//     sprintf(j, "Most data sent\r\n");
+//     bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+//                       j);
+//     bpacket_to_buffer(&b1, &bpacketBuffer);
+//     esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+//     // Send the last bpacket
+//     if (index != 0) {
+
+//         // Update bpacket info
+//         bpacket.numBytes = index;
+//         bpacket.code     = BPACKET_CODE_SUCCESS;
+
+//         // Send the bpacket
+//         bpacket_to_buffer(&bpacket, &bpacketBuffer);
+//         esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+//     }
+
+//     sprintf(j, "Completed\r\n");
+//     bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+//                       j);
+//     bpacket_to_buffer(&b1, &bpacketBuffer);
+//     esp32_uart_send_data(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+//     return TRUE;
+// }
+
 void camera_stream_image(bpacket_t* bpacket) {
-
-    bpacket_t b1;
-
-    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                      "Entered stream function\r\n\0");
-    esp32_uart_send_bpacket(&b1);
 
     camera_fb_t* image = NULL;
 
-    if (camera_capture_image(image) != TRUE) {
+    if (camera_capture_image(&image) != TRUE) {
         bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
                           "Camera could not taken photo\r\n\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
-
-    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                      "Image was taken\r\n\0");
-    esp32_uart_send_bpacket(&b1);
 
     // Image was able to be taken. Send image back to sender
     if (bpacket_send_data(esp32_uart_send_data, bpacket->sender, bpacket->receiver, bpacket->request, image->buf,
@@ -175,10 +237,6 @@ void camera_stream_image(bpacket_t* bpacket) {
                           "Failed to send image\r\n\0");
         esp32_uart_send_bpacket(bpacket);
     }
-
-    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                      "Succesfully sent image\r\n\0");
-    esp32_uart_send_bpacket(&b1);
 
     // Free the image
     esp_camera_fb_return(image);
@@ -229,12 +287,12 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
     sd_card_close();
 }
 
-uint8_t camera_capture_image(camera_fb_t* image) {
+uint8_t camera_capture_image(camera_fb_t** image) {
 
-    image = esp_camera_fb_get();
+    *image = esp_camera_fb_get();
 
-    if (image == NULL) {
-        esp_camera_fb_return(image);
+    if (*image == NULL) {
+        esp_camera_fb_return(*image);
         return FALSE;
     }
 

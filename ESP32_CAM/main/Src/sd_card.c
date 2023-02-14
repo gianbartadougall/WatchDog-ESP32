@@ -174,22 +174,23 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     int i             = 0;
     bpacket->receiver = sender;
     bpacket->sender   = receiver;
-    bpacket->request  = BPACKET_CODE_IN_PROGRESS;
+    bpacket->request  = request;
+    bpacket->code     = BPACKET_CODE_IN_PROGRESS;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
     int in            = FALSE; // Variable just to know whether there was anything or not
     while ((dirPtr = readdir(directory)) != NULL) {
         in = 1;
         // Copy the name of the folder into the folder structure string
-        int j = 0;
-        while (dirPtr->d_name[j] != '\0') {
-            bpacket->bytes[i++] = dirPtr->d_name[j];
+        int k = 0;
+        while (dirPtr->d_name[k] != '\0') {
+            bpacket->bytes[i++] = dirPtr->d_name[k];
 
             if (i == BPACKET_MAX_NUM_DATA_BYTES) {
                 esp32_uart_send_bpacket(bpacket);
                 i = 0;
             }
 
-            j++;
+            k++;
         }
 
         bpacket->bytes[i++] = '\r';
@@ -402,8 +403,16 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     uint8_t receiver = bpacket->receiver;
     uint8_t sender   = bpacket->sender;
 
+    bpacket_t b1;
+    char j[305];
+
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
+
+        sprintf(j, "SD Card did not open\r\n");
+        bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+        esp32_uart_send_bpacket(&b1);
+
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR,
                           "SD card failed to open\0");
         esp32_uart_send_bpacket(bpacket);
@@ -412,6 +421,11 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
     // Return an error if there was no specified file
     if (bpacketCharArray->string[0] == '\0') {
+
+        sprintf(j, "bpacket array was empty: [%s]\r\n", bpacketCharArray->string);
+        bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+        esp32_uart_send_bpacket(&b1);
+
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR,
                           "No file was specified\0");
         esp32_uart_send_bpacket(bpacket);
@@ -422,10 +436,20 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     uint16_t filePathNameSize = chars_get_num_bytes(bpacketCharArray->string);
 
     if (filePathNameSize > (57)) { // including mount point which is current 7 bytes
+
+        sprintf(j, "file name size > 57 [%s] = %i\r\n", bpacketCharArray->string,
+                chars_get_num_bytes(bpacketCharArray->string));
+        bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+        esp32_uart_send_bpacket(&b1);
+
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR, "File path > 50\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
+
+    sprintf(j, "Creating file path\r\n");
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+    esp32_uart_send_bpacket(&b1);
 
     char filePath[filePathNameSize + 1]; // add one for null pointer!
     sprintf(filePath, "%s/", MOUNT_POINT_PATH);
@@ -435,6 +459,9 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     }
     filePath[i + 8] = '\0'; // Add null terminator
 
+    sprintf(j, "File path made: [%s]\r\n", filePath);
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+    esp32_uart_send_bpacket(&b1);
     // char* filePath = bpacketCharArray->string;
 
     // char fullPath[MAX_PATH_LENGTH];
@@ -442,8 +469,13 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     FILE* file = fopen(filePath, "rb"); // read binary file
 
     if (file == NULL) {
+
+        sprintf(j, "Couldn't open file [%s]\r\n", filePath);
+        bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+        esp32_uart_send_bpacket(&b1);
+
         char msg[100];
-        sprintf(msg, "File was NULL: [%i] [%s] => [%s]", filePathNameSize, filePath, strerror(errno));
+        sprintf(msg, "File was NULL: [%i] [%s] => [%s]\r\n", filePathNameSize, filePath, strerror(errno));
         bpacket_create_sp(bpacket, sender, receiver, WATCHDOG_BPK_R_COPY_FILE, BPACKET_CODE_ERROR, msg);
         esp32_uart_send_bpacket(bpacket);
         return;
@@ -454,20 +486,23 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
     uint32_t fileNumBytes = ftell(file);
     fseek(file, 0L, SEEK_SET);
 
-    bpacket_t bpacket1;
-    bpacket_buffer_t bpacketBuffer1;
-    bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
-                      BPACKET_CODE_SUCCESS, "About to send image");
-    bpacket_to_buffer(&bpacket1, &bpacketBuffer1);
-    esp32_uart_send_bpacket(&bpacket1);
+    sprintf(j, "Image size: %i bytes\r\n", fileNumBytes);
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+    esp32_uart_send_bpacket(&b1);
 
     // Change the values of the bpacket so they get sent to Maple
-    bpacket->sender   = BPACKET_ADDRESS_ESP32;
-    bpacket->receiver = BPACKET_ADDRESS_MAPLE;
+    bpacket->sender   = receiver;
+    bpacket->receiver = sender;
     bpacket->code     = BPACKET_CODE_IN_PROGRESS;
-    bpacket->request  = WATCHDOG_BPK_R_COPY_FILE;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
     int pi            = 0;
+
+    char info[50];
+    bpacket_get_info(bpacket, info);
+    sprintf(j, "Image size: %i bytes\r\n", fileNumBytes);
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+    esp32_uart_send_bpacket(&b1);
+
     for (uint32_t i = 0; i < fileNumBytes; i++) {
 
         bpacket->bytes[pi++] = fgetc(file);
@@ -486,6 +521,10 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
         pi = 0;
     }
 
+    sprintf(j, "Image fully sent. Closeing file\r\n");
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS, j);
+    esp32_uart_send_bpacket(&b1);
+
     fclose(file);
 
     // Close the SD card
@@ -494,13 +533,10 @@ void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArra
 
 uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket) {
 
-    uint8_t request  = bpacket->request;
-    uint8_t receiver = bpacket->receiver;
-    uint8_t sender   = bpacket->sender;
-
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card failed to open\0");
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                          "SD card failed to open\0");
         return FALSE;
     }
 
@@ -509,7 +545,7 @@ uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket) {
     if (file == NULL) {
         char msg[70];
         sprintf(msg, "Failed to open '%s' for writing. Error: %s", SETTINGS_FILE_PATH_START_AT_ROOT, strerror(errno));
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR, msg);
         return FALSE;
     }
 
@@ -522,6 +558,9 @@ uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket) {
     fclose(file);
     sd_card_close();
 
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
+
     // Update bapacket to send as success response back
     bpacket->numBytes = 0;
     bpacket->receiver = sender;
@@ -533,13 +572,10 @@ uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket) {
 
 uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket) {
 
-    uint8_t request  = bpacket->request;
-    uint8_t receiver = bpacket->receiver;
-    uint8_t sender   = bpacket->sender;
-
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card failed to open\0");
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                          "SD card failed to open\0");
         return FALSE;
     }
 
@@ -547,7 +583,7 @@ uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket) {
     if (file == NULL) {
         char msg[70];
         sprintf(msg, "Failed to open '%s'. Error: %s", SETTINGS_FILE_PATH_START_AT_ROOT, strerror(errno));
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR, msg);
         return FALSE;
     }
 
@@ -560,7 +596,7 @@ uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket) {
     if (bpacket->numBytes == 0) {
         char msg[70];
         sprintf(msg, "File '%s' was empty.", SETTINGS_FILE_PATH_START_AT_ROOT);
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, msg);
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR, msg);
         fclose(file);
         return FALSE;
     }
@@ -573,6 +609,9 @@ uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket) {
     // Clean up
     fclose(file);
     sd_card_close();
+
+    uint8_t receiver = bpacket->receiver;
+    uint8_t sender   = bpacket->sender;
 
     bpacket->receiver = sender;
     bpacket->sender   = receiver;

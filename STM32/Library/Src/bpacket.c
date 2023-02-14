@@ -204,3 +204,99 @@ void bpacket_get_info(bpacket_t* bpacket, char* string) {
     sprintf(string, "Receiver: %i Sender: %i Request: %i Code: %i num bytes: %i\r\n", bpacket->receiver,
             bpacket->sender, bpacket->request, bpacket->code, bpacket->numBytes);
 }
+
+uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), uint8_t receiver,
+                          uint8_t sender, uint8_t request, uint8_t* data, uint32_t numBytesToSend) {
+
+    // Create the bpacket
+    bpacket_t bpacket;
+
+    if (bpacket_create_p(&bpacket, receiver, sender, request, BPACKET_CODE_IN_PROGRESS, 0, NULL) != TRUE) {
+        return FALSE;
+    }
+
+    // Set the number of bytes to the maximum
+    bpacket.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+    bpacket_buffer_t bpacketBuffer;
+
+    uint32_t bytesSent = 0;
+    uint32_t index     = 0;
+
+    bpacket_t b1;
+
+    char j[50];
+    sprintf(j, "Starting to send stream data\r\n");
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
+    bpacket_to_buffer(&b1, &bpacketBuffer);
+    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+    while (bytesSent < numBytesToSend) {
+
+        if (index < BPACKET_MAX_NUM_DATA_BYTES) {
+            bpacket.bytes[index++] = data[bytesSent++];
+            continue;
+        }
+
+        // Send the bpacket
+        bpacket_to_buffer(&bpacket, &bpacketBuffer);
+        transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+        // Reset the index
+        index = 0;
+    }
+
+    sprintf(j, "Most data sent\r\n");
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
+    bpacket_to_buffer(&b1, &bpacketBuffer);
+    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+    // Send the last bpacket
+    if (index != 0) {
+
+        // Update bpacket info
+        bpacket.numBytes = index;
+        bpacket.code     = BPACKET_CODE_SUCCESS;
+
+        // Send the bpacket
+        bpacket_to_buffer(&bpacket, &bpacketBuffer);
+        transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+    }
+
+    sprintf(j, "Completed\r\n");
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_SUCCESS, j);
+    bpacket_to_buffer(&b1, &bpacketBuffer);
+    transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
+    return TRUE;
+}
+
+uint8_t bpacket_confirm_values(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                               uint8_t numBytes, char* errMsg) {
+
+    if (bpacket->receiver != receiver) {
+        sprintf(errMsg, "Invalid receiver. Expected %i but got %i\r\n", receiver, bpacket->receiver);
+        return FALSE;
+    }
+
+    if (bpacket->sender != sender) {
+        sprintf(errMsg, "Invalid Sender. Expected %i but got %i\r\n", sender, bpacket->sender);
+        return FALSE;
+    }
+
+    if (bpacket->request != request) {
+        sprintf(errMsg, "Invalid Request. Expected %i but got %i\r\n", request, bpacket->request);
+        return FALSE;
+    }
+
+    if (bpacket->code != code) {
+        sprintf(errMsg, "Invalid Code. Expected %i but got %i\r\n", code, bpacket->code);
+        return FALSE;
+    }
+
+    if (bpacket->numBytes != numBytes) {
+        sprintf(errMsg, "Invalid num bytes. Expected %i but got %i\r\n", numBytes, bpacket->numBytes);
+        return FALSE;
+    }
+
+    return TRUE;
+}

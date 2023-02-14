@@ -59,52 +59,10 @@
 
 uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
-    // bpacket_t bpacket1;
-    // char j[30];
-    // sprintf(j, "Request: [%i]", bpacket->request);
-    // bpacket_create_sp(&bpacket1, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_ESP32, BPACKET_GET_R_MESSAGE,
-    //                   BPACKET_CODE_SUCCESS, j);
-    // esp32_uart_send_bpacket(&bpacket1);
-
-    // Save the address
-    uint8_t request  = bpacket->request;
-    uint8_t receiver = bpacket->receiver;
-    uint8_t sender   = bpacket->sender;
-
     switch (bpacket->request) {
 
         case WATCHDOG_BPK_R_TAKE_PHOTO:
             camera_capture_and_save_image(bpacket);
-            break;
-
-        case WATCHDOG_BPK_R_SET_CAMERA_RESOLUTION:
-
-            if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-                bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, 0, NULL);
-            } else {
-                bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
-            }
-
-            esp32_uart_send_bpacket(bpacket);
-            break;
-
-        case WATCHDOG_BPK_R_GET_CAMERA_RESOLUTION:;
-
-            uint8_t resolution = camera_get_resolution();
-            bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, &resolution);
-            esp32_uart_send_bpacket(bpacket);
-            break;
-
-        case WATCHDOG_BPK_R_SET_SETTINGS:
-
-            sd_card_write_watchdog_settings(bpacket);
-            esp32_uart_send_bpacket(bpacket); // Send response back
-            break;
-
-        case WATCHDOG_BPK_R_GET_SETTINGS:
-
-            sd_card_read_watchdog_settings(bpacket);
-            esp32_uart_send_bpacket(bpacket); // Send response back
             break;
 
         case WATCHDOG_BPK_R_RECORD_DATA:
@@ -119,17 +77,76 @@ uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
 uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
 
+    bpacket_t b1;
+
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                      "Entered match maple function\r\n\0");
+    esp32_uart_send_bpacket(&b1);
     bpacket_char_array_t bpacketCharArray;
+    wd_camera_settings_t cameraSettings;
+    uint8_t result;
 
     switch (bpacket->request) {
+
         case WATCHDOG_BPK_R_LIST_DIR:
             bpacket_data_to_string(bpacket, &bpacketCharArray);
             sd_card_list_directory(bpacket, &bpacketCharArray);
             break;
+
         case WATCHDOG_BPK_R_COPY_FILE:;
             bpacket_data_to_string(bpacket, &bpacketCharArray);
             sd_card_copy_file(bpacket, &bpacketCharArray);
             break;
+
+        case WATCHDOG_BPK_R_STREAM_IMAGE:;
+
+            bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                              "Entered the mega stream function\r\n\0");
+            esp32_uart_send_bpacket(&b1);
+            camera_stream_image(bpacket);
+            break;
+
+        case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:;
+
+            result = wd_bpacket_to_camera_settings(bpacket, &cameraSettings);
+            if (result != TRUE) {
+                char errMsg[50];
+                wd_get_error(result, errMsg);
+                bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                                  errMsg);
+                esp32_uart_send_bpacket(bpacket);
+                break;
+            }
+
+            if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
+                bpacket_create_p(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR, 0,
+                                 NULL);
+            } else {
+                bpacket_create_p(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_SUCCESS, 0,
+                                 NULL);
+            }
+
+            esp32_uart_send_bpacket(bpacket);
+            break;
+
+        case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:;
+
+            cameraSettings.resolution = camera_get_resolution();
+
+            result = wd_camera_settings_to_bpacket(bpacket, bpacket->sender, bpacket->receiver, bpacket->request,
+                                                   BPACKET_CODE_SUCCESS, &cameraSettings);
+
+            if (result != TRUE) {
+                char errMsg[50];
+                wd_get_error(result, errMsg);
+                bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                                  errMsg);
+                break;
+            }
+
+            esp32_uart_send_bpacket(bpacket);
+            break;
+
         default:
             return FALSE;
     }
@@ -202,7 +219,19 @@ void watchdog_system_start(void) {
 
                 break;
 
-            default: // No request was able to be matched. Send response back to sender
+            case WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS:
+
+                sd_card_write_watchdog_settings(&bpacket);
+                esp32_uart_send_bpacket(&bpacket); // Send response back
+                break;
+
+            case WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS:
+
+                sd_card_read_watchdog_settings(&bpacket);
+                esp32_uart_send_bpacket(&bpacket); // Send response back
+                break;
+
+            default:; // No request was able to be matched. Send response back to sender
                 bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN,
                                   "ESP32 could not recnognise the request\0");
                 esp32_uart_send_bpacket(&bpacket);

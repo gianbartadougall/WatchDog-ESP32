@@ -100,7 +100,7 @@
 #define NORMAL_VIEW SW_SHOW
 
 // Struct that contains all of the settings
-wd_settings_t settings;
+// wd_camera_settings_t settings;
 uint8_t settingsFlag;
 
 typedef struct rectangle_t {
@@ -137,6 +137,7 @@ uint8_t intervalMinute;
 uint8_t intervalHour;
 // uint8_t resolution;
 wd_camera_settings_t cameraSettings;
+wd_camera_capture_time_settings_t captureTime;
 
 /*
 ALL THE LABEL INFORMATION IS HERE
@@ -305,13 +306,13 @@ void initalise_text_box_structs(text_box_info_t* textBoxList) {
     }
 }
 
-void text_box_default_text(wd_settings_t settings) {
+void text_box_default_text(wd_camera_capture_time_settings_t captureTime) {
     textBoxDefaultText[0] = malloc(9 * sizeof(char));
     textBoxDefaultText[1] = malloc(9 * sizeof(char));
     textBoxDefaultText[2] = malloc(9 * sizeof(char));
-    dt_time_to_string(textBoxDefaultText[0], settings.captureTime.startTime, TRUE);
-    dt_time_to_string(textBoxDefaultText[1], settings.captureTime.endTime, TRUE);
-    dt_time_to_string(textBoxDefaultText[2], settings.captureTime.intervalTime, FALSE);
+    dt_time_to_string(textBoxDefaultText[0], captureTime.startTime, TRUE);
+    dt_time_to_string(textBoxDefaultText[1], captureTime.endTime, TRUE);
+    dt_time_to_string(textBoxDefaultText[2], captureTime.intervalTime, FALSE);
 }
 
 void free_text_box_default_text(void) {
@@ -531,8 +532,8 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 
 void send_current_settings(void) {
     bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_SET_SETTINGS,
-                     sizeof(wd_settings_t), NULL);
+                     BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
+                     WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, sizeof(wd_settings_t), NULL);
     bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
     return;
 }
@@ -558,7 +559,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // CREATE DROP BOXES
             dropDownCameraResolution = create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
                                                       NULL, NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings,
-                                                      cam_res_to_list_index(settings.cameraSettings.resolution));
+                                                      cam_res_to_list_index(cameraSettings.resolution));
 
             // CREATE BUTTONS
             initalise_button_structs(&buttonList[0]);
@@ -682,8 +683,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 uint8_t success = click_off_start_tb(hwnd);
                 if (success == TRUE) {
                     // Add startTimeHr and startTimeMinute into the
-                    settings.captureTime.startTime.hour   = startTimeHr;
-                    settings.captureTime.startTime.minute = startTimeMin;
+                    captureTime.startTime.hour   = startTimeHr;
+                    captureTime.startTime.minute = startTimeMin;
                     printf("Valid start time. Sending to STM32\n");
                     send_current_settings();
                 }
@@ -700,8 +701,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 uint8_t success = click_off_end_tb(hwnd);
                 if (success == TRUE) {
-                    settings.captureTime.endTime.hour   = endTimeHr;
-                    settings.captureTime.endTime.minute = endTimeMin;
+                    captureTime.endTime.hour   = endTimeHr;
+                    captureTime.endTime.minute = endTimeMin;
                     printf("Valid end time. Sending to STM32\n");
                     send_current_settings();
                 }
@@ -717,8 +718,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxFlags &= ~TEXT_BOX_TIME_INTERVAL_FLAG;
                 uint8_t success = click_off_interval_tb(hwnd);
                 if (success == TRUE) {
-                    settings.captureTime.intervalTime.hour   = timeIntervalHr;
-                    settings.captureTime.intervalTime.minute = timeIntervalMin;
+                    captureTime.intervalTime.hour   = timeIntervalHr;
+                    captureTime.intervalTime.minute = timeIntervalMin;
                     printf("Valid time interval. Sending to STM32\n");
                     send_current_settings();
                 }
@@ -783,8 +784,8 @@ DWORD WINAPI gui(void* arg) {
     }
 
     uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_SETTINGS,
-                                      BPACKET_CODE_EXECUTE, 0, NULL);
+                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                      WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
     if (result != TRUE) {
         char msg[50];
         bpacket_get_error(result, msg);
@@ -804,11 +805,11 @@ DWORD WINAPI gui(void* arg) {
             receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
 
-            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_SETTINGS) {
+            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
                 printf("CUNT 5\n");
-                wd_bpacket_to_settings(receivedBpacket, &settings);
+                wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
                 settingsFlag = TRUE;
-                text_box_default_text(settings);
+                text_box_default_text(captureTime);
                 continue;
             }
 
@@ -988,6 +989,11 @@ void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uin
     EndPaint(hwnd, &ps);
 }
 
+void gui_test(void) {
+
+    /* Test that the GUI can turn the red LED on */
+}
+
 /* FUNCTIONS THAT WE ARENT USING ANYMORE*/
 
 // Just leaving this here incase we need to draw something pixel by pixel
@@ -1024,12 +1030,3 @@ void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uin
 // stbi_image_free(data);
 // EndPaint(hwnd, &ps);
 // }
-
-// This Function isnt used either?
-// void gui_update() {
-//     MSG msg;
-
-//     if (GetMessage(&msg, NULL, 0, 0) > 0) {
-//         TranslateMessage(&msg);
-//         DispatchMessage(&msg);
-//     }

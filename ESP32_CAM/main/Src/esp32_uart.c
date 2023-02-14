@@ -38,16 +38,8 @@ void esp32_uart_send_bpacket(bpacket_t* bpacket) {
     // uart_write_bytes(UART_NUM, bp1.buffer, bp1.numBytes);
 }
 
-int esp32_uart_send_data(const char* data) {
-
-    // Because this data is being sent to a master MCU, the NULL character
-    // needs to be appended on if it is not to ensure the master MCU knows
-    // when the end of the sent data is. Thus add 1 to the length to ensure
-    // the null character is also sent
-    const int len     = strlen(data) + 1;
-    const int txBytes = uart_write_bytes(UART_NUM, data, len);
-
-    return txBytes;
+void esp32_uart_send_data(uint8_t* data, uint16_t numBytes) {
+    uart_write_bytes(UART_NUM, data, numBytes);
 }
 
 void esp32_uart_send_string(char* string) {

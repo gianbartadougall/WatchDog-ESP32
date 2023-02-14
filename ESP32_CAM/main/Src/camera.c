@@ -86,6 +86,9 @@ static camera_config_t camera_config = {
 
 int cameraInitalised = 0;
 
+/* Function Prototypes */
+uint8_t camera_capture_image(camera_fb_t* image);
+
 uint8_t camera_init(void) {
 
     // Initialize the camera
@@ -144,7 +147,43 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
-// void camera_capture_and_save_image(bpacket_t* bpacket) {
+void camera_stream_image(bpacket_t* bpacket) {
+
+    bpacket_t b1;
+
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                      "Entered stream function\r\n\0");
+    esp32_uart_send_bpacket(&b1);
+
+    camera_fb_t* image = NULL;
+
+    if (camera_capture_image(image) != TRUE) {
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                          "Camera could not taken photo\r\n\0");
+        esp32_uart_send_bpacket(bpacket);
+        return;
+    }
+
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                      "Image was taken\r\n\0");
+    esp32_uart_send_bpacket(&b1);
+
+    // Image was able to be taken. Send image back to sender
+    if (bpacket_send_data(esp32_uart_send_data, bpacket->sender, bpacket->receiver, bpacket->request, image->buf,
+                          image->len) != TRUE) {
+        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                          "Failed to send image\r\n\0");
+        esp32_uart_send_bpacket(bpacket);
+    }
+
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                      "Succesfully sent image\r\n\0");
+    esp32_uart_send_bpacket(&b1);
+
+    // Free the image
+    esp_camera_fb_return(image);
+}
+
 void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Save the address
@@ -188,4 +227,16 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
     esp_camera_fb_return(pic);
 
     sd_card_close();
+}
+
+uint8_t camera_capture_image(camera_fb_t* image) {
+
+    image = esp_camera_fb_get();
+
+    if (image == NULL) {
+        esp_camera_fb_return(image);
+        return FALSE;
+    }
+
+    return TRUE;
 }

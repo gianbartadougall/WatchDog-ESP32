@@ -531,10 +531,23 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
     UpdateWindow(hwnd);
 }
 
-void send_current_settings(void) {
-    uint8_t result = wd_settings_to_bpacket(
+void send_current_camera_settings(void) {
+    uint8_t result = wd_camera_settings_to_bpacket(
+        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_ESP32,
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &cameraSettings);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    return;
+}
+
+void send_current_capture_time_settings(void) {
+    uint8_t result = wd_capture_time_settings_to_bpacket(
         guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
-        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, &captureTime);
     if (result != TRUE) {
         char msg[50];
         wd_get_error(result, msg);
@@ -662,8 +675,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     TCHAR buffer[256];
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
-                    settings.cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
-                    send_current_settings();
+                    cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
+                    send_current_camera_settings();
                     // TODO: send bpacket of which camera resolution is wanted
                 }
             }
@@ -694,7 +707,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.startTime.hour   = startTimeHr;
                     captureTime.startTime.minute = startTimeMin;
                     printf("Valid start time. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -712,7 +725,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.endTime.hour   = endTimeHr;
                     captureTime.endTime.minute = endTimeMin;
                     printf("Valid end time. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -729,7 +742,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.intervalTime.hour   = timeIntervalHr;
                     captureTime.intervalTime.minute = timeIntervalMin;
                     printf("Valid time interval. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
                 // Set the flags so the other textboxes will be checked if this change made them invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);

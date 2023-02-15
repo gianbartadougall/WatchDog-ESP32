@@ -733,6 +733,16 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
             break;
 
+        case WATCHDOG_BPK_R_TURN_ON:
+            watchdog_esp32_on();
+            watchdog_create_and_send_bpacket_to_maple(WATCHDOG_BPK_R_TURN_ON, BPACKET_CODE_SUCCESS, 0, NULL);
+            break;
+
+        case WATCHDOG_BPK_R_TURN_OFF:
+            watchdog_esp32_off();
+            watchdog_create_and_send_bpacket_to_maple(WATCHDOG_BPK_R_TURN_OFF, BPACKET_CODE_SUCCESS, 0, NULL);
+            break;
+
         default:
             return FALSE;
     }
@@ -760,8 +770,8 @@ void watchdog_update(void) {
 void watchdog_esp32_on(void) {
     ESP32_POWER_PORT->BSRR |= (0x01 << ESP32_POWER_PIN);
 
-    // Delay for 1 second to let ESP32 startup
-    HAL_Delay(1000);
+    // Delay for 1.5 seconds to let ESP32 startup
+    HAL_Delay(1500);
 }
 
 void watchdog_esp32_off(void) {

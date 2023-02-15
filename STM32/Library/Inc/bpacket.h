@@ -189,7 +189,7 @@ typedef struct bpacket_t {
     uint8_t numBytes; // The number of bytes in the bytes array
     uint8_t request;
     /**
-     * @brief The code gives context to the request. IF you receive a request
+     * @brief The code gives context to the request. If you receive a request
      * and the code is BPACKET_CODE_EXECUTE then the bpacket is asking for
      * the receiver to execute the request. If the code is BPACKET_CODE_ERROR
      * then the bpacket is a response stating the request it tried to exute

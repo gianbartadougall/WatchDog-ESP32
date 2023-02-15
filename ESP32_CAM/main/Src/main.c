@@ -34,29 +34,6 @@
 
 /* Private Function Declarations */
 
-// void watchdog_send_status(void) {
-
-//     uint8_t id               = 1;
-//     uint8_t cameraResolution = camera_get_resolution();
-//     uint16_t numImages;
-//     bpacket_t response;
-
-//     if (sd_card_search_num_images(&numImages, &response) != TRUE) {
-//         numImages = 5000;
-//     }
-
-//     uint8_t status = 0;
-//     bpacket_t bpacket;
-//     uint8_t data[5];
-//     data[0] = id;
-//     data[1] = cameraResolution;
-//     data[2] = numImages >> 8;
-//     data[3] = numImages & 0xFF;
-//     data[4] = status;
-//     bpacket_create_p(&bpacket, BPACKET_R_SUCCESS, 5, data);
-//     esp32_uart_send_bpacket(&bpacket);
-// }
-
 uint8_t esp3_match_stm32_request(bpacket_t* bpacket) {
 
     switch (bpacket->request) {
@@ -109,15 +86,16 @@ uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
                 break;
             }
 
-            if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-                bpacket_create_p(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR, 0,
-                                 NULL);
-            } else {
-                bpacket_create_p(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_SUCCESS, 0,
-                                 NULL);
+            if (camera_set_resolution(cameraSettings.resolution) != TRUE) {
+                bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
+                                  "Invalid resolution\r\n\0");
+                esp32_uart_send_bpacket(bpacket);
+                break;
             }
 
+            sd_card_write_settings(bpacket);
             esp32_uart_send_bpacket(bpacket);
+
             break;
 
         case WATCHDOG_BPK_R_GET_CAMERA_SETTINGS:;
@@ -212,13 +190,13 @@ void watchdog_system_start(void) {
 
             case WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS:
 
-                sd_card_write_watchdog_settings(&bpacket);
+                sd_card_write_settings(&bpacket);
                 esp32_uart_send_bpacket(&bpacket); // Send response back
                 break;
 
             case WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS:
 
-                sd_card_read_watchdog_settings(&bpacket);
+                sd_card_read_settings(&bpacket);
                 esp32_uart_send_bpacket(&bpacket); // Send response back
                 break;
 
@@ -234,6 +212,29 @@ void watchdog_system_start(void) {
 uint8_t software_config(bpacket_t* bpacket) {
 
     if (sd_card_init(bpacket) != TRUE) {
+        return FALSE;
+    }
+
+    bpacket_t b1;
+    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "About to Enter reading function\r\n\0");
+    esp32_uart_send_bpacket(&b1);
+
+    // Read SD card to get saved camera resolution
+    bpacket_create_p(bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
+                     BPACKET_CODE_EXECUTE, 0, NULL);
+    if (sd_card_read_settings(bpacket) != TRUE) {
+        sd_card_log(SYSTEM_LOG_FILE, "Failed to read camera settings on startup\n");
+    } else {
+
+        if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
+            sd_card_log(SYSTEM_LOG_FILE, "ESP32 attempted to set invalid resolution on startup\n");
+        }
+    }
+
+    // Initialise the camera
+    if (camera_init() != TRUE) {
+        sd_card_log(SYSTEM_LOG_FILE, "Camera failed to initialise\n\0");
         return FALSE;
     }
 

@@ -512,6 +512,9 @@ int main(int argc, char** argv) {
 
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
+    uint8_t startOfImgData = TRUE;
+    FILE* streamImage      = NULL;
+
     if (!guiThread) {
         printf("Thread failed\n");
         return 0;
@@ -527,16 +530,49 @@ int main(int argc, char** argv) {
                 printf("%s\n", sendBpErrorMsg);
             }
 
+            // printf("Sending Request %i\n", GTM_CB_CURRENT_BPACKET->request);
+
             bpacket_increment_circular_buffer_index(guiToMainCircularBuffer1.readIndex);
         }
 
         // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular
         // buffer
+
         if (packetBufferIndex != packetPendingIndex) {
 
             bpacket_t* receivedBpacket = maple_get_next_bpacket_response();
 
             if (receivedBpacket->request == BPACKET_GEN_R_MESSAGE) {
+                continue;
+            }
+
+            if (receivedBpacket->request == WATCHDOG_BPK_R_STREAM_IMAGE) {
+                if (startOfImgData == TRUE) {
+                    startOfImgData = FALSE;
+
+                    if ((streamImage = fopen(CAMERA_VIEW_FILENAME, "wb")) == NULL) {
+                        // TODO: make this do something proper
+                        printf("Couldnt open stream file");
+                    }
+                    for (int i = 0; i < receivedBpacket->numBytes; i++) {
+                        fputc(receivedBpacket->bytes[i], streamImage);
+                    }
+                } else if (receivedBpacket->code == BPACKET_CODE_SUCCESS) {
+                    startOfImgData = TRUE;
+                    for (int i = 0; i < receivedBpacket->numBytes; i++) {
+                        fputc(receivedBpacket->bytes[i], streamImage);
+                    }
+                    fclose(streamImage);
+                    // Create Bpacket to update the thing
+                    bpacket_create_p(mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex],
+                                     BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
+                                     GUI_BPK_R_UPDATE_STREAM_IMAGE, 0, NULL);
+                    bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer1.writeIndex);
+                } else if (receivedBpacket->code == BPACKET_CODE_IN_PROGRESS) {
+                    for (int i = 0; i < receivedBpacket->numBytes; i++) {
+                        fputc(receivedBpacket->bytes[i], streamImage);
+                    }
+                }
                 continue;
             }
 

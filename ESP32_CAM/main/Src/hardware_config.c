@@ -26,14 +26,6 @@ uint8_t hardware_config(bpacket_t* bpacket) {
         return FALSE;
     }
 
-    // Configure Camera
-    sd_card_log(SYSTEM_LOG_FILE, "Configuring Camera\0");
-    if (camera_init() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_ERROR,
-                          "Camera failed to init\0");
-        return FALSE;
-    }
-
     sd_card_log(SYSTEM_LOG_FILE, "Configuring UART\0");
     hardware_config_uart_comms();
 

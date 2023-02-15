@@ -133,9 +133,9 @@ uint8_t sd_card_open(void);
  */
 void sd_card_close(void);
 
-uint8_t sd_card_write_watchdog_settings(bpacket_t* bpacket);
+uint8_t sd_card_write_settings(bpacket_t* bpacket);
 
-uint8_t sd_card_read_watchdog_settings(bpacket_t* bpacket);
+uint8_t sd_card_read_settings(bpacket_t* bpacket);
 
 /**
  * @brief Mounts the SD card and writes a message to a given log file. If the

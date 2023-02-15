@@ -244,4 +244,10 @@ void bpacket_get_error(uint8_t bpacketError, char* errorMsg);
 /* Bpacket helper functions */
 void bpacket_bytes_is_start_byte(void);
 
+uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), uint8_t receiver,
+                          uint8_t sender, uint8_t request, uint8_t* data, uint32_t numBytesToSend);
+
+uint8_t bpacket_confirm_values(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
+                               uint8_t numDataBytes, char* errMsg);
+
 #endif // BPACKET_H

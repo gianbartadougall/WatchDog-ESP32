@@ -64,6 +64,9 @@ uint8_t dt_time_format_is_valid(char* time);
 
 void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod);
 
+uint8_t dt_datetime_confirm_values(dt_datetime_t* datetime, uint8_t second, uint8_t minute, uint8_t hour, uint8_t day,
+                                   uint8_t month, uint16_t year);
+
 #define DATETIME_ASSERT_VALID_TIME(time, error) \
     do {                                        \
         if (dt_time_is_valid(time) != TRUE) {   \

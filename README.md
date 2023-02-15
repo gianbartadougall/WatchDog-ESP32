@@ -41,7 +41,8 @@
       go back to deep sleep mode once it has processed the task
 - Get the SD card working with long file names (DONE)
 - Make the photos taken on the SD card save with the rtc time. Also make the temperature data be stored in the data file
-- Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning
+- Make the ESP32 on startup use the deafult files loaded onto the SD card
+- Write the main loop in the STM32 to commuicate to the ESP32 and get everything functioning - DONE
 - Setup ADC to measure voltage of the battery on the ESP32 and blink an LED a certain number of times to indicate the
    estimated time left
 

@@ -201,8 +201,11 @@ void watchdog_system_start(void) {
                 break;
 
             default:; // No request was able to be matched. Send response back to sender
-                bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN,
-                                  "ESP32 could not recnognise the request\0");
+                char j[100];
+                char info[50];
+                bpacket_get_info(&bpacket, info);
+                sprintf(j, "ESP32 could not recnognise the request: %s\r\n", info);
+                bpacket_create_sp(&bpacket, sender, receiver, request, BPACKET_CODE_UNKNOWN, info);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
         }
@@ -211,26 +214,32 @@ void watchdog_system_start(void) {
 
 uint8_t software_config(bpacket_t* bpacket) {
 
+    bpacket_t b1;
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "Configuring software\r\n\0");
+    esp32_uart_send_bpacket(&b1);
+
     if (sd_card_init(bpacket) != TRUE) {
         return FALSE;
     }
-
-    bpacket_t b1;
-    bpacket_create_sp(&b1, bpacket->sender, bpacket->receiver, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
-                      "About to Enter reading function\r\n\0");
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "About to entered sd card function\r\n\0");
     esp32_uart_send_bpacket(&b1);
 
-    // Read SD card to get saved camera resolution
     bpacket_create_p(bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
                      BPACKET_CODE_EXECUTE, 0, NULL);
-    if (sd_card_read_settings(bpacket) != TRUE) {
-        sd_card_log(SYSTEM_LOG_FILE, "Failed to read camera settings on startup\n");
-    } else {
-
-        if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-            sd_card_log(SYSTEM_LOG_FILE, "ESP32 attempted to set invalid resolution on startup\n");
-        }
+    if (sd_card_format_sd_card(bpacket) != TRUE) {
+        esp32_uart_send_bpacket(bpacket);
     }
+
+    // if (sd_card_read_settings(bpacket) != TRUE) {
+    //     sd_card_log(SYSTEM_LOG_FILE, "Failed to read camera settings on startup\n");
+    // } else {
+
+    //     // if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
+    //     //     sd_card_log(SYSTEM_LOG_FILE, "ESP32 attempted to set invalid resolution on startup\n");
+    //     // }
+    // }
 
     // Initialise the camera
     if (camera_init() != TRUE) {

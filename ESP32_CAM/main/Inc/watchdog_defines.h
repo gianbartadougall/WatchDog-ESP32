@@ -21,37 +21,45 @@
 
 #define MOUNT_POINT_PATH ("/sdcard")
 
-#define WATCHDOG_FOLDER_NAME               ("WATCHDOG")
-#define WATCHDOG_FOLDER_PATH               ("/WATCHDOG")
-#define WATCHDOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG")
+#define WATCHDOG_FOLDER_NAME               ("watchdog")
+#define WATCHDOG_FOLDER_PATH               ("/watchdog")
+#define WATCHDOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/watchdog")
 
-#define SETTINGS_FOLDER_NAME               ("SETTINGS")
-#define SETTINGS_FOLDER_PATH               ("/SETTINGS")
-#define SETTINGS_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/SETTINGS")
+#define SETTINGS_FOLDER_NAME               ("settings")
+#define SETTINGS_FOLDER_PATH               ("/watchdog/settings")
+#define SETTINGS_FOLDER_PATH_START_AT_ROOT ("/sdcard/watchdog/settings")
 
-#define LOG_FOLDER_NAME               ("LOGS")
-#define LOG_FOLDER_PATH               ("/LOGS")
-#define LOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS")
+#define DATA_FOLDER_NAME               ("data")
+#define DATA_FOLDER_PATH               ("/watchdog/data")
+#define DATA_FOLDER_PATH_START_AT_ROOT ("/sdcard/watchdog/data")
+
+#define LOG_FOLDER_NAME               ("logs")
+#define LOG_FOLDER_PATH               ("/watchdog/logs")
+#define LOG_FOLDER_PATH_START_AT_ROOT ("/sdcard/watchdog/logs")
 
 #define SETTINGS_FILE_NAME               ("s.wd")
-#define SETTINGS_FILE_NAME_PATH          ("/s.wd")
-#define SETTINGS_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/SETTINGS/s.wd")
+#define SETTINGS_FILE_NAME_PATH          ("/watchdog/settings/s.wd")
+#define SETTINGS_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/settings/s.wd")
+
+#define DATA_FILE_NAME               ("data.txt")
+#define DATA_FILE_NAME_PATH          ("/watchdog/data/data.txt")
+#define DATA_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/data/data.txt")
 
 #define LOG_FILE_NAME               ("logs.txt")
-#define LOG_FILE_NAME_PATH          ("/logs.txt")
-#define LOG_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS/logs.txt")
+#define LOG_FILE_NAME_PATH          ("/watchdog/logs/logs.txt")
+#define LOG_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/logs/logs.txt")
 
 #define ERROR_FILE_NAME               ("err.txt")
 #define ERROR_FILE_NAME_PATH          ("/err.txts")
-#define ERROR_FILE_PATH_START_AT_ROOT ("/sdcard/WATCHDOG/LOGS/err.txt")
+#define ERROR_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/logs/err.txt")
 
 // Deprecated and should no longer be used
 #define SYSTEM_LOG_FILE        ("logs.txt")
-#define IMAGE_DATA_FOLDER      ("WATCHDOG/DATA")
-#define ROOT_IMAGE_DATA_FOLDER ("/sdcard/WATCHDOG/DATA")
-// #define WATCHDOG_FOLDER_PATH      ("/sdcard/WATCHDOG")
-#define SETTINGS_FOLDER_ROOT_PATH ("/sdcard/SETTINGS")
-#define ROOT_LOG_FOLDER_PATH      ("/sdcard/WATCHDOG/LOGS")
+#define IMAGE_DATA_FOLDER      ("watchdog/data")
+#define ROOT_IMAGE_DATA_FOLDER ("/sdcard/watchdog/data")
+// #define WATCHDOG_FOLDER_PATH      ("/sdcard/watchdog")
+#define SETTINGS_FOLDER_ROOT_PATH ("/sdcard/settings")
+#define ROOT_LOG_FOLDER_PATH      ("/sdcard/watchdog/logs")
 
 // The values of the #defines here have been taken
 // from the enums of the framesizes defined in
@@ -83,6 +91,7 @@
 #define WATCHDOG_BPK_R_STREAM_IMAGE              (BPACKET_SPECIFIC_R_OFFSET + 18)
 #define WATCHDOG_BPK_R_TURN_ON                   (BPACKET_SPECIFIC_R_OFFSET + 19)
 #define WATCHDOG_BPK_R_TURN_OFF                  (BPACKET_SPECIFIC_R_OFFSET + 20)
+#define WATCHDOG_BPK_OFFSET                      (BPACKET_SPECIFIC_R_OFFSET + 21)
 
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47

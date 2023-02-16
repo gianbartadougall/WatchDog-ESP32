@@ -48,8 +48,7 @@ bpacket_circular_buffer_t mainToGuiCircularBuffer1;
 
 int check(enum sp_return result);
 void maple_print_bpacket_data(bpacket_t* bpacket);
-void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
-                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]);
+void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes, uint8_t* data);
 void maple_create_and_send_sbpacket(uint8_t request, uint8_t receiver, char* string);
 void maple_print_uart_response(void);
 uint8_t maple_match_args(char** args, int numArgs);
@@ -93,8 +92,7 @@ bpacket_t* maple_get_next_bpacket_response(void) {
     return buffer;
 }
 
-void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes,
-                                   uint8_t data[BPACKET_MAX_NUM_DATA_BYTES]) {
+void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes, uint8_t* data) {
     bpacket_t bpacket;
     uint8_t result =
         bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, BPACKET_CODE_EXECUTE, numDataBytes, data);
@@ -685,6 +683,17 @@ uint8_t maple_match_args(char** args, int numArgs) {
                 return TRUE;
             }
 
+            if (chars_same(args[0], "ping\0") == TRUE) {
+                uint8_t ping = WATCHDOG_PING_CODE_STM32;
+                maple_create_and_send_bpacket(BPACKET_GEN_R_PING, BPACKET_ADDRESS_ESP32, 1, &ping);
+                if (maple_response_is_valid(BPACKET_GEN_R_PING, 1000) == TRUE) {
+                    printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+                } else {
+                    printf("%sCommand failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                }
+                return TRUE;
+            }
+
             if (chars_same(args[0], "clc\0")) {
                 printf(ASCII_CLEAR_SCREEN);
                 return TRUE;
@@ -821,7 +830,7 @@ void maple_test(void) {
     uint8_t result = 0;
     uint8_t failed = FALSE;
     char msg[100];
-
+    while (1) {}
     /* Turn the red LED on */
     // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_STM32, 0, NULL);
     // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
@@ -904,87 +913,88 @@ void maple_test(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Test Setting the Camera Settings */
-    while (1) {}
+
     // Create camera settings
-    wd_camera_settings_t newCameraSettings = {
-        .resolution = WD_CAM_RES_1280x1024,
-    };
+    // wd_camera_settings_t newCameraSettings = {
+    //     .resolution = WD_CAM_RES_1280x1024,
+    // };
 
-    result =
-        wd_camera_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-                                      WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &newCameraSettings);
-    if (result != TRUE) {
-        wd_get_error(result, msg);
-        printf("%sFailed to convert camera settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    } else {
-        maple_send_bpacket(&bpacket);
-    }
+    // result =
+    //     wd_camera_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+    //                                   WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &newCameraSettings);
+    // if (result != TRUE) {
+    //     wd_get_error(result, msg);
+    //     printf("%sFailed to convert camera settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // } else {
+    //     maple_send_bpacket(&bpacket);
+    // }
 
-    bpacket_t* cameraSettingsBpacket;
-    if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, 1000) != TRUE) {
-        printf("%sSetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-        char info[50];
-        bpacket_get_info(cameraSettingsBpacket, info);
-        printf(info);
-        for (int i = 0; i < cameraSettingsBpacket->numBytes; i++) {
-            printf("%c", cameraSettingsBpacket->bytes[i]);
-        }
-        printf("\n");
+    // bpacket_t* cameraSettingsBpacket;
+    // if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, 1000) != TRUE) {
+    //     printf("%sSetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     char info[50];
+    //     bpacket_get_info(cameraSettingsBpacket, info);
+    //     printf(info);
+    //     for (int i = 0; i < cameraSettingsBpacket->numBytes; i++) {
+    //         printf("%c", cameraSettingsBpacket->bytes[i]);
+    //     }
+    //     printf("\n");
 
-        failed = TRUE;
-    }
+    //     failed = TRUE;
+    // }
 
-    // Confirm the received bpacket has the expected values
-    if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-                               WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
-        printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+    // // Confirm the received bpacket has the expected values
+    // if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+    //                            WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
+    //     printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg,
+    //     ASCII_COLOR_WHITE);
 
-        char info[100];
-        bpacket_get_info(cameraSettingsBpacket, info);
-        printf(info);
-        failed = TRUE;
-    }
+    //     char info[100];
+    //     bpacket_get_info(cameraSettingsBpacket, info);
+    //     printf(info);
+    //     failed = TRUE;
+    // }
 
-    // Restart the esp32. This will allow maple to determine whether the settings were properly saved
-    // onto the SD card or not
-    if (maple_restart_esp32() != TRUE) {
-        printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    }
+    // // Restart the esp32. This will allow maple to determine whether the settings were properly saved
+    // // onto the SD card or not
+    // if (maple_restart_esp32() != TRUE) {
+    //     printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
 
-    /* Test Getting the Camera Settings */
+    // /* Test Getting the Camera Settings */
 
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
-    if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 1000) != TRUE) {
-        printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    }
+    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    // if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 1000) != TRUE) {
+    //     printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
 
-    // Confirm the received bpacket has the expected values
-    if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-                               WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 1, msg) != TRUE) {
-        printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    }
+    // // Confirm the received bpacket has the expected values
+    // if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+    //                            WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 1, msg) != TRUE) {
+    //     printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg,
+    //     ASCII_COLOR_WHITE); failed = TRUE;
+    // }
 
-    // Convert bpacket back to camera settings
-    wd_camera_settings_t cameraSettings;
-    result = wd_bpacket_to_camera_settings(cameraSettingsBpacket, &cameraSettings);
+    // // Convert bpacket back to camera settings
+    // wd_camera_settings_t cameraSettings;
+    // result = wd_bpacket_to_camera_settings(cameraSettingsBpacket, &cameraSettings);
 
-    if (result != TRUE) {
-        wd_get_error(result, msg);
-        printf("%sFailed to convert bpacket to camera settings. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    } else {
+    // if (result != TRUE) {
+    //     wd_get_error(result, msg);
+    //     printf("%sFailed to convert bpacket to camera settings. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // } else {
 
-        // Compare the received camera settings with the camera settings that were set previosuly
-        if (cameraSettings.resolution != newCameraSettings.resolution) {
-            printf("%sFailed to get correct camera settings. Found %i but expected %i%s\n", ASCII_COLOR_RED,
-                   cameraSettings.resolution, newCameraSettings.resolution, ASCII_COLOR_WHITE);
-            failed = TRUE;
-        }
-    }
+    //     // Compare the received camera settings with the camera settings that were set previosuly
+    //     if (cameraSettings.resolution != newCameraSettings.resolution) {
+    //         printf("%sFailed to get correct camera settings. Found %i but expected %i%s\n", ASCII_COLOR_RED,
+    //                cameraSettings.resolution, newCameraSettings.resolution, ASCII_COLOR_WHITE);
+    //         failed = TRUE;
+    //     }
+    // }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1158,54 +1168,54 @@ void maple_test(void) {
 
     /* Test Streaming */
 
-    // FILE* streamImage;
-    // if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
+    FILE* streamImage;
+    if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
 
-    //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
+        maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
 
-    //     uint8_t fileTransfered = FALSE;
-    //     clock_t time           = clock();
-    //     while (fileTransfered != TRUE) {
+        uint8_t fileTransfered = FALSE;
+        clock_t time           = clock();
+        while (fileTransfered != TRUE) {
 
-    //         if ((clock() - time) > 6000) {
-    //             fclose(streamImage);
-    //             printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //             break;
-    //         }
+            if ((clock() - time) > 6000) {
+                fclose(streamImage);
+                printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                break;
+            }
 
-    //         // Wait for data
-    //         bpacket_t* packet = maple_get_next_bpacket_response();
+            // Wait for data
+            bpacket_t* packet = maple_get_next_bpacket_response();
 
-    //         if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
-    //             continue;
-    //         }
+            if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
+                continue;
+            }
 
-    //         time = clock();
+            time = clock();
 
-    //         // Store data
-    //         for (int i = 0; i < packet->numBytes; i++) {
-    //             fputc(packet->bytes[i], streamImage);
-    //         }
+            // Store data
+            for (int i = 0; i < packet->numBytes; i++) {
+                fputc(packet->bytes[i], streamImage);
+            }
 
-    //         // Check whether the packet is the end of the data stream
-    //         if (packet->code == BPACKET_CODE_SUCCESS) {
+            // Check whether the packet is the end of the data stream
+            if (packet->code == BPACKET_CODE_SUCCESS) {
 
-    //             // Close the file
-    //             fclose(streamImage);
+                // Close the file
+                fclose(streamImage);
 
-    //             fileTransfered = TRUE;
-    //         }
-    //     }
+                fileTransfered = TRUE;
+            }
+        }
 
-    //     if (fileTransfered != TRUE) {
-    //         printf("FAiled\n");
-    //         failed = TRUE;
-    //     }
+        if (fileTransfered != TRUE) {
+            printf("FAiled\n");
+            failed = TRUE;
+        }
 
-    // } else {
-    //     printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    } else {
+        printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -532,8 +532,10 @@ void process_watchdog_stm32_request(bpacket_t* bpacket) {
             break;
 
         default:;
-            char errorMsg[40];
-            sprintf(errorMsg, "Unknown request %i from address %i\r\n", bpacket->request, bpacket->sender);
+            char bpacketInfo[80];
+            bpacket_get_info(bpacket, bpacketInfo);
+            char errorMsg[100];
+            sprintf(errorMsg, "Unknown request: %s\r\n", bpacketInfo);
             watchdog_message_maple(errorMsg, BPACKET_CODE_ERROR);
     }
 }

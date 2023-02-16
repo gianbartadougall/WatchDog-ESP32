@@ -532,16 +532,16 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 }
 
 void send_current_settings(void) {
-    uint8_t result = wd_settings_to_bpacket(
-        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
-        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
-    if (result != TRUE) {
-        char msg[50];
-        wd_get_error(result, msg);
-        printf(msg);
-    }
-    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-    return;
+    // uint8_t result = wd_settings_to_bpacket(
+    //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
+    //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
+    // if (result != TRUE) {
+    //     char msg[50];
+    //     wd_get_error(result, msg);
+    //     printf(msg);
+    // }
+    // bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    // return;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -662,7 +662,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     TCHAR buffer[256];
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
-                    settings.cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
+                    cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
                     send_current_settings();
                     // TODO: send bpacket of which camera resolution is wanted
                 }

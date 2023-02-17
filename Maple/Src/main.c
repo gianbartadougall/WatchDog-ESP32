@@ -791,7 +791,9 @@ uint8_t maple_get_response(bpacket_t** bpacket, uint8_t request, uint16_t timeou
         }
 
         if ((*bpacket) != NULL) {
-            printf("Skipping\n");
+            char info[80];
+            bpacket_get_info(*bpacket, info);
+            printf(info);
         }
     }
 
@@ -830,7 +832,7 @@ void maple_test(void) {
     uint8_t result = 0;
     uint8_t failed = FALSE;
     char msg[100];
-    while (1) {}
+
     /* Turn the red LED on */
     // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_STM32, 0, NULL);
     // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
@@ -1093,35 +1095,129 @@ void maple_test(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Test listing the directory */
-    // bpacket_t* dirBpacket;
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LIST_DIR, BPACKET_ADDRESS_ESP32, 0, NULL);
-    // if (maple_get_response(&dirBpacket, WATCHDOG_BPK_R_LIST_DIR, 3000) != TRUE) {
-    //     printf("%sListing directory failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // } else {
-    //     for (int i = 0; i < dirBpacket->numBytes; i++) {
-    //         printf("%c", dirBpacket->bytes[i]);
-    //     }
-    //     printf("\n");
-    // }
+    bpacket_t* dirBpacket;
+    bpacket_create_sp(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_LIST_DIR,
+                      BPACKET_CODE_EXECUTE, DATA_FOLDER_PATH);
+    maple_send_bpacket(&bpacket);
+    if (maple_get_response(&dirBpacket, WATCHDOG_BPK_R_LIST_DIR, 3000) != TRUE) {
+        printf("%sListing directory failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    } else {
+        for (int i = 0; i < dirBpacket->numBytes; i++) {
+            printf("%c", dirBpacket->bytes[i]);
+        }
+        printf("\n");
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /* Test Copying a File by downloading the image that was just taken */
+    /* Test downloading photo that was just taken */
 
-    // FILE* testImage;
-    // if ((testImage = fopen("testImage.jpg", "wb")) != NULL) {
+    // Extract the first image name from the bpacket data
+    char imageFileName[30];
 
-    //     // Send request to ESP32 to copy file
-    //     char* fileName = "IMG0.JPG\0";
-    //     maple_create_and_send_sbpacket(WATCHDOG_BPK_R_COPY_FILE, BPACKET_ADDRESS_ESP32, fileName);
+    int i            = 0;
+    imageFileName[0] = '\0';
+    while (chars_contains(imageFileName, ".jpg") != TRUE) {
+
+        int j;
+        for (j = 0; dirBpacket->bytes[i] != '\n'; j++) {
+
+            if (dirBpacket->bytes[i] != '\r') {
+                imageFileName[j] = dirBpacket->bytes[i];
+            }
+
+            i++;
+        }
+
+        imageFileName[j] = '\0';
+        i++;
+
+        if (i >= dirBpacket->numBytes) {
+            break;
+        }
+    }
+
+    if (chars_contains(imageFileName, ".jpg") != TRUE) {
+        failed = TRUE;
+    } else {
+
+        /* Test Copying a File by downloading the image that was just taken */
+
+        FILE* testImage;
+        if ((testImage = fopen("testImage.jpg", "wb")) != NULL) {
+
+            // Send request to ESP32 to copy file
+
+            // Append the data folder to the image
+            char fileName[50];
+            sprintf(fileName, "watchdog/data/%s", imageFileName);
+            maple_create_and_send_sbpacket(WATCHDOG_BPK_R_COPY_FILE, BPACKET_ADDRESS_ESP32, fileName);
+
+            uint8_t fileTransfered = FALSE;
+            clock_t time           = clock();
+            while (fileTransfered != TRUE) {
+
+                if ((clock() - time) > 2000) {
+                    fclose(testImage);
+                    printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                    break;
+                }
+
+                // Wait for data
+                bpacket_t* packet = maple_get_next_bpacket_response();
+
+                if (packet == NULL) {
+                    continue;
+                }
+
+                if (packet->request != WATCHDOG_BPK_R_COPY_FILE) {
+                    printf("Skipping packet with request %i\r\n", packet->request);
+                    continue;
+                }
+
+                time = clock();
+
+                // Store data
+                for (int i = 0; i < packet->numBytes; i++) {
+                    fputc(packet->bytes[i], testImage);
+                }
+
+                // Check whether the packet is the end of the data stream
+                if (packet->code == BPACKET_CODE_SUCCESS) {
+
+                    // Close the file
+                    fclose(testImage);
+
+                    fileTransfered = TRUE;
+                }
+            }
+
+            if (fileTransfered != TRUE) {
+                failed = TRUE;
+            }
+
+        } else {
+            printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+            failed = TRUE;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /* Test Streaming */
+
+    // FILE* streamImage;
+    // if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
+
+    //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
 
     //     uint8_t fileTransfered = FALSE;
     //     clock_t time           = clock();
     //     while (fileTransfered != TRUE) {
 
-    //         if ((clock() - time) > 2000) {
-    //             fclose(testImage);
+    //         if ((clock() - time) > 6000) {
+    //             fclose(streamImage);
     //             printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
     //             break;
     //         }
@@ -1129,12 +1225,7 @@ void maple_test(void) {
     //         // Wait for data
     //         bpacket_t* packet = maple_get_next_bpacket_response();
 
-    //         if (packet == NULL) {
-    //             continue;
-    //         }
-
-    //         if (packet->request != WATCHDOG_BPK_R_COPY_FILE) {
-    //             printf("Skipping packet with request %i\r\n", packet->request);
+    //         if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
     //             continue;
     //         }
 
@@ -1142,20 +1233,21 @@ void maple_test(void) {
 
     //         // Store data
     //         for (int i = 0; i < packet->numBytes; i++) {
-    //             fputc(packet->bytes[i], testImage);
+    //             fputc(packet->bytes[i], streamImage);
     //         }
 
     //         // Check whether the packet is the end of the data stream
     //         if (packet->code == BPACKET_CODE_SUCCESS) {
 
     //             // Close the file
-    //             fclose(testImage);
+    //             fclose(streamImage);
 
     //             fileTransfered = TRUE;
     //         }
     //     }
 
     //     if (fileTransfered != TRUE) {
+    //         printf("FAiled\n");
     //         failed = TRUE;
     //     }
 
@@ -1163,59 +1255,6 @@ void maple_test(void) {
     //     printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
     //     failed = TRUE;
     // }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /* Test Streaming */
-
-    FILE* streamImage;
-    if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
-
-        maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
-
-        uint8_t fileTransfered = FALSE;
-        clock_t time           = clock();
-        while (fileTransfered != TRUE) {
-
-            if ((clock() - time) > 6000) {
-                fclose(streamImage);
-                printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-                break;
-            }
-
-            // Wait for data
-            bpacket_t* packet = maple_get_next_bpacket_response();
-
-            if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
-                continue;
-            }
-
-            time = clock();
-
-            // Store data
-            for (int i = 0; i < packet->numBytes; i++) {
-                fputc(packet->bytes[i], streamImage);
-            }
-
-            // Check whether the packet is the end of the data stream
-            if (packet->code == BPACKET_CODE_SUCCESS) {
-
-                // Close the file
-                fclose(streamImage);
-
-                fileTransfered = TRUE;
-            }
-        }
-
-        if (fileTransfered != TRUE) {
-            printf("FAiled\n");
-            failed = TRUE;
-        }
-
-    } else {
-        printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-        failed = TRUE;
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

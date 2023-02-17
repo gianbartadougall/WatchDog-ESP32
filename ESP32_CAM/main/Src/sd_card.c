@@ -202,7 +202,7 @@ uint8_t sd_card_create_path(char* folderPath, bpacket_t* bpacket) {
 }
 
 uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray) {
-
+    bpacket_t b1;
     // Save address
     uint8_t request  = bpacket->request;
     uint8_t receiver = bpacket->receiver;
@@ -253,6 +253,10 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     bpacket->code     = BPACKET_CODE_IN_PROGRESS;
     bpacket->numBytes = BPACKET_MAX_NUM_DATA_BYTES;
     int in            = FALSE; // Variable just to know whether there was anything or not
+
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "DIR: About to list directories\r\n\0");
+    esp32_uart_send_bpacket(&b1);
     while ((dirPtr = readdir(directory)) != NULL) {
         in = 1;
         // Copy the name of the folder into the folder structure string
@@ -261,6 +265,9 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
             bpacket->bytes[i++] = dirPtr->d_name[k];
 
             if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+                bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                                  BPACKET_CODE_SUCCESS, "DIR: BPACKET SENT 1\r\n\0");
+                esp32_uart_send_bpacket(&b1);
                 esp32_uart_send_bpacket(bpacket);
                 i = 0;
             }
@@ -271,6 +278,9 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
         bpacket->bytes[i++] = '\r';
 
         if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+            bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                              BPACKET_CODE_SUCCESS, "DIR: BPACKET SENT 2\r\n\0");
+            esp32_uart_send_bpacket(&b1);
             esp32_uart_send_bpacket(bpacket);
             i = 0;
         }
@@ -278,21 +288,34 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
         bpacket->bytes[i++] = '\n';
 
         if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+            bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                              BPACKET_CODE_SUCCESS, "DIR: BPACKET SENT 3\r\n\0");
+            esp32_uart_send_bpacket(&b1);
             esp32_uart_send_bpacket(bpacket);
             i = 0;
         }
     }
 
     if (i != 0) {
-        bpacket->request  = BPACKET_CODE_SUCCESS;
+        bpacket->code     = BPACKET_CODE_SUCCESS;
         bpacket->numBytes = i;
+        bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                          BPACKET_CODE_SUCCESS, "DIR: BPACKET SENT 4\r\n\0");
+        esp32_uart_send_bpacket(&b1);
         esp32_uart_send_bpacket(bpacket);
     }
 
     if (in == FALSE) {
+        bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                          BPACKET_CODE_SUCCESS, "DIR: BPACKET SENT 5\r\n\0");
+        esp32_uart_send_bpacket(&b1);
         bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
         esp32_uart_send_bpacket(bpacket);
     }
+
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "DIR: Leaving\r\n\0");
+    esp32_uart_send_bpacket(&b1);
 
     closedir(directory);
     sd_card_close();

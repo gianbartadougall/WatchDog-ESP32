@@ -1233,3 +1233,4 @@ void maple_test(void) {
             printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
         }
     }
+}

@@ -117,6 +117,7 @@ rectangle_t cameraViewImagePosition;
 uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
 void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b);
 void gui_update_camera_view(char* fileName);
+void send_current_settings(void);
 
 // Create instances of structs that are used for the GUI
 watchdog_info_t* watchdog;
@@ -531,7 +532,22 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
     UpdateWindow(hwnd);
 }
 
-void send_current_settings(void) {
+void send_current_camera_settings(void) {
+
+    // uint8_t result = wd_settings_to_bpacket(
+    //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
+    //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
+    // if (result != TRUE) {
+    //     char msg[50];
+    //     wd_get_error(result, msg);
+    //     printf(msg);
+    // }
+    // bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    // return;
+}
+
+void send_current_capture_time_settings(void) {
+
     // uint8_t result = wd_settings_to_bpacket(
     //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
     //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
@@ -663,7 +679,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
                     cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
-                    send_current_settings();
+                    send_current_camera_settings();
                     // TODO: send bpacket of which camera resolution is wanted
                 }
             }

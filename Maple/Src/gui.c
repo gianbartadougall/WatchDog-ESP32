@@ -694,7 +694,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.startTime.hour   = startTimeHr;
                     captureTime.startTime.minute = startTimeMin;
                     printf("Valid start time. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -712,7 +712,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.endTime.hour   = endTimeHr;
                     captureTime.endTime.minute = endTimeMin;
                     printf("Valid end time. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -729,7 +729,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.intervalTime.hour   = timeIntervalHr;
                     captureTime.intervalTime.minute = timeIntervalMin;
                     printf("Valid time interval. Sending to STM32\n");
-                    send_current_settings();
+                    send_current_capture_time_settings();
                 }
                 // Set the flags so the other textboxes will be checked if this change made them invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);

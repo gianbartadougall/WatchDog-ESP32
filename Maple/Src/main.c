@@ -478,7 +478,7 @@ int main(int argc, char** argv) {
     // maple_stream("testImage.jpg");
     // printf("File saved\n");
 
-    maple_command_line();
+    // maple_command_line();
 
     bpacket_circular_buffer_t guiToMainCircularBuffer1;
     bpacket_create_circular_buffer(&guiToMainCircularBuffer1, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
@@ -1170,64 +1170,66 @@ void maple_test(void) {
 
     FILE* streamImage;
     if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
+        FILE* streamImage;
+        if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
 
-        maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
+            maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
 
-        uint8_t fileTransfered = FALSE;
-        clock_t time           = clock();
-        while (fileTransfered != TRUE) {
+            uint8_t fileTransfered = FALSE;
+            clock_t time           = clock();
+            while (fileTransfered != TRUE) {
 
-            if ((clock() - time) > 6000) {
-                fclose(streamImage);
-                printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-                break;
+                if ((clock() - time) > 6000) {
+                    fclose(streamImage);
+                    printf("%sTime out when receiving image data%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+                    break;
+                }
+
+                // Wait for data
+                bpacket_t* packet = maple_get_next_bpacket_response();
+
+                if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
+                    continue;
+                }
+
+                time = clock();
+
+                // Store data
+                for (int i = 0; i < packet->numBytes; i++) {
+                    fputc(packet->bytes[i], streamImage);
+                }
+
+                // Check whether the packet is the end of the data stream
+                if (packet->code == BPACKET_CODE_SUCCESS) {
+
+                    // Close the file
+                    fclose(streamImage);
+
+                    fileTransfered = TRUE;
+                }
             }
 
-            // Wait for data
-            bpacket_t* packet = maple_get_next_bpacket_response();
-
-            if ((packet == NULL) || (packet->request != WATCHDOG_BPK_R_STREAM_IMAGE)) {
-                continue;
+            if (fileTransfered != TRUE) {
+                printf("FAiled\n");
+                failed = TRUE;
             }
 
-            time = clock();
-
-            // Store data
-            for (int i = 0; i < packet->numBytes; i++) {
-                fputc(packet->bytes[i], streamImage);
-            }
-
-            // Check whether the packet is the end of the data stream
-            if (packet->code == BPACKET_CODE_SUCCESS) {
-
-                // Close the file
-                fclose(streamImage);
-
-                fileTransfered = TRUE;
-            }
-        }
-
-        if (fileTransfered != TRUE) {
-            printf("FAiled\n");
+        } else {
+            printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
             failed = TRUE;
         }
 
-    } else {
-        printf("%sSkipping file download. fopen() returned NULL%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-        failed = TRUE;
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /* Test Recording Data */
+
+        /* Test Listing all the files on the SD card */
+
+        /* Test Getting the Status */
+
+        /* Test that updating the resolution on the camera actually changes the resolution of the photos taken */
+
+        if (failed == FALSE) {
+            printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+        }
     }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /* Test Recording Data */
-
-    /* Test Listing all the files on the SD card */
-
-    /* Test Getting the Status */
-
-    /* Test that updating the resolution on the camera actually changes the resolution of the photos taken */
-
-    if (failed == FALSE) {
-        printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
-    }
-}

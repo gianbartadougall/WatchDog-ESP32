@@ -485,7 +485,7 @@ int main(int argc, char** argv) {
     printf("Connected to port %s\n", sp_get_port_name(activePort));
 
     // maple_test();
-    // maple_test();
+    maple_test();
 
     // maple_stream("testImage.jpg");
     // printf("File saved\n");
@@ -534,6 +534,7 @@ int main(int argc, char** argv) {
         // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer1.readIndex != *guiToMainCircularBuffer1.writeIndex) {
             uint8_t sendStatus = maple_send_bpacket(GTM_CB_CURRENT_BPACKET);
+            printf("HAYDEN PRINT: request: %i\n", GTM_CB_CURRENT_BPACKET->request);
             if (sendStatus != TRUE) {
                 char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
                 bpacket_get_error(sendStatus, sendBpErrorMsg);
@@ -841,7 +842,7 @@ void maple_test(void) {
 
     // bpacket_t bpacket;
     // uint8_t result = 0;
-    // bpacket_t bpacket;
+    bpacket_t bpacket;
     // uint8_t result = 0;
     uint8_t failed = FALSE;
     char msg[100];
@@ -947,7 +948,7 @@ void maple_test(void) {
         .resolution = WD_CAM_RES_320x240,
     };
 
-    result =
+    uint8_t result =
         wd_camera_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
                                       WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &newCameraSettings);
     if (result != TRUE) {

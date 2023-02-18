@@ -101,9 +101,6 @@
 #define NORMAL_VIEW SW_SHOW
 
 // Struct that contains all of the settings
-// wd_camera_settings_t settings;
-uint8_t cameraSettingsFlag;
-uint8_t captureTimeFlag;
 
 typedef struct rectangle_t {
     int startX;
@@ -134,6 +131,8 @@ bpacket_circular_buffer_t* mainToGuiCircularBuffer;
  * end time, time interval, etc
  */
 
+uint8_t cameraSettingsFlag;
+uint8_t captureTimeFlag;
 dt_time_t startTime;
 dt_time_t endTime;
 uint8_t intervalMinute;
@@ -535,30 +534,30 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 
 void send_current_camera_settings(void) {
 
-    // uint8_t result = wd_settings_to_bpacket(
-    //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
-    //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
-    // if (result != TRUE) {
-    //     char msg[50];
-    //     wd_get_error(result, msg);
-    //     printf(msg);
-    // }
-    // bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-    // return;
+    uint8_t result = wd_camera_settings_to_bpacket(
+        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_ESP32,
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &cameraSettings);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    return;
 }
 
 void send_current_capture_time_settings(void) {
 
-    // uint8_t result = wd_settings_to_bpacket(
-    //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
-    //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
-    // if (result != TRUE) {
-    //     char msg[50];
-    //     wd_get_error(result, msg);
-    //     printf(msg);
-    // }
-    // bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-    // return;
+    uint8_t result = wd_capture_time_settings_to_bpacket(
+        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, &captureTime);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    return;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -796,6 +795,28 @@ DWORD WINAPI gui(void* arg) {
     guiToMainCircularBuffer      = guiInit->guiToMain;
     mainToGuiCircularBuffer      = guiInit->mainToGui;
 
+    /* GET THE CAPTURE TIME SETTINGS*/
+    uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                      WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
+    if (result != TRUE) {
+        char msg[50];
+        bpacket_get_error(result, msg);
+        printf("%s\n", msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+
+    /* GET THE CAMERA SETTINGS*/
+    result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                              BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
+                              BPACKET_CODE_EXECUTE, 0, NULL);
+    if (result != TRUE) {
+        char msg[50];
+        bpacket_get_error(result, msg);
+        printf("%s\n", msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+
     cameraViewImagePosition.startX = COL_1;
     cameraViewImagePosition.startY = ROW_2;
     cameraViewImagePosition.width  = 600;
@@ -824,28 +845,6 @@ DWORD WINAPI gui(void* arg) {
         return FALSE;
     }
 
-    /* GET THE CAPTURE TIME SETTINGS*/
-    uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                      WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
-    if (result != TRUE) {
-        char msg[50];
-        bpacket_get_error(result, msg);
-        printf("%s\n", msg);
-    }
-    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-
-    /* GET THE CAMERA SETTINGS*/
-    result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                              BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
-                              BPACKET_CODE_EXECUTE, 0, NULL);
-    if (result != TRUE) {
-        char msg[50];
-        bpacket_get_error(result, msg);
-        printf("%s\n", msg);
-    }
-    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-
     bpacket_t* receivedBpacket;
     cameraSettingsFlag = FALSE;
 
@@ -860,11 +859,13 @@ DWORD WINAPI gui(void* arg) {
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
 
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
+                printf("BRUH 1\n");
                 wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
                 cameraSettingsFlag = TRUE;
                 text_box_default_text(captureTime);
             }
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAMERA_SETTINGS) {
+                printf("BRUH 2\n");
                 wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
                 captureTimeFlag = TRUE;
             }

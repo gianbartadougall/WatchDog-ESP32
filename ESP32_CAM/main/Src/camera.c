@@ -107,9 +107,6 @@ uint8_t camera_get_resolution(void) {
 
 uint8_t camera_set_resolution(uint8_t camRes) {
 
-    // Deinitinalise camera so camera settings can be changed
-    esp_camera_deinit();
-
     // Update camera resolution settings
     switch (camRes) {
         case FRAMESIZE_QVGA:
@@ -136,11 +133,6 @@ uint8_t camera_set_resolution(uint8_t camRes) {
         default:
             // Should never get here, should only ever recieve one of the above cases
             return FALSE;
-    }
-    // Configure Camera
-    sd_card_log(SYSTEM_LOG_FILE, "Reconfiguring Camera\0");
-    if (camera_init() != TRUE) {
-        return FALSE;
     }
 
     // Successfully changed the camera resolution
@@ -217,10 +209,20 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
 uint8_t camera_capture_image(camera_fb_t** image) {
 
+    // Initialise the camera
+    if (camera_init() != TRUE) {
+        return FALSE;
+    }
+
     *image = esp_camera_fb_get();
 
     if (*image == NULL) {
         esp_camera_fb_return(*image);
+        return FALSE;
+    }
+
+    // Deinitialise the camera
+    if (esp_camera_deinit() != ESP_OK) {
         return FALSE;
     }
 

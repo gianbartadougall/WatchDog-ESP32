@@ -76,6 +76,11 @@ uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
 
         case WATCHDOG_BPK_R_SET_CAMERA_SETTINGS:;
 
+            bpacket_t b1;
+            bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                              BPACKET_CODE_SUCCESS, "Entered settings function\r\n\0");
+            esp32_uart_send_bpacket(&b1);
+
             result = wd_bpacket_to_camera_settings(bpacket, &cameraSettings);
             if (result != TRUE) {
                 char errMsg[50];
@@ -90,11 +95,23 @@ uint8_t esp3_match_maple_request(bpacket_t* bpacket) {
                 bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
                                   "Invalid resolution\r\n\0");
                 esp32_uart_send_bpacket(bpacket);
+                bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                                  BPACKET_CODE_SUCCESS, "Invlaid resolution!\r\n\0");
+                esp32_uart_send_bpacket(&b1);
                 break;
             }
 
-            sd_card_write_settings(bpacket);
-            esp32_uart_send_bpacket(bpacket);
+            if (sd_card_write_settings(bpacket) == TRUE) {
+                bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                                  BPACKET_CODE_SUCCESS, "Write settings succeeded\r\n\0");
+                esp32_uart_send_bpacket(&b1);
+                esp32_uart_send_bpacket(bpacket);
+
+            } else {
+                bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                                  BPACKET_CODE_ERROR, "ESP32: Write settings failed\r\n\0");
+                esp32_uart_send_bpacket(&b1);
+            }
 
             break;
 
@@ -190,8 +207,9 @@ void watchdog_system_start(void) {
 
             case WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS:
 
-                sd_card_write_settings(&bpacket);
-                esp32_uart_send_bpacket(&bpacket); // Send response back
+                if (sd_card_write_settings(&bpacket) == TRUE) {
+                    esp32_uart_send_bpacket(&bpacket); // Send response back
+                }
                 break;
 
             case WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS:
@@ -215,37 +233,39 @@ void watchdog_system_start(void) {
 uint8_t software_config(bpacket_t* bpacket) {
 
     bpacket_t b1;
-    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
-                      "Configuring software\r\n\0");
-    esp32_uart_send_bpacket(&b1);
 
     if (sd_card_init(bpacket) != TRUE) {
         return FALSE;
     }
-    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
-                      "About to entered sd card function\r\n\0");
-    esp32_uart_send_bpacket(&b1);
 
     bpacket_create_p(bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
                      BPACKET_CODE_EXECUTE, 0, NULL);
+
     if (sd_card_format_sd_card(bpacket) != TRUE) {
         esp32_uart_send_bpacket(bpacket);
+        return FALSE;
     }
 
-    // if (sd_card_read_settings(bpacket) != TRUE) {
-    //     sd_card_log(SYSTEM_LOG_FILE, "Failed to read camera settings on startup\n");
-    // } else {
-
-    //     // if (camera_set_resolution(bpacket->bytes[0]) != TRUE) {
-    //     //     sd_card_log(SYSTEM_LOG_FILE, "ESP32 attempted to set invalid resolution on startup\n");
-    //     // }
-    // }
+    // Get the camera resolution saved on the SD card
+    wd_camera_settings_t cameraSettings;
+    if (sd_card_get_camera_settings(&cameraSettings) == TRUE) {
+        char o[40];
+        sprintf(o, "Setting camera resolution to: %i\r\n", cameraSettings.resolution);
+        bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,
+                          BPACKET_CODE_SUCCESS, o);
+        esp32_uart_send_bpacket(&b1);
+        camera_set_resolution(cameraSettings.resolution);
+    }
 
     // Initialise the camera
     if (camera_init() != TRUE) {
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to initialise\n\0");
         return FALSE;
     }
+
+    bpacket_create_sp(&b1, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE, BPACKET_CODE_SUCCESS,
+                      "All software initialised");
+    esp32_uart_send_bpacket(&b1);
 
     return TRUE;
 }

@@ -473,7 +473,8 @@ int main(int argc, char** argv) {
 
     printf("Connected to port %s\n", sp_get_port_name(activePort));
 
-    maple_test();
+    // maple_test();
+    // maple_test();
 
     // maple_stream("testImage.jpg");
     // printf("File saved\n");
@@ -826,8 +827,10 @@ uint8_t maple_restart_esp32(void) {
 
 void maple_test(void) {
 
-    bpacket_t bpacket;
-    uint8_t result = 0;
+    // bpacket_t bpacket;
+    // uint8_t result = 0;
+    // bpacket_t bpacket;
+    // uint8_t result = 0;
     uint8_t failed = FALSE;
     char msg[100];
     while (1) {}

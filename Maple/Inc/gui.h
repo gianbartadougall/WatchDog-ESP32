@@ -29,7 +29,7 @@
 #define GUI_CLOSE                       (0x01 << 2)
 #define GUI_CAMERA_VIEW_STATE           (0x01 << 3)
 #define GUI_UPDATE_CAMERA_VIEW          (0x01 << 4)
-#define CAMERA_VIEW_FILENAME            ("Watchdog/cameraView.jpg\0")
+#define CAMERA_VIEW_FILENAME            ("streamImage.jpg\0")
 
 #define GUI_BPK_R_UPDATE_STREAM_IMAGE (WATCHDOG_BPK_OFFSET + 0)
 

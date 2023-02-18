@@ -102,7 +102,8 @@
 
 // Struct that contains all of the settings
 // wd_camera_settings_t settings;
-uint8_t settingsFlag;
+uint8_t cameraSettingsFlag;
+uint8_t captureTimeFlag;
 
 typedef struct rectangle_t {
     int startX;
@@ -823,6 +824,7 @@ DWORD WINAPI gui(void* arg) {
         return FALSE;
     }
 
+    /* GET THE CAPTURE TIME SETTINGS*/
     uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
                                       BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
                                       WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
@@ -831,35 +833,45 @@ DWORD WINAPI gui(void* arg) {
         bpacket_get_error(result, msg);
         printf("%s\n", msg);
     }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
 
+    /* GET THE CAMERA SETTINGS*/
+    result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                              BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
+                              BPACKET_CODE_EXECUTE, 0, NULL);
+    if (result != TRUE) {
+        char msg[50];
+        bpacket_get_error(result, msg);
+        printf("%s\n", msg);
+    }
     bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
 
     bpacket_t* receivedBpacket;
-    settingsFlag = FALSE;
+    cameraSettingsFlag = FALSE;
 
+    printf("HERE 1\n");
     // Before it goes into the main loop the settings need to be returned
-    while (settingsFlag == FALSE) {
-
+    while (cameraSettingsFlag == FALSE || captureTimeFlag == FALSE) {
+        // printf("Y\n");
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+            printf("HERE 1.5\n");
 
             receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
 
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
-                printf("CUNT 5\n");
                 wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
-                settingsFlag = TRUE;
+                cameraSettingsFlag = TRUE;
                 text_box_default_text(captureTime);
-                continue;
             }
-
-            // if (receivedBpacket->request != BPACKET_GEN_R_MESSAGE) {
-            //     char packetInfo[100];
-            //     bpacket_get_info(receivedBpacket, packetInfo);
-            //     printf(packetInfo);
-            // }
+            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAMERA_SETTINGS) {
+                wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
+                captureTimeFlag = TRUE;
+            }
         }
     }
+
+    printf("HERE 2\n");
 
     // Create the window
     // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT

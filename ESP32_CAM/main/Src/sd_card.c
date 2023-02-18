@@ -926,10 +926,16 @@ uint8_t sd_card_read_settings(bpacket_t* bpacket) {
         // Set the cursor to the 1st index to skip the camera settings
         fseek(file, 1, SEEK_CUR);
         wd_camera_capture_time_settings_t captureTime;
+        // Seconds are required to be set to default otherwise they will assume
+        // the values of whatever is stored in that memory and will fail when
+        // being converted from a capture time to bpacket
+        captureTime.startTime.second    = 0;
         captureTime.startTime.minute    = fgetc(file);
         captureTime.startTime.hour      = fgetc(file);
+        captureTime.endTime.second      = 0;
         captureTime.endTime.minute      = fgetc(file);
         captureTime.endTime.hour        = fgetc(file);
+        captureTime.intervalTime.second = 0;
         captureTime.intervalTime.minute = fgetc(file);
         captureTime.intervalTime.hour   = fgetc(file);
 

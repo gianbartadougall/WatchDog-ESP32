@@ -207,8 +207,9 @@ void watchdog_system_start(void) {
 
             case WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS:
 
-                sd_card_write_settings(&bpacket);
-                esp32_uart_send_bpacket(&bpacket); // Send response back
+                if (sd_card_write_settings(&bpacket) == TRUE) {
+                    esp32_uart_send_bpacket(&bpacket); // Send response back
+                }
                 break;
 
             case WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS:

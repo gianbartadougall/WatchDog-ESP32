@@ -1027,80 +1027,83 @@ void maple_test(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Test Setting the Watchdog Capture Time */
-    // wd_camera_capture_time_settings_t newCaptureTime = {
-    //     .startTime.second    = 30,
-    //     .startTime.minute    = 45,
-    //     .startTime.hour      = 10,
-    //     .endTime.second      = 20,
-    //     .endTime.minute      = 15,
-    //     .endTime.hour        = 17,
-    //     .intervalTime.minute = 35,
-    //     .intervalTime.hour   = 2,
-    // };
+    wd_camera_capture_time_settings_t newCaptureTime = {
+        .startTime.second    = 30,
+        .startTime.minute    = 45,
+        .startTime.hour      = 10,
+        .endTime.second      = 20,
+        .endTime.minute      = 15,
+        .endTime.hour        = 17,
+        .intervalTime.minute = 35,
+        .intervalTime.hour   = 2,
+    };
 
-    // result = wd_capture_time_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-    //                                              WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE,
-    //                                              &newCaptureTime);
-    // if (result != TRUE) {
-    //     wd_get_error(result, msg);
-    //     printf("%sFailed to convert capture time settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg,
-    //     ASCII_COLOR_WHITE); failed = TRUE;
-    // } else {
-    //     maple_send_bpacket(&bpacket);
-    // }
+    result = wd_capture_time_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                                 WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE,
+                                                 &newCaptureTime);
+    if (result != TRUE) {
+        wd_get_error(result, msg);
+        printf("%sFailed to convert capture time settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    } else {
+        maple_send_bpacket(&bpacket);
+    }
 
-    // bpacket_t* newCaptureTimeSettingsBpacket;
-    // // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
-    // // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
-    // if (maple_get_response(&newCaptureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-    //     printf("%sSetting the capture time failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    bpacket_t* newCaptureTimeSettingsBpacket;
+    // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
+    // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
+    if (maple_get_response(&newCaptureTimeSettingsBpacket, WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+        printf("%sSetting the capture time failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // // Confirm the received bpacket has the expected values
-    // // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
-    // // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
-    // if (bpacket_confirm_values(newCaptureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
-    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
-    //     printf("%sUnexpected response when updating capture time settings. %s%s\n", ASCII_COLOR_RED, msg,
-    //            ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    // Confirm the received bpacket has the expected values
+    // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
+    // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
+    if (bpacket_confirm_values(newCaptureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
+                               WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
+        printf("%sUnexpected response when updating capture time settings. %s%s\n", ASCII_COLOR_RED, msg,
+               ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // if (maple_restart_esp32() != TRUE) {
-    //     printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    if (maple_restart_esp32() != TRUE) {
+        printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // /* Test Getting the Watchdog Capture Time from the STM32 */
-    // bpacket_t* captureTimeSettingsBpacket;
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
-    // if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-    //     printf("%sGetting the capture time settings from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    /* Test Getting the Watchdog Capture Time from the STM32 */
+    bpacket_t* captureTimeSettingsBpacket;
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
+    if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+        printf("%sGetting the capture time settings from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
-    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
-    //     printf("%sUnexpected response when getting the capture time settings from STM32. %s%s\n", ASCII_COLOR_RED,
-    //     msg,
-    //            ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
+                               WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
+        printf("%sUnexpected response when getting the capture time settings from STM32. %s%s\n", ASCII_COLOR_RED, msg,
+               ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // /* Test Getting the Watchdog Capture Time from the ESP32 */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
-    // if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-    //     printf("%sGetting the capture time settings from ESP32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    /* Test Getting the Watchdog Capture Time from the ESP32 */
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+        printf("%sGetting the capture time settings from ESP32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
-    //     printf("%sUnexpected response when getting capture time settings from ESP32. %s%s\n", ASCII_COLOR_RED, msg,
-    //            ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+                               WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
+        printf("%sUnexpected response when getting capture time settings from ESP32. %s%s\n", ASCII_COLOR_RED, msg,
+               ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
+
+    if (failed == FALSE) {
+        printf("%sCapture time settings tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

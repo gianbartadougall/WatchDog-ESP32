@@ -176,6 +176,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
     uint8_t numDataBytesExpected = 0;
     uint8_t bpacketByteIndex     = 0;
     uint8_t byte;
+    uint8_t connectionFlag = FALSE;
 
     while ((numBytes = maple_read_port(&byte, 1, 0)) >= 0) {
 
@@ -302,7 +303,17 @@ DWORD WINAPI maple_listen_rx(void* arg) {
             // Reset the byte index
             bpacketByteIndex = 0;
 
+            // Flag just to indicate when transmission has occured
+            connectionFlag = TRUE;
+
             continue;
+        }
+
+        // If the micrcontroller is unplugged from the computer than the number of bytes read
+        // will be larger than 1. If this is the case, exit the thread
+        if ((connectionFlag == TRUE) && (numBytes > 1)) {
+            printf("%sExiting thread%s\n", ASCII_COLOR_MAGENTA, ASCII_COLOR_WHITE);
+            break;
         }
 
         printf("%c", byte);
@@ -605,9 +616,8 @@ uint8_t maple_response_is_valid(uint8_t expectedRequest, uint16_t timeout) {
 
         // Confirm the received bpacket matches the correct request and code
         if (bpacket->request != expectedRequest) {
-            printf("Rec: %i Snd: %i Req: %i Code: %i num bytes: %i\r\n", bpacket->receiver, bpacket->sender,
-                   bpacket->request, bpacket->code, bpacket->numBytes);
-            // printf("Expected request %i but got %i\n", expectedRequest, bpacket->request);
+            // printf("Rec: %i Snd: %i Req: %i Code: %i num bytes: %i\r\n", bpacket->receiver, bpacket->sender,
+            //        bpacket->request, bpacket->code, bpacket->numBytes);
             return FALSE;
         }
 
@@ -833,6 +843,8 @@ void maple_test(void) {
     uint8_t failed = FALSE;
     char msg[100];
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /* Turn the red LED on */
     // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_STM32, 0, NULL);
     // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
@@ -860,7 +872,13 @@ void maple_test(void) {
     //     failed = TRUE;
     // }
 
-    // /* Set the datetime on the STM32 */
+    // if (failed == FALSE) {
+    //     printf("%sLED tests passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+    // }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /* Set the datetime on the STM32 */
     // dt_datetime_t newDatetime;
     // dt_time_init(&newDatetime.time, 30, 15, 8);
     // dt_date_init(&newDatetime.date, 1, 2, 2023);
@@ -912,168 +930,177 @@ void maple_test(void) {
     //     }
     // }
 
+    // if (failed == FALSE) {
+    //     printf("%sSetting and getting datetime passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+    // }
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Test Setting the Camera Settings */
+    // while (1) {}
 
     // Create camera settings
-    // wd_camera_settings_t newCameraSettings = {
-    //     .resolution = WD_CAM_RES_1280x1024,
-    // };
-
-    // result =
-    //     wd_camera_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-    //                                   WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &newCameraSettings);
-    // if (result != TRUE) {
-    //     wd_get_error(result, msg);
-    //     printf("%sFailed to convert camera settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // } else {
-    //     maple_send_bpacket(&bpacket);
-    // }
-
-    // bpacket_t* cameraSettingsBpacket;
-    // if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, 1000) != TRUE) {
-    //     printf("%sSetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     char info[50];
-    //     bpacket_get_info(cameraSettingsBpacket, info);
-    //     printf(info);
-    //     for (int i = 0; i < cameraSettingsBpacket->numBytes; i++) {
-    //         printf("%c", cameraSettingsBpacket->bytes[i]);
-    //     }
-    //     printf("\n");
-
-    //     failed = TRUE;
-    // }
-
-    // // Confirm the received bpacket has the expected values
-    // if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-    //                            WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
-    //     printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg,
-    //     ASCII_COLOR_WHITE);
-
-    //     char info[100];
-    //     bpacket_get_info(cameraSettingsBpacket, info);
-    //     printf(info);
-    //     failed = TRUE;
-    // }
-
-    // // Restart the esp32. This will allow maple to determine whether the settings were properly saved
-    // // onto the SD card or not
-    // if (maple_restart_esp32() != TRUE) {
-    //     printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
-
-    // /* Test Getting the Camera Settings */
-
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
-    // if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 1000) != TRUE) {
-    //     printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
-
-    // // Confirm the received bpacket has the expected values
-    // if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-    //                            WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 1, msg) != TRUE) {
-    //     printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg,
-    //     ASCII_COLOR_WHITE); failed = TRUE;
-    // }
-
-    // // Convert bpacket back to camera settings
-    // wd_camera_settings_t cameraSettings;
-    // result = wd_bpacket_to_camera_settings(cameraSettingsBpacket, &cameraSettings);
-
-    // if (result != TRUE) {
-    //     wd_get_error(result, msg);
-    //     printf("%sFailed to convert bpacket to camera settings. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // } else {
-
-    //     // Compare the received camera settings with the camera settings that were set previosuly
-    //     if (cameraSettings.resolution != newCameraSettings.resolution) {
-    //         printf("%sFailed to get correct camera settings. Found %i but expected %i%s\n", ASCII_COLOR_RED,
-    //                cameraSettings.resolution, newCameraSettings.resolution, ASCII_COLOR_WHITE);
-    //         failed = TRUE;
-    //     }
-    // }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /* Test Setting the Watchdog Capture Time */
-    wd_camera_capture_time_settings_t newCaptureTime = {
-        .startTime.second    = 30,
-        .startTime.minute    = 45,
-        .startTime.hour      = 10,
-        .endTime.second      = 20,
-        .endTime.minute      = 15,
-        .endTime.hour        = 17,
-        .intervalTime.minute = 35,
-        .intervalTime.hour   = 2,
+    wd_camera_settings_t newCameraSettings = {
+        .resolution = WD_CAM_RES_320x240,
     };
 
-    result = wd_capture_time_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                                 WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE,
-                                                 &newCaptureTime);
+    result =
+        wd_camera_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+                                      WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, &newCameraSettings);
     if (result != TRUE) {
         wd_get_error(result, msg);
-        printf("%sFailed to convert capture time settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+        printf("%sFailed to convert camera settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
         failed = TRUE;
     } else {
         maple_send_bpacket(&bpacket);
     }
 
-    bpacket_t* newCaptureTimeSettingsBpacket;
-    // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
-    // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
-    if (maple_get_response(&newCaptureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-        printf("%sSetting the capture time failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    bpacket_t* cameraSettingsBpacket;
+    if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, 1000) != TRUE) {
+        printf("%sSetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        char info[50];
+        bpacket_get_info(cameraSettingsBpacket, info);
+        printf(info);
+        for (int i = 0; i < cameraSettingsBpacket->numBytes; i++) {
+            printf("%c", cameraSettingsBpacket->bytes[i]);
+        }
+        printf("\n");
+
         failed = TRUE;
     }
 
     // Confirm the received bpacket has the expected values
-    // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
-    // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
-    if (bpacket_confirm_values(newCaptureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
-                               WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
-        printf("%sUnexpected response when updating capture time settings. %s%s\n", ASCII_COLOR_RED, msg,
-               ASCII_COLOR_WHITE);
+    if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+                               WATCHDOG_BPK_R_SET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
+        printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
+
+        char info[100];
+        bpacket_get_info(cameraSettingsBpacket, info);
+        printf(info);
         failed = TRUE;
     }
 
+    // Restart the esp32. This will allow maple to determine whether the settings were properly saved
+    // onto the SD card or not
     if (maple_restart_esp32() != TRUE) {
         printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
     }
 
-    /* Test Getting the Watchdog Capture Time from the STM32 */
-    bpacket_t* captureTimeSettingsBpacket;
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
-    if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-        printf("%sGetting the capture time settings from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    /* Test Getting the Camera Settings */
+
+    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 1000) != TRUE) {
+        printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
     }
 
-    if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
-                               WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
-        printf("%sUnexpected response when getting the capture time settings from STM32. %s%s\n", ASCII_COLOR_RED, msg,
-               ASCII_COLOR_WHITE);
+    // Confirm the received bpacket has the expected values
+    if (bpacket_confirm_values(cameraSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+                               WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_SUCCESS, 1, msg) != TRUE) {
+        printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
         failed = TRUE;
     }
 
-    /* Test Getting the Watchdog Capture Time from the ESP32 */
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
-    if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
-        printf("%sGetting the capture time settings from ESP32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    // Convert bpacket back to camera settings
+    wd_camera_settings_t cameraSettings;
+    result = wd_bpacket_to_camera_settings(cameraSettingsBpacket, &cameraSettings);
+
+    if (result != TRUE) {
+        wd_get_error(result, msg);
+        printf("%sFailed to convert bpacket to camera settings. %s\n%s", ASCII_COLOR_RED, msg, ASCII_COLOR_WHITE);
         failed = TRUE;
+    } else {
+
+        // Compare the received camera settings with the camera settings that were set previosuly
+        if (cameraSettings.resolution != newCameraSettings.resolution) {
+            printf("%sFailed to get correct camera settings. Found %i but expected %i%s\n", ASCII_COLOR_RED,
+                   cameraSettings.resolution, newCameraSettings.resolution, ASCII_COLOR_WHITE);
+            failed = TRUE;
+        }
     }
 
-    if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
-                               WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
-        printf("%sUnexpected response when getting capture time settings from ESP32. %s%s\n", ASCII_COLOR_RED, msg,
-               ASCII_COLOR_WHITE);
-        failed = TRUE;
+    if (failed == FALSE) {
+        printf("%sCamera settings tests passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /* Test Setting the Watchdog Capture Time */
+    // wd_camera_capture_time_settings_t newCaptureTime = {
+    //     .startTime.second    = 30,
+    //     .startTime.minute    = 45,
+    //     .startTime.hour      = 10,
+    //     .endTime.second      = 20,
+    //     .endTime.minute      = 15,
+    //     .endTime.hour        = 17,
+    //     .intervalTime.minute = 35,
+    //     .intervalTime.hour   = 2,
+    // };
+
+    // result = wd_capture_time_settings_to_bpacket(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+    //                                              WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE,
+    //                                              &newCaptureTime);
+    // if (result != TRUE) {
+    //     wd_get_error(result, msg);
+    //     printf("%sFailed to convert capture time settings to bpacket. %s\n%s", ASCII_COLOR_RED, msg,
+    //     ASCII_COLOR_WHITE); failed = TRUE;
+    // } else {
+    //     maple_send_bpacket(&bpacket);
+    // }
+
+    // bpacket_t* newCaptureTimeSettingsBpacket;
+    // // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
+    // // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
+    // if (maple_get_response(&newCaptureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+    //     printf("%sSetting the capture time failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // // Confirm the received bpacket has the expected values
+    // // Internally the way the capture time settings is updated on the STM32, you are actually expecting a
+    // // WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS request back instead of a WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS
+    // if (bpacket_confirm_values(newCaptureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
+    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 0, msg) != TRUE) {
+    //     printf("%sUnexpected response when updating capture time settings. %s%s\n", ASCII_COLOR_RED, msg,
+    //            ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // if (maple_restart_esp32() != TRUE) {
+    //     printf("%sMaple failed to restart ESP32%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // /* Test Getting the Watchdog Capture Time from the STM32 */
+    // bpacket_t* captureTimeSettingsBpacket;
+    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
+    // if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+    //     printf("%sGetting the capture time settings from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32,
+    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
+    //     printf("%sUnexpected response when getting the capture time settings from STM32. %s%s\n", ASCII_COLOR_RED,
+    //     msg,
+    //            ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // /* Test Getting the Watchdog Capture Time from the ESP32 */
+    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    // if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
+    //     printf("%sGetting the capture time settings from ESP32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
+
+    // if (bpacket_confirm_values(captureTimeSettingsBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32,
+    //                            WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_SUCCESS, 6, msg) != TRUE) {
+    //     printf("%sUnexpected response when getting capture time settings from ESP32. %s%s\n", ASCII_COLOR_RED, msg,
+    //            ASCII_COLOR_WHITE);
+    //     failed = TRUE;
+    // }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

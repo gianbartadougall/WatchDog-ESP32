@@ -119,6 +119,8 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, bpacket_t* bpacket);
  */
 uint8_t sd_card_init(bpacket_t* bpacket);
 
+uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings);
+
 uint8_t sd_card_format_sd_card(bpacket_t* bpacket);
 
 void sd_card_copy_file(bpacket_t* bpacket, bpacket_char_array_t* bpacketCharArray);

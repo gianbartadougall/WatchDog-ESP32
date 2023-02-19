@@ -141,7 +141,6 @@ uint8_t intervalHour;
 // uint8_t resolution;
 wd_camera_settings_t cameraSettings;
 wd_camera_capture_time_settings_t captureTime;
-
 /*
 ALL THE LABEL INFORMATION IS HERE
 */
@@ -215,7 +214,7 @@ void initalise_label_structs(label_info_t* labelList) {
 ALL THE BUTTON INFORMATION IS HERE
 */
 
-#define NUMBER_OF_BUTTONS    7
+#define NUMBER_OF_BUTTONS    8
 #define LONGEST_BUTTON_TITLE 50
 #define BUTTON_OPEN_SD_CARD  0
 #define BUTTON_CAMERA_VIEW   1
@@ -224,16 +223,18 @@ ALL THE BUTTON INFORMATION IS HERE
 #define BUTTON_NORMAL_VIEW   4
 #define BUTTON_HELP          5
 #define BUTTON_SAVE          6
-HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp, buttonSave;
+#define BUTTON_POLL_STATUS   7
+HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp, buttonSave,
+    buttonPollStatus;
 char* buttonTitleList[LONGEST_BUTTON_TITLE] = {
     "View Data", "Live Camera View", "Test System", "Download data from SD card", "Exit Camera View",
-    "Help",      "Save Changes"};
-int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6, COL_3};
-int buttonStartYList[NUMBER_OF_BUTTONS] = {ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4, ROW_11};
+    "Help",      "Save Changes",     "Poll Status"};
+int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6, COL_3, COL_4};
+int buttonStartYList[NUMBER_OF_BUTTONS] = {ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4, ROW_11, ROW_4};
 int buttonWidthList[NUMBER_OF_BUTTONS]  = {BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH,
-                                          BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH};
+                                          BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH};
 int buttonHeightList[NUMBER_OF_BUTTONS] = {BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT,
-                                           BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT};
+                                           BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT};
 
 typedef struct button_info_t {
     HWND handle;
@@ -247,7 +248,7 @@ typedef struct button_info_t {
 button_info_t buttonList[NUMBER_OF_BUTTONS];
 
 HWND* buttonHandleList[NUMBER_OF_BUTTONS] = {&buttonOpenSDCard, &buttonCameraView, &buttonRunTest, &buttonExportData,
-                                             &buttonNormalView, &buttonHelp,       &buttonSave};
+                                             &buttonNormalView, &buttonHelp,       &buttonSave,    &buttonPollStatus};
 
 void initalise_button_structs(button_info_t* buttonList) {
     for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
@@ -570,6 +571,24 @@ int folder_exists(const char* path) {
     return FALSE;
 }
 
+void send_current_date_time(void) {
+    time_t t               = time(NULL);
+    struct tm* timeinfo    = localtime(&t);
+    dt_datetime_t dateTime = {
+        .time = {.second = timeinfo->tm_sec, .minute = timeinfo->tm_min, .hour = timeinfo->tm_hour},
+        .date = {.day = timeinfo->tm_mday, .month = timeinfo->tm_mon + 1, .year = timeinfo->tm_year + 1900}};
+    uint8_t result = wd_datetime_to_bpacket(
+        guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
+        BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &dateTime);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    return;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
 
@@ -659,6 +678,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if ((HWND)lParam == buttonList[BUTTON_SAVE].handle) {
                 void send_current_camera_settings(void);
                 void send_current_capture_time_settings(void);
+            }
+
+            if ((HWND)lParam == buttonList[BUTTON_POLL_STATUS].handle) {
+                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
+                                 BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
+                                 WATCHDOG_BPK_R_GET_STATUS, 0, NULL);
+                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_NORMAL_VIEW].handle) {
@@ -879,8 +905,17 @@ DWORD WINAPI gui(void* arg) {
                 wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
                 cameraSettingsFlag = TRUE;
             }
+
+            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_STATUS) {
+                for (int i = 0; i < receivedBpacket->numBytes; i++) {
+                    printf("%c", receivedBpacket->bytes[i]);
+                }
+                printf("\n");
+            }
         }
     }
+    // Callibrate real time clock
+    send_current_date_time();
 
     // Create the window
     // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT

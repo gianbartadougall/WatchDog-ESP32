@@ -561,6 +561,15 @@ void send_current_capture_time_settings(void) {
     return;
 }
 
+int folder_exists(const char* path) {
+    struct stat st;
+    int result = stat(path, &st);
+    if (result == 0 && S_ISDIR(st.st_mode)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
 
@@ -647,8 +656,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 system("start help.pdf");
             }
 
-            if ((HWND)lParam == buttonList[BUTTON_HELP].handle) {
-                break;
+            if ((HWND)lParam == buttonList[BUTTON_SAVE].handle) {
+                void send_current_camera_settings(void);
+                void send_current_capture_time_settings(void);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_NORMAL_VIEW].handle) {
@@ -773,15 +783,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
-}
-
-int folder_exists(const char* path) {
-    struct stat st;
-    int result = stat(path, &st);
-    if (result == 0 && S_ISDIR(st.st_mode)) {
-        return TRUE;
-    }
-    return FALSE;
 }
 
 // Main function for the Maple thread

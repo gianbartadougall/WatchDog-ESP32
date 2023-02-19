@@ -314,6 +314,8 @@ void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod
     minute = timeStruct.minute;
     uint8_t hour;
     hour = timeStruct.hour;
+    uint8_t hourNoPeriod;
+    hourNoPeriod = timeStruct.hour;
     char period[3];
     if (hour >= 12) {
         sprintf(period, "pm");
@@ -329,6 +331,6 @@ void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod
     if (hasPeriod == TRUE) {
         sprintf(timeString, "%i:%s%i %s", hour, minute < 10 ? "0" : "", minute, period);
     } else if (hasPeriod == FALSE) {
-        sprintf(timeString, "%i:%s%i", hour, minute < 10 ? "0" : "", minute);
+        sprintf(timeString, "%i:%s%i", hourNoPeriod, minute < 10 ? "0" : "", minute);
     }
 }

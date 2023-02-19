@@ -485,7 +485,6 @@ int main(int argc, char** argv) {
     printf("Connected to port %s\n", sp_get_port_name(activePort));
 
     // maple_test();
-    maple_test();
 
     // maple_stream("testImage.jpg");
     // printf("File saved\n");
@@ -534,9 +533,14 @@ int main(int argc, char** argv) {
         // If a bpacket is recieved from the Gui, deal with it in here
         if (*guiToMainCircularBuffer1.readIndex != *guiToMainCircularBuffer1.writeIndex) {
             uint8_t sendStatus = maple_send_bpacket(GTM_CB_CURRENT_BPACKET);
-            printf("HAYDEN PRINT: request: %i\n", GTM_CB_CURRENT_BPACKET->request);
+            wd_camera_capture_time_settings_t captureTime;
+            if (GTM_CB_CURRENT_BPACKET->request == WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS) {
+                wd_bpacket_to_capture_time_settings(GTM_CB_CURRENT_BPACKET, &captureTime);
+                printf("HAYDEN PRINT: Start Time I want it sent to is: %i:%i\n", captureTime.startTime.hour,
+                       captureTime.startTime.minute);
+            }
             if (sendStatus != TRUE) {
-                char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
+                char* sendBpErrorMsg = "HOPEFULLY THIS IS OVERWIRTTEN";
                 bpacket_get_error(sendStatus, sendBpErrorMsg);
                 printf("%s\n", sendBpErrorMsg);
             }
@@ -587,6 +591,17 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            if (receivedBpacket->request == WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS) {
+                printf(" ");
+            }
+
+            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
+                wd_camera_capture_time_settings_t tempTime;
+                wd_bpacket_to_capture_time_settings(receivedBpacket, &tempTime);
+                printf("The number of bytes in the get capture settings bpacket is %i\n", receivedBpacket->numBytes);
+                printf("GET TIME SETTINGS,(in main, about to go into main to gui buffer) start time %i:%i\n",
+                       tempTime.startTime.hour, tempTime.startTime.minute);
+            }
             mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex] = receivedBpacket;
 
             // Increae write index of the main to gui circular buffer so that it can be parsed to

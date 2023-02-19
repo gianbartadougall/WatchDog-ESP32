@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "time.h"
 
 /* Personal Includes */
 #include "gui.h"
@@ -53,7 +54,7 @@
 #define TEXT_BOX_HEIGHT 30
 
 #define WINDOW_WIDTH  1300
-#define WINDOW_HEIGHT 768
+#define WINDOW_HEIGHT 550
 
 #define ROW_1  10
 #define ROW_2  (ROW_1 + LABEL_HEIGHT + GAP_HEIGHT)
@@ -214,7 +215,7 @@ void initalise_label_structs(label_info_t* labelList) {
 ALL THE BUTTON INFORMATION IS HERE
 */
 
-#define NUMBER_OF_BUTTONS    6
+#define NUMBER_OF_BUTTONS    7
 #define LONGEST_BUTTON_TITLE 50
 #define BUTTON_OPEN_SD_CARD  0
 #define BUTTON_CAMERA_VIEW   1
@@ -222,16 +223,16 @@ ALL THE BUTTON INFORMATION IS HERE
 #define BUTTON_EXPORT_DATA   3
 #define BUTTON_NORMAL_VIEW   4
 #define BUTTON_HELP          5
-HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp;
+#define BUTTON_SAVE          6
+HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp, buttonSave;
 char* buttonTitleList[LONGEST_BUTTON_TITLE] = {
-    "View Data", "Live Camera View", "Test System", "Download data from SD card", "Exit Camera View", "Help"};
-int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6};
-int buttonStartYList[NUMBER_OF_BUTTONS] = {
-    ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4,
-};
-int buttonWidthList[NUMBER_OF_BUTTONS]  = {BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH,
+    "View Data", "Live Camera View", "Test System", "Download data from SD card", "Exit Camera View",
+    "Help",      "Save Changes"};
+int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6, COL_3};
+int buttonStartYList[NUMBER_OF_BUTTONS] = {ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4, ROW_11};
+int buttonWidthList[NUMBER_OF_BUTTONS]  = {BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH,
                                           BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH};
-int buttonHeightList[NUMBER_OF_BUTTONS] = {BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT,
+int buttonHeightList[NUMBER_OF_BUTTONS] = {BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT,
                                            BUTTON_HEIGHT, BUTTON_HEIGHT, BUTTON_HEIGHT};
 
 typedef struct button_info_t {
@@ -245,8 +246,8 @@ typedef struct button_info_t {
 
 button_info_t buttonList[NUMBER_OF_BUTTONS];
 
-HWND* buttonHandleList[NUMBER_OF_BUTTONS] = {&buttonOpenSDCard, &buttonCameraView, &buttonRunTest,
-                                             &buttonExportData, &buttonNormalView, &buttonHelp};
+HWND* buttonHandleList[NUMBER_OF_BUTTONS] = {&buttonOpenSDCard, &buttonCameraView, &buttonRunTest, &buttonExportData,
+                                             &buttonNormalView, &buttonHelp,       &buttonSave};
 
 void initalise_button_structs(button_info_t* buttonList) {
     for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
@@ -642,8 +643,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
             }
 
-            if (LOWORD(wParam) == BUTTON_HELP_HANDLE) {
+            if ((HWND)lParam == buttonList[BUTTON_HELP].handle) {
                 system("start help.pdf");
+            }
+
+            if ((HWND)lParam == buttonList[BUTTON_HELP].handle) {
+                break;
             }
 
             if ((HWND)lParam == buttonList[BUTTON_NORMAL_VIEW].handle) {
@@ -847,32 +852,34 @@ DWORD WINAPI gui(void* arg) {
 
     bpacket_t* receivedBpacket;
     cameraSettingsFlag = FALSE;
-
-    printf("HERE 1\n");
+    clock_t time       = clock();
     // Before it goes into the main loop the settings need to be returned
     while (cameraSettingsFlag == FALSE || captureTimeFlag == FALSE) {
         // printf("Y\n");
+        if ((clock() - time) > 5000) {
+            printf("Time out when receiving camera settings\n");
+            break;
+        }
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
-            printf("HERE 1.5\n");
 
             receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
 
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
-                printf("BRUH 1\n");
-                wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
-                cameraSettingsFlag = TRUE;
+                wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
+                wd_camera_capture_time_settings_t tempTime;
+                wd_bpacket_to_capture_time_settings(receivedBpacket, &tempTime);
+                printf("HAYDEN PRINT: received capture time settings in GUI, start time: %i:%i\n",
+                       tempTime.startTime.hour, tempTime.startTime.minute);
                 text_box_default_text(captureTime);
+                captureTimeFlag = TRUE;
             }
             if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAMERA_SETTINGS) {
-                printf("BRUH 2\n");
-                wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
-                captureTimeFlag = TRUE;
+                wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
+                cameraSettingsFlag = TRUE;
             }
         }
     }
-
-    printf("HERE 2\n");
 
     // Create the window
     // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT
@@ -902,6 +909,7 @@ DWORD WINAPI gui(void* arg) {
 
         // If a Bpacket is received from main, deal with it in here
         if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+            printf("Start Time: %i\n", captureTime.startTime.hour);
 
             receivedBpacket = MTG_CB_CURRENT_BPACKET;
             bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
@@ -924,6 +932,12 @@ DWORD WINAPI gui(void* arg) {
                 draw_rectangle(hwnd, &rectangle, 255, 255, 255);
                 draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
             }
+            // if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
+            //     wd_camera_capture_time_settings_t tempTime;
+            //     wd_bpacket_to_capture_time_settings(receivedBpacket, &tempTime);
+            //     printf("HAYDEN PRINT: received capture time settings in GUI, start time: %i:%i\n",
+            //            tempTime.startTime.hour, tempTime.startTime.minute);
+            // }
             // The bpacket is now received, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
         }

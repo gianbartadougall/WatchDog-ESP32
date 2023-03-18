@@ -395,6 +395,33 @@ uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb) {
     return TRUE;
 }
 
+uint8_t sd_card_add_temp_to_csv(dt_datetime_t dateTime, ds18b20_temp_t temp1, ds18b20_temp_t temp2) {
+
+    FILE* excelFile;
+    if ((excelFile = fopen(DATA_FILE_PATH_START_AT_ROOT, "r")) == NULL) {
+        if ((excelFile = fopen(DATA_FILE_PATH_START_AT_ROOT, "w")) == NULL) {
+            printf("Probelm creating the csv file");
+            return FALSE;
+        }
+        fprintf(excelFile, "Date, Time, Temp 1, Temp 2");
+    } else {
+        fclose(excelFile);
+        if ((excelFile = fopen(DATA_FILE_PATH_START_AT_ROOT, "a")) == NULL) {
+            printf("Probelm opeing the csv file");
+            return FALSE;
+        }
+    }
+    char timeString[10];
+    dt_time_to_string(timeString, dateTime.time, TRUE);
+    fprintf(excelFile, "\r%i/%i/%i, %s, %s%i.%i, %s%i.%i", dateTime.date.day, dateTime.date.month, dateTime.date.year,
+            timeString, temp1.sign == 0 ? "" : "-", temp1.decimal, temp1.fraction, temp2.sign == 0 ? "" : "-",
+            temp2.decimal, temp2.fraction);
+
+    fclose(excelFile);
+
+    return TRUE;
+}
+
 uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpacket) {
 
     // Save the address
@@ -422,13 +449,13 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
         return FALSE;
     }
 
-    // Create the data folder path if required
-    if (sd_card_create_path(IMAGE_DATA_FOLDER, bpacket) != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR,
-                          "Could not create path to data folder\0");
-        esp32_uart_send_bpacket(bpacket);
-        return FALSE;
-    }
+    // // Create the data folder path if required
+    // if (sd_card_create_path(IMAGE_DATA_FOLDER, bpacket) != TRUE) {
+    //     bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR,
+    //                       "Could not create path to data folder\0");
+    //     esp32_uart_send_bpacket(bpacket);
+    //     return FALSE;
+    // }
 
     // Create formatted image number in the format of xxx
     char imgNumString[8];
@@ -459,6 +486,14 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpacket_t* bpack
     fclose(imageFile);
 
     imageNumber++;
+
+    // Save the temperature data
+    if (sd_card_add_temp_to_csv(datetime, temp1, temp2) != TRUE) {
+        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Failed to save temperature data\0");
+        esp32_uart_send_bpacket(bpacket);
+        return FALSE;
+    }
+
     return TRUE;
 }
 

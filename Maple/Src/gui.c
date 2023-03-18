@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 /* Personal Includes */
 #include "gui.h"
@@ -29,6 +30,13 @@
 #include "stb_image_resize.h"
 
 /* Private Macros */
+#define ASSERT_TRUE(condition, errMsg)                                          \
+    do {                                                                        \
+        if (condition == FALSE) {                                               \
+            printf("Assert failed line %s. Erroc code %d.\n", __LINE__, errMsg) \
+        }                                                                       \
+    } while (0)
+
 #define LEFT_MARGIN   10
 #define MIDDLE_MARGIN 270
 #define TOP_MARGIN    10
@@ -121,12 +129,12 @@ void gui_update_camera_view(char* fileName);
 // Create instances of structs that are used for the GUI
 watchdog_info_t* watchdog;
 uint32_t* flags;
-bpacket_circular_buffer_t* guiToMainCircularBuffer;
-bpacket_circular_buffer_t* mainToGuiCircularBuffer;
+bpacket_circular_buffer_t* guiTransmitBuffer;
+bpacket_circular_buffer_t* guiReceiveBuffer;
 
 // Macro that takes the bpacket out of the circular buffer at the read index
-#define MTG_CB_CURRENT_BPACKET (mainToGuiCircularBuffer->circularBuffer[*mainToGuiCircularBuffer->readIndex])
-
+#define GUI_RECIEVE_BPACKET()  (guiReceiveBuffer->buffer[*guiReceiveBuffer->rIndex])
+#define GUI_TRANSMIT_BPACKET() (guiTransmitBuffer->buffer[*guiTransmitBuffer->wIndex])
 /*
  * Here all of the structs are made and populated with all of the current information of from the ESP32, start time,
  * end time, time interval, etc
@@ -137,8 +145,21 @@ dt_time_t endTime;
 uint8_t intervalMinute;
 uint8_t intervalHour;
 // uint8_t resolution;
-wd_camera_settings_t cameraSettings;
-wd_camera_capture_time_settings_t captureTime;
+wd_camera_settings_t cameraSettings = {
+    .resolution = 0,
+};
+
+wd_camera_capture_time_settings_t captureTime = {
+    .startTime.second    = 0,
+    .startTime.minute    = 0,
+    .startTime.hour      = 0,
+    .endTime.second      = 0,
+    .endTime.minute      = 0,
+    .endTime.hour        = 0,
+    .intervalTime.second = 0,
+    .intervalTime.minute = 0,
+    .intervalTime.hour   = 0,
+};
 
 /*
 ALL THE LABEL INFORMATION IS HERE
@@ -352,7 +373,8 @@ int cam_res_to_list_index(uint8_t camRes) {
             return 6;
         default:
             printf("error when converting the camera resolution into a list index, cam_res_to_list_index "
-                   "function\n");
+                   "function %i\n",
+                   camRes);
             return 0;
     }
 }
@@ -531,17 +553,32 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
     UpdateWindow(hwnd);
 }
 
-void send_current_settings(void) {
-    // uint8_t result = wd_settings_to_bpacket(
-    //     guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex], BPACKET_ADDRESS_STM32,
-    //     BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_SET_SETTINGS, BPACKET_CODE_EXECUTE, &settings);
-    // if (result != TRUE) {
-    //     char msg[50];
-    //     wd_get_error(result, msg);
-    //     printf(msg);
-    // }
-    // bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
-    // return;
+void gui_transmit_capture_time_settings(void) {
+
+    uint8_t result =
+        wd_capture_time_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                                            WD_BPK_R_SET_CAPTURE_TIME_SETTINGS.val, BPACKET_CODE_EXECUTE, &captureTime);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
+    return;
+}
+
+void gui_transmit_camera_resolution_settings(void) {
+
+    uint8_t result =
+        wd_camera_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+                                      WD_BPK_R_SET_CAMERA_SETTINGS.val, BPACKET_CODE_EXECUTE, &cameraSettings);
+    if (result != TRUE) {
+        char msg[50];
+        wd_get_error(result, msg);
+        printf(msg);
+    }
+    bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
+    return;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -590,20 +627,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                 BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
-                                 WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
-                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+                bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                 BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
-                                 WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
-                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+                bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
                 // printf("Exporting SD card data\n");
             }
 
@@ -618,10 +653,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.startY = ROW_3;
                 rectangle.width  = 600;
                 rectangle.height = 480;
-                bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                 BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
-                                 WATCHDOG_BPK_R_STREAM_IMAGE, 0, NULL);
-                bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
+                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_STREAM_IMAGE, 0, NULL);
+                bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
 
                 draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
             }
@@ -663,7 +697,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     SendMessage((HWND)lParam, CB_GETLBTEXT, itemIndex, (LPARAM)buffer);
                     printf("Selected item %i: %s\n", itemIndex, buffer);
                     cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
-                    send_current_settings();
+
+                    gui_transmit_camera_resolution_settings();
                     // TODO: send bpacket of which camera resolution is wanted
                 }
             }
@@ -694,7 +729,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.startTime.hour   = startTimeHr;
                     captureTime.startTime.minute = startTimeMin;
                     printf("Valid start time. Sending to STM32\n");
-                    send_current_settings();
+                    gui_transmit_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -712,7 +747,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.endTime.hour   = endTimeHr;
                     captureTime.endTime.minute = endTimeMin;
                     printf("Valid end time. Sending to STM32\n");
-                    send_current_settings();
+                    gui_transmit_capture_time_settings();
                 }
 
                 // Set the flags so the other textboxes will be checked if this change made them invalid
@@ -729,7 +764,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     captureTime.intervalTime.hour   = timeIntervalHr;
                     captureTime.intervalTime.minute = timeIntervalMin;
                     printf("Valid time interval. Sending to STM32\n");
-                    send_current_settings();
+                    gui_transmit_capture_time_settings();
                 }
                 // Set the flags so the other textboxes will be checked if this change made them invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
@@ -754,7 +789,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return 0;
 }
 
-int folder_exists(const char* path) {
+int gui_folder_exists(const char* path) {
     struct stat st;
     int result = stat(path, &st);
     if (result == 0 && S_ISDIR(st.st_mode)) {
@@ -766,18 +801,16 @@ int folder_exists(const char* path) {
 // Main function for the Maple thread
 DWORD WINAPI gui(void* arg) {
 
-    const char* path = "Watchdog";
-    if (folder_exists(path) == FALSE) {
-        printf("Watchdog file not found");
-        // TODO: make the file
-        return FALSE;
+    // Confirm the watchdog folder has been created
+    if (gui_folder_exists(GUI_WATCHDOG_FOLDER) == FALSE) {
+        mkdir(GUI_WATCHDOG_FOLDER);
     }
 
     gui_initalisation_t* guiInit = (gui_initalisation_t*)arg;
     watchdog                     = guiInit->watchdog;
     flags                        = guiInit->flags;
-    guiToMainCircularBuffer      = guiInit->guiToMain;
-    mainToGuiCircularBuffer      = guiInit->mainToGui;
+    guiTransmitBuffer            = guiInit->guiToMain;
+    guiReceiveBuffer             = guiInit->mainToGui;
 
     cameraViewImagePosition.startX = COL_1;
     cameraViewImagePosition.startY = ROW_2;
@@ -807,41 +840,49 @@ DWORD WINAPI gui(void* arg) {
         return FALSE;
     }
 
-    uint8_t result = bpacket_create_p(guiToMainCircularBuffer->circularBuffer[*guiToMainCircularBuffer->writeIndex],
-                                      BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                      WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
-    if (result != TRUE) {
-        char msg[50];
-        bpacket_get_error(result, msg);
-        printf("%s\n", msg);
+    /* Need to retrieve ESP32 settings to display them on GUI */
+    // Create bpacket requests
+    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_STM32, BP_ADDRESS_S_MAPLE,
+                         WD_BPK_R_GET_CAPTURE_TIME_SETTINGS, BP_CODE_EXECUTE, 0, NULL) != TRUE) {
+        printf("Bpacket creating failed. File %s on line %d with error %i\n", __FILE__, __LINE__,
+               GUI_TRANSMIT_BPACKET()->status);
+    } else {
+        bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
     }
 
-    bpacket_increment_circular_buffer_index(guiToMainCircularBuffer->writeIndex);
+    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_GET_CAMERA_SETTINGS,
+                         BP_CODE_EXECUTE, 0, NULL) != TRUE) {
+        printf("Bpacket creating failed. File %s on line %d with error %i\n", __FILE__, __LINE__,
+               GUI_TRANSMIT_BPACKET()->status);
+    } else {
+        bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
+    }
 
     bpacket_t* receivedBpacket;
-    settingsFlag = FALSE;
+    uint8_t numSettingsUpdated = 0;
 
-    // Before it goes into the main loop the settings need to be returned
-    while (settingsFlag == FALSE) {
+    // Before it goes into the main loop the settings from the ESP32 need to be retreived
+    while (numSettingsUpdated < 2) {
 
-        if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+        if (*guiReceiveBuffer->rIndex != *guiReceiveBuffer->wIndex) {
 
-            receivedBpacket = MTG_CB_CURRENT_BPACKET;
-            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
+            receivedBpacket = GUI_RECIEVE_BPACKET();
+            bpacket_increment_circular_buffer_index(guiReceiveBuffer->rIndex);
 
-            if (receivedBpacket->request == WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) {
-                printf("CUNT 5\n");
-                wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
-                settingsFlag = TRUE;
+            if (receivedBpacket->request == WD_BPK_R_GET_CAPTURE_TIME_SETTINGS.val) {
+                uint8_t code = wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
+                printf("Received capture time settings %i with code %i\n", captureTime.startTime.hour, code);
+                numSettingsUpdated++;
                 text_box_default_text(captureTime);
                 continue;
             }
 
-            // if (receivedBpacket->request != BPACKET_GEN_R_MESSAGE) {
-            //     char packetInfo[100];
-            //     bpacket_get_info(receivedBpacket, packetInfo);
-            //     printf(packetInfo);
-            // }
+            if (receivedBpacket->request == WD_BPK_R_GET_CAMERA_SETTINGS.val) {
+                uint8_t code = wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
+                printf("Received camera settings %i with code %i\n", cameraSettings.resolution, code);
+                numSettingsUpdated++;
+                continue;
+            }
         }
     }
 
@@ -872,20 +913,17 @@ DWORD WINAPI gui(void* arg) {
         }
 
         // If a Bpacket is received from main, deal with it in here
-        if (*mainToGuiCircularBuffer->readIndex != *mainToGuiCircularBuffer->writeIndex) {
+        if (*guiReceiveBuffer->rIndex != *guiReceiveBuffer->wIndex) {
 
-            receivedBpacket = MTG_CB_CURRENT_BPACKET;
-            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer->readIndex);
-            if (receivedBpacket->code != TRUE) {
-
+            receivedBpacket = GUI_RECIEVE_BPACKET();
+            bpacket_increment_circular_buffer_index(guiReceiveBuffer->rIndex);
+            if (receivedBpacket->code != BP_CODE_SUCCESS.val) {
                 char msg[50];
                 bpacket_get_info(receivedBpacket, msg);
-                printf(msg);
-
-                printf("The code of the Bpacket wasn't 'success'\n"); // TODO: make this a better print
+                printf("Gui received erronous bpacket with code: %s\n", msg);
             }
 
-            if (receivedBpacket->request == GUI_BPK_R_UPDATE_STREAM_IMAGE) {
+            if (receivedBpacket->request == WD_BPK_R_STREAM_IMAGE.val) {
                 // Clear the screen
                 rectangle_t rectangle;
                 rectangle.startX = COL_1;
@@ -895,14 +933,10 @@ DWORD WINAPI gui(void* arg) {
                 draw_rectangle(hwnd, &rectangle, 255, 255, 255);
                 draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
             }
+
             // The bpacket is now received, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
         }
-        // switch (receivedBpacket->request) {
-        //     case WATCHDOG_BPK_R_GET_DATETIME:
-
-        //         break;
-        // }
     }
 
     return FALSE;

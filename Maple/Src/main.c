@@ -37,10 +37,11 @@
 #define MAPLE_MAX_ARGS     5
 #define PACKET_BUFFER_SIZE 50
 
-bpacket_circular_buffer_t guiToMainCircularBuffer1;
-bpacket_circular_buffer_t mainToGuiCircularBuffer1;
+bpacket_circular_buffer_t mapleReceiveBuffer;
+bpacket_circular_buffer_t mapleTransmitBuffer;
 
-#define GTM_CB_CURRENT_BPACKET (guiToMainCircularBuffer1.circularBuffer[*guiToMainCircularBuffer1.readIndex])
+#define MAPLE_RECEIVE_BUFFER()  (mapleReceiveBuffer.buffer[*mapleReceiveBuffer.rIndex])
+#define MAPLE_TRANSMIT_BUFFER() (mapleTransmitBuffer.buffer[*mapleTransmitBuffer.wIndex])
 
 /* Example of how to get a list of serial ports on the system.
  *
@@ -48,7 +49,8 @@ bpacket_circular_buffer_t mainToGuiCircularBuffer1;
 
 int check(enum sp_return result);
 void maple_print_bpacket_data(bpacket_t* bpacket);
-void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes, uint8_t* data);
+void maple_create_and_send_bpacket(const bp_request_t Request, const bp_receive_address_t Receiver,
+                                   uint8_t numDataBytes, uint8_t* data);
 void maple_create_and_send_sbpacket(uint8_t request, uint8_t receiver, char* string);
 void maple_print_uart_response(void);
 uint8_t maple_match_args(char** args, int numArgs);
@@ -92,10 +94,11 @@ bpacket_t* maple_get_next_bpacket_response(void) {
     return buffer;
 }
 
-void maple_create_and_send_bpacket(uint8_t request, uint8_t receiver, uint8_t numDataBytes, uint8_t* data) {
+void maple_create_and_send_bpacket(const bp_request_t Request, const bp_receive_address_t Receiver,
+                                   uint8_t numDataBytes, uint8_t* data) {
     bpacket_t bpacket;
     uint8_t result =
-        bpacket_create_p(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, BPACKET_CODE_EXECUTE, numDataBytes, data);
+        bp_create_packet(&bpacket, Receiver, BP_ADDRESS_S_MAPLE, Request, BP_CODE_EXECUTE, numDataBytes, data);
 
     if (result != TRUE) {
         char errMsg[50];
@@ -421,7 +424,7 @@ uint8_t maple_stream(char* cpyFileName) {
     }
 
     // Send command to copy file. Keeping reading until no more data to send across
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_STREAM_IMAGE, BP_ADDRESS_R_ESP32, 0, NULL);
 
     int packetsFinished = FALSE;
     clock_t startTime;
@@ -484,18 +487,11 @@ int main(int argc, char** argv) {
 
     printf("Connected to port %s\n", sp_get_port_name(activePort));
 
-    maple_test();
+    bpacket_circular_buffer_t mapleReceiveBuffer;
+    bpacket_create_circular_buffer(&mapleReceiveBuffer, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
 
-    // maple_stream("testImage.jpg");
-    // printf("File saved\n");
-
-    maple_command_line();
-
-    bpacket_circular_buffer_t guiToMainCircularBuffer1;
-    bpacket_create_circular_buffer(&guiToMainCircularBuffer1, &guiWriteIndex, &mainReadIndex, &guiToMainBpackets[0]);
-
-    bpacket_circular_buffer_t mainToGuiCircularBuffer1;
-    bpacket_create_circular_buffer(&mainToGuiCircularBuffer1, &mainWriteIndex, &guiReadIndex, &mainToGuiBpackets[0]);
+    bpacket_circular_buffer_t mapleTransmitBuffer;
+    bpacket_create_circular_buffer(&mapleTransmitBuffer, &mainWriteIndex, &guiReadIndex, &mainToGuiBpackets[0]);
 
     watchdog_info_t watchdogInfo;
     watchdogInfo.id               = packetBuffer[packetPendingIndex].bytes[0];
@@ -513,11 +509,11 @@ int main(int argc, char** argv) {
     gui_initalisation_t guiInit;
     guiInit.watchdog  = &watchdogInfo;
     guiInit.flags     = &flags;
-    guiInit.guiToMain = &guiToMainCircularBuffer1;
-    guiInit.mainToGui = &mainToGuiCircularBuffer1;
+    guiInit.guiToMain = &mapleReceiveBuffer;
+    guiInit.mainToGui = &mapleTransmitBuffer;
 
-    guiInit.guiToMain = &guiToMainCircularBuffer1;
-    guiInit.mainToGui = &mainToGuiCircularBuffer1;
+    guiInit.guiToMain = &mapleReceiveBuffer;
+    guiInit.mainToGui = &mapleTransmitBuffer;
 
     HANDLE guiThread = CreateThread(NULL, 0, gui, &guiInit, 0, NULL);
 
@@ -531,17 +527,23 @@ int main(int argc, char** argv) {
 
     while (1) {
         // If a bpacket is recieved from the Gui, deal with it in here
-        if (*guiToMainCircularBuffer1.readIndex != *guiToMainCircularBuffer1.writeIndex) {
-            uint8_t sendStatus = maple_send_bpacket(GTM_CB_CURRENT_BPACKET);
+        if (*mapleReceiveBuffer.rIndex != *mapleReceiveBuffer.wIndex) {
+            uint8_t sendStatus = maple_send_bpacket(MAPLE_RECEIVE_BUFFER());
             if (sendStatus != TRUE) {
                 char* sendBpErrorMsg = "HOPEFULLY THIS WILL BE OVERRIDEN IF THERE IS AN ERROR\n";
                 bpacket_get_error(sendStatus, sendBpErrorMsg);
                 printf("%s\n", sendBpErrorMsg);
             }
 
-            // printf("Sending Request %i\n", GTM_CB_CURRENT_BPACKET->request);
+            // printf("Sending Request %i\n", MAPLE_RECEIVE_BUFFER()->request);
 
-            bpacket_increment_circular_buffer_index(guiToMainCircularBuffer1.readIndex);
+            bpacket_increment_circular_buffer_index(mapleReceiveBuffer.rIndex);
+        }
+
+        // Close thread and exit program if GUI closes
+        if ((flags & GUI_CLOSE) != 0) {
+            TerminateThread(thread, 0);
+            break;
         }
 
         // If their is a bpacket put into the packet buffer, it gets put in the main-to-gui circular
@@ -573,10 +575,9 @@ int main(int argc, char** argv) {
                     }
                     fclose(streamImage);
                     // Create Bpacket to update the thing
-                    bpacket_create_p(mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex],
-                                     BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_MAPLE, BPACKET_CODE_EXECUTE,
-                                     GUI_BPK_R_UPDATE_STREAM_IMAGE, 0, NULL);
-                    bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer1.writeIndex);
+                    bp_create_packet(MAPLE_TRANSMIT_BUFFER(), BP_ADDRESS_R_MAPLE, BP_ADDRESS_S_MAPLE,
+                                     WD_BPK_R_STREAM_IMAGE, BP_CODE_EXECUTE, 0, NULL);
+                    bpacket_increment_circular_buffer_index(mapleTransmitBuffer.wIndex);
                 } else if (receivedBpacket->code == BPACKET_CODE_IN_PROGRESS) {
                     for (int i = 0; i < receivedBpacket->numBytes; i++) {
                         fputc(receivedBpacket->bytes[i], streamImage);
@@ -585,11 +586,11 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            mainToGuiCircularBuffer1.circularBuffer[*mainToGuiCircularBuffer1.writeIndex] = receivedBpacket;
+            MAPLE_TRANSMIT_BUFFER() = receivedBpacket;
 
             // Increae write index of the main to gui circular buffer so that it can be parsed to
             // the GUI
-            bpacket_increment_circular_buffer_index(mainToGuiCircularBuffer1.writeIndex);
+            bpacket_increment_circular_buffer_index(mapleTransmitBuffer.wIndex);
         }
     }
 
@@ -689,13 +690,13 @@ uint8_t maple_match_args(char** args, int numArgs) {
         case 1:
 
             if (chars_same(args[0], "help\0") == TRUE) {
-                maple_create_and_send_bpacket(BPACKET_GEN_R_HELP, BPACKET_ADDRESS_STM32, 0, NULL);
+                maple_create_and_send_bpacket(BP_GEN_R_HELP, BP_ADDRESS_R_STM32, 0, NULL);
                 return TRUE;
             }
 
             if (chars_same(args[0], "ping\0") == TRUE) {
                 uint8_t ping = WATCHDOG_PING_CODE_STM32;
-                maple_create_and_send_bpacket(BPACKET_GEN_R_PING, BPACKET_ADDRESS_ESP32, 1, &ping);
+                maple_create_and_send_bpacket(BP_GEN_R_PING, BP_ADDRESS_R_ESP32, 1, &ping);
                 if (maple_response_is_valid(BPACKET_GEN_R_PING, 1000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
@@ -715,7 +716,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
             }
 
             if (chars_same(args[0], "photo\0") == TRUE) {
-                maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_ADDRESS_STM32, 0, NULL);
+                maple_create_and_send_bpacket(WD_BPK_R_TAKE_PHOTO, BP_ADDRESS_R_STM32, 0, NULL);
                 if (maple_response_is_valid(WATCHDOG_BPK_R_TAKE_PHOTO, 10000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
@@ -726,7 +727,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
             }
 
             if (chars_same(args[0], "settings\0") == TRUE) {
-                maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
+                maple_create_and_send_bpacket(WD_BPK_R_GET_CAPTURE_TIME_SETTINGS, BP_ADDRESS_R_STM32, 0, NULL);
                 if (maple_response_is_valid(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 3000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
@@ -756,7 +757,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
 
             if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
                 chars_same(args[2], "on\0") == TRUE) {
-                maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_ESP32, 0, NULL);
+                maple_create_and_send_bpacket(WD_BPK_R_LED_RED_ON, BP_ADDRESS_R_ESP32, 0, NULL);
                 if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
@@ -768,7 +769,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
 
             if (chars_same(args[0], "led\0") == TRUE && chars_same(args[1], "red\0") == TRUE &&
                 chars_same(args[2], "off\0") == TRUE) {
-                maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_ADDRESS_ESP32, 0, NULL);
+                maple_create_and_send_bpacket(WD_BPK_R_LED_RED_OFF, BP_ADDRESS_R_ESP32, 0, NULL);
                 if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == TRUE) {
                     printf("%sCommand executed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
                 } else {
@@ -816,7 +817,7 @@ uint8_t maple_restart_esp32(void) {
     // get the capture time settings from the esp32 we can know whether the capture time settings set above
     // were saved to the SD card or not
     bpacket_t* stateBpacket;
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_TURN_OFF, BPACKET_ADDRESS_STM32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_TURN_OFF, BP_ADDRESS_R_STM32, 0, NULL);
     if (maple_get_response(&stateBpacket, WATCHDOG_BPK_R_TURN_OFF, 1000) != TRUE) {
         printf("%sTurning the ESP32 off failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         return FALSE;
@@ -827,7 +828,7 @@ uint8_t maple_restart_esp32(void) {
 
     // Delay of 1500ms because the STM32 will automatically delay for 1s when turning the esp32
     // so it has enough time to boot up
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_TURN_ON, BPACKET_ADDRESS_STM32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_TURN_ON, BP_ADDRESS_R_STM32, 0, NULL);
     if (maple_get_response(&stateBpacket, WATCHDOG_BPK_R_TURN_ON, 2000) != TRUE) {
         printf("%sTurning the ESP32 on failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         return FALSE;
@@ -842,40 +843,40 @@ void maple_test(void) {
     uint8_t result = 0;
     uint8_t failed = FALSE;
     char msg[100];
-
+    // while (1) {}
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Turn the red LED on */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_STM32, 0, NULL);
-    // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
-    //     failed = TRUE;
-    // }
+    maple_create_and_send_bpacket(WD_BPK_R_LED_RED_ON, BP_ADDRESS_R_STM32, 0, NULL);
+    if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
+        failed = TRUE;
+    }
 
-    // /* Turn the red LED off */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_ADDRESS_STM32, 0, NULL);
-    // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == FALSE) {
-    //     printf("%sTurning the red LED off via STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    /* Turn the red LED off */
+    maple_create_and_send_bpacket(WD_BPK_R_LED_RED_OFF, BP_ADDRESS_R_STM32, 0, NULL);
+    if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == FALSE) {
+        printf("%sTurning the red LED off via STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // /* Turn the red LED on directly */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_ON, BPACKET_ADDRESS_ESP32, 0, NULL);
-    // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
-    //     printf("%sTurning the red LED on directly failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    /* Turn the red LED on directly */
+    maple_create_and_send_bpacket(WD_BPK_R_LED_RED_ON, BP_ADDRESS_R_ESP32, 0, NULL);
+    if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_ON, 2000) == FALSE) {
+        printf("%sTurning the red LED on directly failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // /* Turn the red LED off directly */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_LED_RED_OFF, BPACKET_ADDRESS_ESP32, 0, NULL);
-    // if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == FALSE) {
-    //     printf("%sTurning the red LED off directly failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-    //     failed = TRUE;
-    // }
+    /* Turn the red LED off directly */
+    maple_create_and_send_bpacket(WD_BPK_R_LED_RED_OFF, BP_ADDRESS_R_ESP32, 0, NULL);
+    if (maple_response_is_valid(WATCHDOG_BPK_R_LED_RED_OFF, 2000) == FALSE) {
+        printf("%sTurning the red LED off directly failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
+        failed = TRUE;
+    }
 
-    // if (failed == FALSE) {
-    //     printf("%sLED tests passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
-    // }
-
+    if (failed == FALSE) {
+        printf("%sLED tests passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+    }
+    // while (1) {}
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Set the datetime on the STM32 */
@@ -899,7 +900,7 @@ void maple_test(void) {
     // }
 
     // /* Get the datetime from the STM32 */
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_DATETIME, BPACKET_ADDRESS_STM32, 0, NULL);
+    // maple_create_and_send_bpacket(WD_BPK_R_GET_DATETIME, BP_ADDRESS_R_STM32, 0, NULL);
     // if (maple_get_response(&datetimeBpacket, WATCHDOG_BPK_R_GET_DATETIME, 1000) != TRUE) {
     //     printf("%sGetting the datetime from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
     //     failed = TRUE;
@@ -989,7 +990,7 @@ void maple_test(void) {
 
     /* Test Getting the Camera Settings */
 
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_GET_CAMERA_SETTINGS, BP_ADDRESS_R_ESP32, 0, NULL);
     if (maple_get_response(&cameraSettingsBpacket, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, 1000) != TRUE) {
         printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
@@ -1074,7 +1075,7 @@ void maple_test(void) {
 
     /* Test Getting the Watchdog Capture Time from the STM32 */
     bpacket_t* captureTimeSettingsBpacket;
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_STM32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_GET_CAPTURE_TIME_SETTINGS, BP_ADDRESS_R_STM32, 0, NULL);
     if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
         printf("%sGetting the capture time settings from the STM32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
@@ -1088,7 +1089,7 @@ void maple_test(void) {
     }
 
     /* Test Getting the Watchdog Capture Time from the ESP32 */
-    maple_create_and_send_bpacket(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_ADDRESS_ESP32, 0, NULL);
+    maple_create_and_send_bpacket(WD_BPK_R_GET_CAPTURE_TIME_SETTINGS, BP_ADDRESS_R_ESP32, 0, NULL);
     if (maple_get_response(&captureTimeSettingsBpacket, WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, 1000) != TRUE) {
         printf("%sGetting the capture time settings from ESP32 failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         failed = TRUE;
@@ -1109,7 +1110,7 @@ void maple_test(void) {
 
     /* Test Taking a Photo */
     // bpacket_t* photoBpacket;
-    // maple_create_and_send_bpacket(WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_ADDRESS_STM32, 0, NULL);
+    // maple_create_and_send_bpacket(WD_BPK_R_TAKE_PHOTO, BP_ADDRESS_R_STM32, 0, NULL);
     // if (maple_get_response(&photoBpacket, WATCHDOG_BPK_R_TAKE_PHOTO, 5000) != TRUE) {
     //     printf("%sTaking a photo failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
     //     failed = TRUE;
@@ -1242,7 +1243,7 @@ void maple_test(void) {
     // FILE* streamImage;
     // if ((streamImage = fopen("streamImage.jpg", "wb")) != NULL) {
 
-    //     maple_create_and_send_bpacket(WATCHDOG_BPK_R_STREAM_IMAGE, BPACKET_ADDRESS_ESP32, 0, NULL);
+    //     maple_create_and_send_bpacket(WD_BPK_R_STREAM_IMAGE, BP_ADDRESS_R_ESP32, 0, NULL);
 
     //     uint8_t fileTransfered = FALSE;
     //     clock_t time           = clock();

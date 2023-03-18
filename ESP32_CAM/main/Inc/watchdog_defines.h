@@ -93,6 +93,25 @@
 #define WATCHDOG_BPK_R_TURN_OFF                  (BPACKET_SPECIFIC_R_OFFSET + 20)
 #define WATCHDOG_BPK_OFFSET                      (BPACKET_SPECIFIC_R_OFFSET + 21)
 
+static const bp_request_t WD_BPK_R_LIST_DIR                  = {.val = WATCHDOG_BPK_R_LIST_DIR};
+static const bp_request_t WD_BPK_R_COPY_FILE                 = {.val = WATCHDOG_BPK_R_COPY_FILE};
+static const bp_request_t WD_BPK_R_TAKE_PHOTO                = {.val = WATCHDOG_BPK_R_TAKE_PHOTO};
+static const bp_request_t WD_BPK_R_WRITE_TO_FILE             = {.val = WATCHDOG_BPK_R_WRITE_TO_FILE};
+static const bp_request_t WD_BPK_R_RECORD_DATA               = {.val = WATCHDOG_BPK_R_RECORD_DATA};
+static const bp_request_t WD_BPK_R_LED_RED_ON                = {.val = WATCHDOG_BPK_R_LED_RED_ON};
+static const bp_request_t WD_BPK_R_LED_RED_OFF               = {.val = WATCHDOG_BPK_R_LED_RED_OFF};
+static const bp_request_t WD_BPK_R_CAMERA_VIEW               = {.val = WATCHDOG_BPK_R_CAMERA_VIEW};
+static const bp_request_t WD_BPK_R_GET_DATETIME              = {.val = WATCHDOG_BPK_R_GET_DATETIME};
+static const bp_request_t WD_BPK_R_SET_DATETIME              = {.val = WATCHDOG_BPK_R_SET_DATETIME};
+static const bp_request_t WD_BPK_R_GET_CAMERA_SETTINGS       = {.val = WATCHDOG_BPK_R_GET_CAMERA_SETTINGS};
+static const bp_request_t WD_BPK_R_SET_CAMERA_SETTINGS       = {.val = WATCHDOG_BPK_R_SET_CAMERA_SETTINGS};
+static const bp_request_t WD_BPK_R_GET_STATUS                = {.val = WATCHDOG_BPK_R_GET_STATUS};
+static const bp_request_t WD_BPK_R_GET_CAPTURE_TIME_SETTINGS = {.val = WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS};
+static const bp_request_t WD_BPK_R_SET_CAPTURE_TIME_SETTINGS = {.val = WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS};
+static const bp_request_t WD_BPK_R_STREAM_IMAGE              = {.val = WATCHDOG_BPK_R_STREAM_IMAGE};
+static const bp_request_t WD_BPK_R_TURN_ON                   = {.val = WATCHDOG_BPK_R_TURN_ON};
+static const bp_request_t WD_BPK_R_TURN_OFF                  = {.val = WATCHDOG_BPK_R_TURN_OFF};
+
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
 

@@ -51,7 +51,7 @@ int check(enum sp_return result);
 void maple_print_bpacket_data(bpacket_t* bpacket);
 void maple_create_and_send_bpacket(const bp_request_t Request, const bp_receive_address_t Receiver,
                                    uint8_t numDataBytes, uint8_t* data);
-void maple_create_and_send_sbpacket(uint8_t request, uint8_t receiver, char* string);
+void maple_create_and_send_sbpacket(const bp_request_t Request, const bp_receive_address_t Receiver, char* string);
 void maple_print_uart_response(void);
 uint8_t maple_match_args(char** args, int numArgs);
 void maple_command_line(void);
@@ -112,11 +112,10 @@ void maple_create_and_send_bpacket(const bp_request_t Request, const bp_receive_
     }
 }
 
-void maple_create_and_send_sbpacket(uint8_t request, uint8_t receiver, char* string) {
+void maple_create_and_send_sbpacket(const bp_request_t Request, const bp_receive_address_t Receiver, char* string) {
     bpacket_t bpacket;
 
-    uint8_t result =
-        bpacket_create_sp(&bpacket, receiver, BPACKET_ADDRESS_MAPLE, request, BPACKET_CODE_EXECUTE, string);
+    uint8_t result = bp_create_string_packet(&bpacket, Receiver, BP_ADDRESS_S_MAPLE, Request, BP_CODE_EXECUTE, string);
 
     if (result != TRUE) {
         char errMsg[50];
@@ -365,8 +364,7 @@ uint8_t maple_connect_to_device(uint8_t address, uint8_t pingCode) {
         // Send a ping
         bpacket_t bpacket;
         bpacket_buffer_t bpacketBuffer;
-        bpacket_create_p(&bpacket, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING,
-                         BPACKET_CODE_EXECUTE, 0, NULL);
+        bp_create_packet(&bpacket, BP_ADDRESS_R_STM32, BP_ADDRESS_S_MAPLE, BP_GEN_R_PING, BP_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&bpacket, &bpacketBuffer);
 
         if (sp_blocking_write(activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) < 0) {
@@ -711,7 +709,7 @@ uint8_t maple_match_args(char** args, int numArgs) {
             }
 
             if (chars_same(args[0], "ls\0") == TRUE) {
-                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, BPACKET_ADDRESS_ESP32, "\0");
+                maple_create_and_send_sbpacket(WD_BPK_R_LIST_DIR, BP_ADDRESS_R_ESP32, "\0");
                 return TRUE;
             }
 
@@ -742,12 +740,12 @@ uint8_t maple_match_args(char** args, int numArgs) {
         case 2:
 
             if (chars_same(args[0], "ls\0") == TRUE) {
-                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_LIST_DIR, BPACKET_ADDRESS_ESP32, args[1]);
+                maple_create_and_send_sbpacket(WD_BPK_R_LIST_DIR, BP_ADDRESS_R_ESP32, args[1]);
                 return TRUE;
             }
 
             if (chars_same(args[0], "cpy\0") == TRUE) {
-                maple_create_and_send_sbpacket(WATCHDOG_BPK_R_COPY_FILE, BPACKET_ADDRESS_ESP32, args[1]);
+                maple_create_and_send_sbpacket(WD_BPK_R_COPY_FILE, BP_ADDRESS_R_ESP32, args[1]);
                 return TRUE;
             }
 
@@ -1185,7 +1183,7 @@ void maple_test(void) {
     //         // Append the data folder to the image
     //         char fileName[50];
     //         sprintf(fileName, "%s/%s", DATA_FOLDER_PATH, imageFileName);
-    //         maple_create_and_send_sbpacket(WATCHDOG_BPK_R_COPY_FILE, BPACKET_ADDRESS_ESP32, fileName);
+    //         maple_create_and_send_sbpacket(WD_BPK_R_COPY_FILE, BP_ADDRESS_R_ESP32, fileName);
 
     //         uint8_t fileTransfered = FALSE;
     //         clock_t time           = clock();

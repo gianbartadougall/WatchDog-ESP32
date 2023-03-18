@@ -185,19 +185,19 @@ void watchdog_system_start(void) {
         switch (bpacket.request) {
 
             case BPACKET_GEN_R_PING:
-                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 1, &ping);
+                bp_convert_to_response(&bpacket, BP_CODE_SUCCESS, 1, &ping);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
 
             case WATCHDOG_BPK_R_LED_RED_ON:
                 led_on(RED_LED);
-                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
+                bp_convert_to_response(&bpacket, BP_CODE_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
 
             case WATCHDOG_BPK_R_LED_RED_OFF:
                 led_off(RED_LED);
-                bpacket_create_p(&bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
+                bp_convert_to_response(&bpacket, BP_CODE_SUCCESS, 0, NULL);
                 esp32_uart_send_bpacket(&bpacket);
                 break;
 
@@ -238,8 +238,8 @@ uint8_t software_config(bpacket_t* bpacket) {
         return FALSE;
     }
 
-    bpacket_create_p(bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
-                     BPACKET_CODE_EXECUTE, 0, NULL);
+    bp_create_packet(bpacket, BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_GET_CAMERA_SETTINGS, BP_CODE_EXECUTE, 0,
+                     NULL);
 
     if (sd_card_format_sd_card(bpacket) != TRUE) {
         esp32_uart_send_bpacket(bpacket);

@@ -290,7 +290,7 @@ uint8_t sd_card_list_directory(bpacket_t* bpacket, bpacket_char_array_t* bpacket
     }
 
     if (in == FALSE) {
-        bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
+        bp_convert_to_response(bpacket, BP_CODE_SUCCESS, 0, NULL);
         esp32_uart_send_bpacket(bpacket);
     }
 
@@ -338,7 +338,7 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, bpacket_t* bpacket) 
     fprintf(file, string);
     fclose(file);
 
-    bpacket_create_p(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, 0, NULL);
+    bp_convert_to_response(bpacket, BP_CODE_SUCCESS, 0, NULL);
     return TRUE;
 }
 
@@ -1004,8 +1004,8 @@ uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings) {
 
     // Create a bpacket with the correct information to read camera settings
     bpacket_t bpacket;
-    bpacket_create_p(&bpacket, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_CAMERA_SETTINGS,
-                     BPACKET_CODE_EXECUTE, 0, NULL);
+    bp_create_packet(&bpacket, BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_GET_CAMERA_SETTINGS, BP_CODE_EXECUTE, 0,
+                     NULL);
 
     if (sd_card_read_settings(&bpacket) != TRUE) {
         bpacket_create_sp(&bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, BPACKET_GEN_R_MESSAGE,

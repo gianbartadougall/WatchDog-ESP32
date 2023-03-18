@@ -17,7 +17,7 @@
 /* Personal Includes */
 #include "bpacket.h"
 
-uint8_t com_ports_open_connection(uint8_t address, uint8_t pingResponse);
+uint8_t com_ports_open_connection(const bp_receive_address_t RAddress, uint8_t pingResponse);
 
 uint8_t com_ports_close_connection(void);
 

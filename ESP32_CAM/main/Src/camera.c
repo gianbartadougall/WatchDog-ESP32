@@ -144,8 +144,7 @@ void camera_stream_image(bpacket_t* bpacket) {
     camera_fb_t* image = NULL;
 
     if (camera_capture_image(&image) != TRUE) {
-        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                          "Camera could not taken photo\r\n\0");
+        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Camera could not taken photo\r\n\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -153,8 +152,7 @@ void camera_stream_image(bpacket_t* bpacket) {
     // Image was able to be taken. Send image back to sender
     if (bpacket_send_data(esp32_uart_send_data, bpacket->sender, bpacket->receiver, bpacket->request, image->buf,
                           image->len) != TRUE) {
-        bpacket_create_sp(bpacket, bpacket->sender, bpacket->receiver, bpacket->request, BPACKET_CODE_ERROR,
-                          "Failed to send image\r\n\0");
+        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Failed to send image\r\n\0");
         esp32_uart_send_bpacket(bpacket);
     }
 
@@ -171,14 +169,14 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Confirm camera has been initialised
     if (cameraInitalised != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Camera was unitailised\0");
+        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Camera was unitailised\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
 
     // Confirm the SD card can be mounted
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "SD card could not open\0");
+        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "SD card could not open\0");
         esp32_uart_send_bpacket(bpacket);
         return;
     }
@@ -189,7 +187,7 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_ERROR, "Failed to take a photo\0");
+        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Failed to take a photo\0");
         esp32_uart_send_bpacket(bpacket);
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
     } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != TRUE) {
@@ -198,7 +196,7 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
         char msg[100];
         sprintf(msg, "Image was %zu bytes", pic->len);
         sd_card_log(SYSTEM_LOG_FILE, msg);
-        bpacket_create_sp(bpacket, sender, receiver, request, BPACKET_CODE_SUCCESS, msg);
+        bp_convert_to_string_response(bpacket, BP_CODE_SUCCESS, msg);
         esp32_uart_send_bpacket(bpacket);
     }
 

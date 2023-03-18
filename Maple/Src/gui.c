@@ -627,17 +627,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_LED_RED_ON, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_LED_RED_ON,
+                                 BP_CODE_EXECUTE, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
                 // TODO: decide what is going to happen when this button is clicked
-
-                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_LED_RED_OFF, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_LED_RED_OFF,
+                                 BP_CODE_EXECUTE, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
                 // printf("Exporting SD card data\n");
             }
@@ -653,8 +652,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 rectangle.startY = ROW_3;
                 rectangle.width  = 600;
                 rectangle.height = 480;
-                bpacket_create_p(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-                                 BPACKET_CODE_EXECUTE, WATCHDOG_BPK_R_STREAM_IMAGE, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_STREAM_IMAGE,
+                                 BP_CODE_EXECUTE, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
 
                 draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);

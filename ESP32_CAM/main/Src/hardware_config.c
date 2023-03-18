@@ -21,8 +21,8 @@ uint8_t hardware_config(bpacket_t* bpacket) {
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
     if (sd_card_open() != TRUE) {
-        bpacket_create_sp(bpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_ESP32, request, BPACKET_CODE_ERROR,
-                          "SD Card failed to init\0");
+        bp_create_string_packet(bpacket, BP_ADDRESS_R_MAPLE, BP_ADDRESS_S_ESP32, BP_GEN_R_MESSAGE, BP_CODE_ERROR,
+                                "SD Card failed to init\0");
         return FALSE;
     }
 

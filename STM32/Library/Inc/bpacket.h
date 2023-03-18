@@ -25,9 +25,6 @@
 #define BPACKET_STOP_BYTE_UPPER 'j'
 #define BPACKET_STOP_BYTE_LOWER 'Y'
 
-// #define BPACKET_START_BYTE 'A'
-// #define BPACKET_STOP_BYTE  'B'
-
 /**
  * @brief BPacket codes. These gives context to the
  * request in a bpacket.
@@ -64,6 +61,7 @@
 #define BPACKET_RECEIVER_IS_INVALID(receiver) ((receiver > BPACKET_ADDRESS_15) == TRUE)
 #define BPACKET_REQUEST_IS_INVALID(request)   ((request > 31) == TRUE) // Max value for request is 31
 
+#define BP_DEFAULT_DATA_VALUE 0
 /**
  * @brief The address byte in the bpacket is one byte.
  * The byte is split up into the receiver (first four
@@ -232,6 +230,10 @@ typedef struct bp_request_t {
     const uint8_t val;
 } bp_request_t;
 
+typedef struct bp_status_t {
+    const uint8_t val;
+} bp_status_t;
+
 static const bp_send_address_t BP_ADDRESS_S_STM32 = {.val = BPACKET_ADDRESS_STM32};
 static const bp_send_address_t BP_ADDRESS_S_ESP32 = {.val = BPACKET_ADDRESS_ESP32};
 static const bp_send_address_t BP_ADDRESS_S_MAPLE = {.val = BPACKET_ADDRESS_MAPLE};
@@ -254,6 +256,9 @@ static const bp_request_t BP_GEN_R_PING    = {.val = BPACKET_GEN_R_PING};
 static const bp_request_t BP_GEN_R_STATUS  = {.val = BPACKET_GET_R_STATUS};
 static const bp_request_t BP_GEN_R_MESSAGE = {.val = BPACKET_GEN_R_MESSAGE};
 
+static const bp_status_t BP_STATUS_STRING_PACKET_CREATION_FAILED          = {.val = 96};
+static const bp_status_t BP_STATUS_STRING_PACKET_RESPONSE_CREATION_FAILED = {.val = 97};
+
 void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 
 void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
@@ -266,6 +271,10 @@ uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, u
 
 uint8_t bp_create_packet(bpacket_t* bpacket, const bp_receive_address_t RAddress, const bp_send_address_t SAddress,
                          const bp_request_t Request, const bp_code_t Code, uint8_t numDataBytes, uint8_t* data);
+
+uint8_t bp_create_string_packet(bpacket_t* bpacket, const bp_receive_address_t RAddress,
+                                const bp_send_address_t SAddress, const bp_request_t Request, const bp_code_t Code,
+                                char* string);
 
 uint8_t bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                           char* string);
@@ -281,6 +290,10 @@ void bpacket_get_info(bpacket_t* bpacket, char* string);
 void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex);
 
 void bpacket_get_error(uint8_t bpacketError, char* errorMsg);
+
+void bp_convert_to_response(bpacket_t* Bpacket, bp_code_t Code, uint8_t numBytes, uint8_t* data);
+
+uint8_t bp_convert_to_string_response(bpacket_t* Bpacket, bp_code_t Code, char* string);
 
 /* Bpacket helper functions */
 void bpacket_bytes_is_start_byte(void);

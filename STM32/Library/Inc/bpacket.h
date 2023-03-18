@@ -48,8 +48,7 @@
 #define BPACKET_CODE_TODO        5
 #define BPACKET_CODE_DEBUG       6
 #define BPACKET_CODE_EMPTY_3     7 // Free spot for code to be added in future if needed
-#define BPACKET_CODE_EMPTY_4     8 // Free spot for code to be added in future if needed
-#define BPACKET_MAX_CODE_VALUE   8
+#define BPACKET_MAX_CODE_VALUE   7
 
 #define BPACKET_MAX_REQUEST_VALUE 63 // Allow maximum of 63 different request values
 
@@ -58,7 +57,7 @@
 #define BPACKET_GEN_R_PING        (BPACKET_MIN_REQUEST_INDEX + 2)
 #define BPACKET_GET_R_STATUS      (BPACKET_MIN_REQUEST_INDEX + 3)
 #define BPACKET_GEN_R_MESSAGE     (BPACKET_MIN_REQUEST_INDEX + 4) // Used for debugging purposes and general messages
-#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 6) // This is the offset applied to specific projects
+#define BPACKET_SPECIFIC_R_OFFSET (BPACKET_MIN_REQUEST_INDEX + 5) // This is the offset applied to specific projects
 
 #define BPACKET_CODE_IS_INVALID(code)         ((code > BPACKET_CODE_EXECUTE) == TRUE)
 #define BPACKET_SENDER_IS_INVALID(sender)     ((sender > BPACKET_ADDRESS_15) == TRUE)
@@ -196,7 +195,8 @@ typedef struct bpacket_t {
      * failed
      */
     uint8_t code;
-    uint8_t bytes[BPACKET_MAX_NUM_DATA_BYTES]; // Minus 1 because this includes request
+    uint8_t bytes[BPACKET_MAX_NUM_DATA_BYTES];
+    uint8_t status; // Code from 0 - 255 which holds the current status of the bpacket
 } bpacket_t;
 
 typedef struct bpacket_buffer_t {
@@ -210,21 +210,62 @@ typedef struct bpacket_char_array_t {
 } bpacket_char_array_t;
 
 typedef struct bpacket_circular_buffer_t {
-    uint8_t* readIndex;  // The index that the writing end of the buffer would use to know where to put the bpacket
-    uint8_t* writeIndex; // The index that the reading end of the buffer would use to see if they are up to date with
-                         // the reading
-    bpacket_t* circularBuffer[BPACKET_CIRCULAR_BUFFER_SIZE];
+    uint8_t* rIndex; // The index that the writing end of the buffer would use to know where to put the bpacket
+    uint8_t* wIndex; // The index that the reading end of the buffer would use to see if they are up to date with
+                     // the reading
+    bpacket_t* buffer[BPACKET_CIRCULAR_BUFFER_SIZE];
 } bpacket_circular_buffer_t;
+
+typedef struct bp_send_address_t {
+    const uint8_t val;
+} bp_send_address_t;
+
+typedef struct bp_receive_address_t {
+    const uint8_t val;
+} bp_receive_address_t;
+
+typedef struct bp_code_t {
+    const uint8_t val;
+} bp_code_t;
+
+typedef struct bp_request_t {
+    const uint8_t val;
+} bp_request_t;
+
+static const bp_send_address_t BP_ADDRESS_S_STM32 = {.val = BPACKET_ADDRESS_STM32};
+static const bp_send_address_t BP_ADDRESS_S_ESP32 = {.val = BPACKET_ADDRESS_ESP32};
+static const bp_send_address_t BP_ADDRESS_S_MAPLE = {.val = BPACKET_ADDRESS_MAPLE};
+
+static const bp_receive_address_t BP_ADDRESS_R_STM32 = {.val = BPACKET_ADDRESS_STM32};
+static const bp_receive_address_t BP_ADDRESS_R_ESP32 = {.val = BPACKET_ADDRESS_ESP32};
+static const bp_receive_address_t BP_ADDRESS_R_MAPLE = {.val = BPACKET_ADDRESS_MAPLE};
+
+static const bp_code_t BP_CODE_ERROR       = {.val = BPACKET_CODE_ERROR};
+static const bp_code_t BP_CODE_SUCCESS     = {.val = BPACKET_CODE_SUCCESS};
+static const bp_code_t BP_CODE_IN_PROGRESS = {.val = BPACKET_CODE_IN_PROGRESS};
+static const bp_code_t BP_CODE_UNKNOWN     = {.val = BPACKET_CODE_UNKNOWN};
+static const bp_code_t BP_CODE_EXECUTE     = {.val = BPACKET_CODE_EXECUTE};
+static const bp_code_t BP_CODE_TODO        = {.val = BPACKET_CODE_TODO};
+static const bp_code_t BP_CODE_DEBUG       = {.val = BPACKET_CODE_DEBUG};
+static const bp_code_t BP_CODE_EMPTY_3     = {.val = BPACKET_CODE_EMPTY_3};
+
+static const bp_request_t BP_GEN_R_HELP    = {.val = BPACKET_GEN_R_HELP};
+static const bp_request_t BP_GEN_R_PING    = {.val = BPACKET_GEN_R_PING};
+static const bp_request_t BP_GEN_R_STATUS  = {.val = BPACKET_GET_R_STATUS};
+static const bp_request_t BP_GEN_R_MESSAGE = {.val = BPACKET_GEN_R_MESSAGE};
 
 void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 
 void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
-                                    bpacket_t* circularBuffer);
+                                    bpacket_t* buffer);
 
 uint8_t bpacket_buffer_decode(bpacket_t* bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
 uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                          uint8_t numDataBytes, uint8_t* data);
+
+uint8_t bp_create_packet(bpacket_t* bpacket, const bp_receive_address_t RAddress, const bp_send_address_t SAddress,
+                         const bp_request_t Request, const bp_code_t Code, uint8_t numDataBytes, uint8_t* data);
 
 uint8_t bpacket_create_sp(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
                           char* string);

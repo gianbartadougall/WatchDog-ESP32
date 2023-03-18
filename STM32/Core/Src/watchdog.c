@@ -61,7 +61,7 @@ wd_camera_capture_time_settings_t captureTime = {
     .intervalTime.hour   = 1,
 };
 
-uint8_t state    = S0_READ_WATCHDOG_SETTINGS;
+uint8_t state    = S1_INIT_RTC;
 uint8_t sleeping = FALSE;
 
 /* Function Prototypes */
@@ -75,6 +75,8 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket);
 void process_watchdog_stm32_request(bpacket_t* bpacket);
 void watchdog_report_success(uint8_t request);
 void watchdog_message_maple(char* string, uint8_t bpacketCode);
+void watchdog_calculate_rtc_alarm_time(void);
+void watchdog_request_esp32_take_photo(void);
 
 void bpacket_print(bpacket_t* bpacket) {
     char msg[BPACKET_BUFFER_LENGTH_BYTES + 2];
@@ -111,7 +113,7 @@ void watchdog_init(void) {
     watchdog_esp32_on();
 
     // Get the capture time and resolution settings from the ESP32
-    watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_GET_CAMERA_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
+    watchdog_message_maple("Reading watchdog settings\r\n", BPACKET_CODE_DEBUG);
     watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS, BPACKET_CODE_EXECUTE, 0, NULL);
 }
 
@@ -124,34 +126,6 @@ void watchdog_enter_state_machine(void) {
     while (1) {
 
         switch (state) {
-
-            case S0_READ_WATCHDOG_SETTINGS:
-                watchdog_message_maple("Reading watchdog settings\r\n", BPACKET_CODE_DEBUG);
-
-                // Turn the watchdog on
-                //                 watchdog_esp32_on();
-
-                //                 // Create bpacket request to send to watchdog
-                //                 watchdog_create_and_send_bpacket_to_esp32(WATCHDOG_BPK_R_GET_SETTINGS,
-                //                 BPACKET_CODE_EXECUTE, 0, NULL);
-
-                //                 // Read from watchdog
-                //                 while (comms_process_rxbuffer(ESP32_UART, &esp32Bpacket) != TRUE) {
-                //                     continue;
-                //                 }
-
-                //                 uint8_t result = wd_bpacket_to_settings(&esp32Bpacket, &wdSettings);
-
-                //                 if (result != TRUE) {
-
-                //                     break;
-                //                 }
-
-                // Turn watchdog off
-                // watchdog_esp32_off();
-
-                state = S1_INIT_RTC;
-                break;
 
             case S1_INIT_RTC:;
                 // watchdog_message_maple("Initialising RTC\r\n", BPACKET_CODE_DEBUG);
@@ -202,129 +176,17 @@ void watchdog_enter_state_machine(void) {
                 break;
 
             case S4_RECORD_DATA:
-                // watchdog_message_maple("Recording data\r\n", BPACKET_CODE_DEBUG);
-                // Record the current temperature
-                //                 if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
-                // #ifdef DEBUG
-                //                     watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to read temperature");
-                // #endif
-                //                 }
 
-                //                 ds18b20_temp_t temp;
-                //                 if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp) != TRUE) {
-                // #ifdef DEBUG
-                //                     watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to copy temperature");
-                // #endif
-                //                 }
+                watchdog_request_esp32_take_photo();
 
-                //                 // Turn Watchdog on
-                //                 watchdog_esp32_on();
-
-                //                 // Update the datetime struct
-                //                 stm32_rtc_read_datetime(&datetime);
-
-                //                 // Get the real time clock time and date. Put it in a packet and send to the ESP32
-                //                 bpacket_t photoRequest;
-                //                 uint8_t result1 = wd_datetime_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32,
-                //                 BPACKET_ADDRESS_STM32,
-                //                                                          WATCHDOG_BPK_R_TAKE_PHOTO,
-                //                                                          BPACKET_CODE_EXECUTE, &datetime);
-
-                //                 // Confirm datetime was able to be converted
-                //                 if (result1 != TRUE) {
-                // #ifdef DEBUG
-                //                     watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to convert datetime to
-                //                     bpacket");
-                // #endif
-                //                     break;
-                //                 }
-
-                //                 // Send request to take a photo
-                //                 watchdog_send_bpacket_to_esp32(&photoRequest);
-
-                //                 // Confirm photo was able to be taken
-                //                 uint32_t timeout;
-                //                 uint8_t overflow = FALSE;
-                //                 if ((UINT_32_BIT_MAX_VALUE - SysTick->VAL) <= 5000) {
-                //                     timeout  = 5000 - (UINT_32_BIT_MAX_VALUE - SysTick->VAL);
-                //                     overflow = TRUE;
-                //                 } else {
-                //                     timeout = SysTick->VAL + 5000;
-                //                 }
-
-                //                 while ((SysTick->VAL <= timeout) || (overflow == TRUE && timeout < SysTick->VAL)) {
-
-                //                     if (overflow == TRUE && timeout <= SysTick->VAL) {
-                //                         overflow = FALSE;
-                //                     }
-
-                //                     // Check if a request has been received
-                //                     while (comms_process_rxbuffer(ESP32_UART, &esp32Bpacket) != TRUE) {
-                //                         continue;
-                //                     }
-
-                //                     // Process bpacket
-                //                     if (esp32Bpacket.request != WATCHDOG_BPK_R_TAKE_PHOTO) {
-                // #ifdef DEBUG
-                //                         watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Unexpected packet
-                //                         received");
-                // #endif
-                //                         break;
-                //                     }
-
-                //                     if (esp32Bpacket.code != BPACKET_CODE_SUCCESS) {
-                // #ifdef DEBUG
-                //                         watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to take a photo");
-                // #endif
-                //                         break;
-                //                     }
-
-                //     state = S5_SET_RTC_ALARM;
-                //     break;
-                // }
-
-                // Turn the watchdog off
-                // watchdog_esp32_off();
-
-                //                 if (state != S5_SET_RTC_ALARM) {
-                // #ifdef DEBUG
-                //                     watchdog_report_error(WATCHDOG_BPK_R_TAKE_PHOTO, "Failed to get response");
-                // #endif
-                //                     state = S3_STM32_SLEEP;
-                //                 }
+                state = S3_STM32_SLEEP;
 
                 break;
 
             case S5_SET_RTC_ALARM:;
-                // watchdog_message_maple("Upating RTC Alarm\r\n", BPACKET_CODE_DEBUG);
 
-                // Get the current RTC time
-                dt_datetime_t alarmDateTime;
-                stm32_rtc_read_datetime(&alarmDateTime);
-
-                dt_time_t currentTime;
-                uint8_t nextAlarmFound = TRUE;
-
-                if (dt_time_init(&currentTime, 0, alarmDateTime.time.minute, alarmDateTime.time.hour) != TRUE) {
-                    nextAlarmFound = FALSE;
-                }
-
-                // Increment the day if the interval overflowed or the interval made the time past the end time
-                if ((dt_time_add_time(&currentTime, captureTime.intervalTime) != TRUE) &&
-                    (dt_time_t1_leq_t2(&currentTime, &captureTime.endTime) != TRUE)) {
-
-                    // Adding the interval caused the time to overflow (i.e hour > 23)
-                    dt_datetime_increment_day(&alarmDateTime);
-                    if (dt_datetime_set_time(&alarmDateTime, captureTime.startTime) != TRUE) {
-                        nextAlarmFound = FALSE;
-                    }
-                }
-
-                // Update the alarm if a valid one was calculated
-                if (nextAlarmFound == TRUE) {
-                    // watchdog_message_maple("Alarm updated\r\n", BPACKET_CODE_DEBUG);
-                    stm32_rtc_set_alarmA(&alarmDateTime);
-                }
+                watchdog_message_maple("Upating RTC Alarm\r\n", BPACKET_CODE_DEBUG);
+                watchdog_calculate_rtc_alarm_time();
 
                 state = S6_CHECK_INCOMING_REQUEST;
 
@@ -579,6 +441,9 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
                     break;
                 }
 
+                // // Update the RTC time
+                watchdog_calculate_rtc_alarm_time();
+
                 // Report success
                 watchdog_report_success(WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS);
                 break;
@@ -622,6 +487,72 @@ uint8_t stm32_match_esp32_request(bpacket_t* bpacket) {
     return TRUE;
 }
 
+void watchdog_calculate_rtc_alarm_time(void) {
+
+    // Check whether the current RTC time is before or after the current capture time state time
+    dt_datetime_t currentDateTime;
+    stm32_rtc_read_datetime(&currentDateTime);
+
+    if (dt_time_t1_leq_t2(&currentDateTime.time, &captureTime.startTime) == TRUE) {
+
+        // Set the alarm to be the start time of the capture time
+        dt_datetime_t alarmA = {
+            .time.second = 0,
+            .time.minute = captureTime.startTime.minute,
+            .time.hour   = captureTime.startTime.hour,
+            .date.day    = currentDateTime.date.day,
+            .date.month  = currentDateTime.date.month,
+            .date.year   = currentDateTime.date.year,
+        };
+        stm32_rtc_set_alarmA(&alarmA);
+
+    } else if (dt_time_t1_leq_t2(&captureTime.endTime, &currentDateTime.time) == TRUE) {
+
+        // Increment to the following day
+        dt_datetime_increment_day(&currentDateTime);
+
+        // Set the alarm to be the start time
+        dt_datetime_t alarmA = {
+            .time.second = 0,
+            .time.minute = captureTime.startTime.minute,
+            .time.hour   = captureTime.startTime.hour,
+            .date.day    = currentDateTime.date.day,
+            .date.month  = currentDateTime.date.month,
+            .date.year   = currentDateTime.date.year,
+        };
+
+        stm32_rtc_set_alarmA(&alarmA);
+
+    } else {
+
+        dt_time_t alarmTime;
+        dt_time_init(&alarmTime, captureTime.startTime.second, captureTime.startTime.minute,
+                     captureTime.startTime.hour);
+
+        // The next alarm is somewhere in between the start time and the end time
+        while (1) {
+
+            // Add interval time to the start time
+            dt_time_add_time(&alarmTime, captureTime.intervalTime);
+
+            // Check whether the time is now after the current RTC time
+            if (dt_time_t1_leq_t2(&currentDateTime.time, &alarmTime) == TRUE) {
+                // Set the alarm time
+                dt_datetime_t alarmA = {
+                    .time.second = 0,
+                    .time.minute = alarmTime.minute,
+                    .time.hour   = alarmTime.hour,
+                    .date.day    = currentDateTime.date.day,
+                    .date.month  = currentDateTime.date.month,
+                    .date.year   = currentDateTime.date.year,
+                };
+                stm32_rtc_set_alarmA(&alarmA);
+                break;
+            }
+        }
+    }
+}
+
 uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
     bpacket_buffer_t bpacketBuffer;
@@ -632,44 +563,7 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
         case WATCHDOG_BPK_R_TAKE_PHOTO: // Send command to ESP32 to take a photo
 
-            // Record the current temperature from both temperature sensors
-            if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
-                watchdog_message_maple("Failed to read temperature", BPACKET_CODE_ERROR);
-            }
-
-            ds18b20_temp_t temp1;
-            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_1, &temp1) != TRUE) {
-                watchdog_message_maple("Failed to copy temperature", BPACKET_CODE_ERROR);
-            }
-
-            if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
-                watchdog_message_maple("Failed to read temperature", BPACKET_CODE_ERROR);
-            }
-
-            ds18b20_temp_t temp2;
-            if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp2) != TRUE) {
-                watchdog_message_maple("Failed to copy temperature", BPACKET_CODE_ERROR);
-            }
-
-            // Update the datetime struct
-            stm32_rtc_read_datetime(&datetime);
-
-            // Get the real time clock time and date. Put it in a packet and send to the ESP32
-            bpacket_t photoRequest;
-
-            result =
-                wd_photo_data_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32,
-                                         WATCHDOG_BPK_R_TAKE_PHOTO, BPACKET_CODE_EXECUTE, &datetime, &temp1, &temp2);
-
-            if (result == TRUE) {
-                watchdog_send_bpacket_to_esp32(&photoRequest);
-            } else {
-                char errMsg[50];
-                wd_get_error(result, errMsg);
-                char msg[130];
-                sprintf(msg, "Failed to convert photo data to bpacket with error: %s\r\n", errMsg);
-                watchdog_message_maple(msg, BPACKET_CODE_ERROR);
-            }
+            watchdog_request_esp32_take_photo();
 
             break;
 
@@ -691,17 +585,43 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
 
             // Set the datetime using the information from the bpacket
             if (wd_bpacket_to_datetime(bpacket, &datetime) == TRUE) {
+
                 stm32_rtc_write_datetime(&datetime);
+
                 watchdog_report_success(WATCHDOG_BPK_R_SET_DATETIME);
+
+                // Recalculate the RTC alarm
+                watchdog_calculate_rtc_alarm_time();
+
             } else {
                 watchdog_message_maple("Failed to convert bpacket to datetime\r\n", BPACKET_CODE_ERROR);
             }
 
             break;
 
-        case WATCHDOG_BPK_R_GET_STATUS:
-            watchdog_message_maple("This feature has not been implemented yet\r\n", BPACKET_CODE_TODO);
-            // TODO: Implement
+        case WATCHDOG_BPK_R_GET_STATUS:;
+
+            // Currently what the status does is prints the gets the current date time and the current
+            // RTC alarm time and sends that back
+            dt_datetime_t currentDateTime, alarmATime;
+            stm32_rtc_read_datetime(&currentDateTime);
+            stm32_rtc_read_alarmA(&alarmATime);
+
+            char cdtString[40];
+            char atStr[40];
+            stm32_rtc_format_datetime(&currentDateTime, cdtString);
+            stm32_rtc_format_datetime(&alarmATime, atStr);
+
+            // Combine the strings together
+            char message[110];
+            sprintf(message, "Current Time: %s, RTC Alarm: %s\r\n", cdtString, atStr);
+
+            bpacket_t statusBpacket;
+            bpacket_create_sp(&statusBpacket, BPACKET_ADDRESS_MAPLE, BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_GET_STATUS,
+                              BPACKET_CODE_SUCCESS, message);
+            bpacket_to_buffer(&statusBpacket, &bpacketBuffer);
+            comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+
             break;
 
         case WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS:;
@@ -750,6 +670,48 @@ uint8_t stm32_match_maple_request(bpacket_t* bpacket) {
     }
 
     return TRUE;
+}
+
+void watchdog_request_esp32_take_photo(void) {
+
+    // Record the current temperature from both temperature sensors
+    if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
+        watchdog_message_maple("Failed to read temperature", BPACKET_CODE_ERROR);
+    }
+
+    ds18b20_temp_t temp1;
+    if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_1, &temp1) != TRUE) {
+        watchdog_message_maple("Failed to copy temperature", BPACKET_CODE_ERROR);
+    }
+
+    if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
+        watchdog_message_maple("Failed to read temperature", BPACKET_CODE_ERROR);
+    }
+
+    ds18b20_temp_t temp2;
+    if (ds18b20_copy_temperature(DS18B20_SENSOR_ID_2, &temp2) != TRUE) {
+        watchdog_message_maple("Failed to copy temperature", BPACKET_CODE_ERROR);
+    }
+
+    // Update the datetime struct
+    stm32_rtc_read_datetime(&datetime);
+
+    // Get the real time clock time and date. Put it in a packet and send to the ESP32
+    bpacket_t photoRequest;
+
+    uint8_t result =
+        wd_photo_data_to_bpacket(&photoRequest, BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_STM32, WATCHDOG_BPK_R_TAKE_PHOTO,
+                                 BPACKET_CODE_EXECUTE, &datetime, &temp1, &temp2);
+
+    if (result == TRUE) {
+        watchdog_send_bpacket_to_esp32(&photoRequest);
+    } else {
+        char errMsg[50];
+        wd_get_error(result, errMsg);
+        char msg[130];
+        sprintf(msg, "Failed to convert photo data to bpacket with error: %s\r\n", errMsg);
+        watchdog_message_maple(msg, BPACKET_CODE_ERROR);
+    }
 }
 
 void watchdog_update(void) {

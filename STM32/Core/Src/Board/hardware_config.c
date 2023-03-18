@@ -285,13 +285,31 @@ void hardware_error_handler(void) {
     }
 }
 
+void hardware_power_tests(void) {
+
+    // Power cycle
+
+    while (1) {}
+}
+
 void hardware_config_low_power_mode(void) {
 
-    // Disable
+    // Disable UART clocks
+    // UART_ESP32_CLK_DISABLE();
+    // UART_LOG_CLK_DISABLE();
 
     // Set the device to low power mode
     PWR->CR1 |= PWR_CR1_LPR;
 
     // Set the devcice to standby mode
     PWR->CR1 |= PWR_CR1_LPMS_STOP0 | PWR_CR1_LPMS_STOP1;
+}
+
+void hardware_config_normal_power_mode(void) {
+
+    // Reenable the UART clocks
+    // UART_ESP32_CLK_ENABLE();
+    // UART_LOG_CLK_ENABLE();
+
+    // Set the device to run mode
 }

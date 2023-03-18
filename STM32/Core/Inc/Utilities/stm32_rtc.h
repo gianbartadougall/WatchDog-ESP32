@@ -33,7 +33,7 @@ void stm32_rtc_read_datetime(dt_datetime_t* datetime);
 
 void stm32_rtc_write_datetime(dt_datetime_t* datetime);
 
-void stm32_rtc_print_datetime(dt_datetime_t* datetime);
+void stm32_rtc_format_datetime(dt_datetime_t* datetime, char* string);
 
 void stm32_rtc_set_alarmA(dt_datetime_t* datetime);
 

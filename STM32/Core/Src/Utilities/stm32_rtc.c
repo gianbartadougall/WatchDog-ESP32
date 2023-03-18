@@ -273,12 +273,9 @@ void stm32_rtc_read_datetime(dt_datetime_t* datetime) {
     datetime->date.year += 2000;
 }
 
-void stm32_rtc_print_datetime(dt_datetime_t* datetime) {
-
-    char dt[100];
-    sprintf(dt, "%i:%i:%i %i/%i/%i\r\n", datetime->time.second, datetime->time.minute, datetime->time.hour,
+void stm32_rtc_format_datetime(dt_datetime_t* datetime, char* string) {
+    sprintf(string, "%i:%i:%i %i/%i/%i\r\n", datetime->time.second, datetime->time.minute, datetime->time.hour,
             datetime->date.day, datetime->date.month, datetime->date.year);
-    log_message(dt);
 }
 
 void stm32_rtc_unlock_registers(void) {

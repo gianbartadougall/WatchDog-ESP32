@@ -78,7 +78,7 @@ void rtc_testing(void) {
 
         if (lastSecond != datetime.time.second) {
             lastSecond = datetime.time.second;
-            stm32_rtc_print_datetime(&datetime);
+            // stm32_rtc_print_datetime(&datetime);
         }
     }
 }

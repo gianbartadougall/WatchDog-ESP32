@@ -22,21 +22,21 @@
 #include "bpacket.h"
 #include "chars.h"
 
-void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
-                                    bpacket_t* circularBuffer) {
-    bufferStruct->writeIndex = writeIndex;
-    bufferStruct->readIndex  = readIndex;
+void bpacket_create_circular_buffer(bpacket_circular_buffer_t* cBuffer, uint8_t* wIndex, uint8_t* rIndex,
+                                    bpacket_t* buffer) {
+    cBuffer->wIndex = wIndex;
+    cBuffer->rIndex = rIndex;
 
     for (int i = 0; i < BPACKET_CIRCULAR_BUFFER_SIZE; i++) {
-        bufferStruct->circularBuffer[i] = (circularBuffer + i);
+        cBuffer->buffer[i] = (buffer + i);
     }
 }
 
-void bpacket_increment_circular_buffer_index(uint8_t* writeIndex) {
-    (*writeIndex)++;
+void bpacket_increment_circular_buffer_index(uint8_t* wIndex) {
+    (*wIndex)++;
 
-    if (*writeIndex >= BPACKET_CIRCULAR_BUFFER_SIZE) {
-        *writeIndex = 0;
+    if (*wIndex >= BPACKET_CIRCULAR_BUFFER_SIZE) {
+        *wIndex = 0;
     }
 }
 
@@ -62,6 +62,25 @@ uint8_t bpacket_create_p(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, u
     bpacket->sender   = sender;
     bpacket->request  = request;
     bpacket->code     = code;
+    bpacket->numBytes = numDataBytes;
+
+    // Copy data into bpacket
+    if (data != NULL) {
+        for (int i = 0; i < numDataBytes; i++) {
+            bpacket->bytes[i] = data[i];
+        }
+    }
+
+    return TRUE;
+}
+
+uint8_t bp_create_packet(bpacket_t* bpacket, const bp_receive_address_t RAddress, const bp_send_address_t SAddress,
+                         const bp_request_t Request, const bp_code_t Code, uint8_t numDataBytes, uint8_t* data) {
+
+    bpacket->receiver = RAddress.val;
+    bpacket->sender   = SAddress.val;
+    bpacket->request  = Request.val;
+    bpacket->code     = Code.val;
     bpacket->numBytes = numDataBytes;
 
     // Copy data into bpacket

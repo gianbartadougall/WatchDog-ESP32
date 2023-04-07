@@ -66,8 +66,6 @@ Core/Src/Interrupts/interrupts.c
 
 # Include Utility files
 UTILITIY_SOURCES = \
-Core/Src/Utilities/log.c \
-Core/Src/Utilities/chars.c \
 Core/Src/Utilities/stm32_rtc.c \
 
 RANDOM_SOURCES = \
@@ -79,9 +77,13 @@ Core/Src/comms_stm32.c \
 Core/Src/watchdog_defines.c
 
 LIBRARY_SOURCES = \
-Library/Src/ds18b20.c \
-Library/Src/bpacket.c \
-Library/Src/datetime.c \
+Library/Src/Sensors/ds18b20.c \
+Library/Src/Communications/bpacket.c \
+Library/Src/Communications/stm32_uart.c \
+Library/Src/Communications/bpacket_utils.c \
+Library/Src/DataTypes/chars.c \
+Library/Src/Utils/datetime.c \
+Library/Src/Utils/log.c \
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)
@@ -148,7 +150,10 @@ C_INCLUDES =  \
 -ICore/Inc/Board \
 -ICore/Inc/Interrupts \
 -ICore/Inc/Utilities \
--ILibrary/Inc \
+-ILibrary/Inc/Communications \
+-ILibrary/Inc/DataTypes \
+-ILibrary/Inc/Sensors \
+-ILibrary/Inc/Utils \
 -I../ESP32_CAM/main/Inc \
 -I../Drivers/Watchdog/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \

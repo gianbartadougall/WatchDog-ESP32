@@ -30,6 +30,6 @@
  * @return uint8_t TRUE if everything was configured
  * successfully else FALSE
  */
-uint8_t hardware_config(bpacket_t* bpacket);
+uint8_t hardware_config(bpk_packet_t* Bpacket);
 
 #endif // HARDWARE_CONFIG_H

@@ -3,7 +3,7 @@
  * @author Gian Barta-Dougall ()
  * @brief
  * @version 0.1
- * @date 2023-02-09
+ * @Date 2023-02-09
  *
  * @copyright Copyright (c) 2023
  *
@@ -38,7 +38,7 @@ void stm32_rtc_init(void) {
     // Unlock the RTC registers
     stm32_rtc_unlock_registers();
 
-    // Enter initialisation mode so the datetime of the RTC can be updated
+    // Enter initialisation mode so the Datetime of the RTC can be updated
     STM32_RTC->ISR |= RTC_ISR_INIT;
 
     // Wait for the INTIF bit to be set. This is done automatically by the
@@ -55,13 +55,13 @@ void stm32_rtc_init(void) {
     // Generate 1Hz clock for the calendar counter. Assume freq = 32.768Khz
     RTC->PRER = 32768 - 1;
 
-    // Set the time format to 24 hour time
+    // Set the Time format to 24 hour Time
     STM32_RTC->CR &= ~(RTC_CR_FMT);
 
-    // Set the RTC time to 0
+    // Set the RTC Time to 0
     STM32_RTC->TR &= ~(RTC_TR_HT | RTC_TR_HU | RTC_TR_MNT | RTC_TR_MNU | RTC_TR_ST | RTC_TR_SU);
 
-    // Set the RTC date to 0
+    // Set the RTC Date to 0
     STM32_RTC->DR &= ~(RTC_DR_YT | RTC_DR_YU | RTC_DR_MT | RTC_DR_MU | RTC_DR_DT | RTC_DR_DU);
 
     // Clear the initialisation to enable the RTC
@@ -83,7 +83,7 @@ void stm32_rtc_init(void) {
     HAL_NVIC_EnableIRQ(STM32_RTC_ALARM_IRQn);
 }
 
-void stm32_rtc_set_alarmA(dt_datetime_t* datetime) {
+void stm32_rtc_set_alarmA(dt_datetime_t* Datetime) {
 
     // Unlock the RTC registers
     stm32_rtc_unlock_registers();
@@ -96,26 +96,26 @@ void stm32_rtc_set_alarmA(dt_datetime_t* datetime) {
     STM32_RTC->ALRMAR &= ~(0x01 << 15); // Minute must match for alarm to trigger
     STM32_RTC->ALRMAR &= ~(0x01 << 7);  // Second must match for alarm to trigger
 
-    // Set date to represent calendar day (i.e The 15th of every month) instead of week day (i.e Monday of everyweek)
+    // Set Date to represent calendar day (i.e The 15th of every month) instead of week day (i.e Monday of everyweek)
     STM32_RTC->ALRMAR &= ~(0x01 << 30);
 
-    /* Set the date the calendar day the alarm should trigger on */
+    /* Set the Date the calendar day the alarm should trigger on */
 
     // Calculate the day
-    uint32_t dayTens = (datetime->date.day / 10);
-    uint32_t dayOnes = (datetime->date.day % 10);
+    uint32_t dayTens = (Datetime->Date.day / 10);
+    uint32_t dayOnes = (Datetime->Date.day % 10);
 
     // Calculate the Hour
-    uint32_t hourTens = (datetime->time.hour / 10);
-    uint32_t hourOnes = (datetime->time.hour % 10);
+    uint32_t hourTens = (Datetime->Time.hour / 10);
+    uint32_t hourOnes = (Datetime->Time.hour % 10);
 
     // Calculate the Minute
-    uint32_t minuteTens = (datetime->time.minute / 10);
-    uint32_t minuteOnes = (datetime->time.minute % 10);
+    uint32_t minuteTens = (Datetime->Time.minute / 10);
+    uint32_t minuteOnes = (Datetime->Time.minute % 10);
 
     // Calculate the Second
-    uint32_t secondTens = (datetime->time.second / 10);
-    uint32_t secondOnes = (datetime->time.second % 10);
+    uint32_t secondTens = (Datetime->Time.second / 10);
+    uint32_t secondOnes = (Datetime->Time.second % 10);
 
     STM32_RTC->ALRMAR = (dayTens << 28) | (dayOnes << 24) | (hourTens << 20) | (hourOnes << 16) | (minuteTens << 12) |
                         (minuteOnes << 8) | (secondTens << 4) | (secondOnes);
@@ -124,7 +124,7 @@ void stm32_rtc_set_alarmA(dt_datetime_t* datetime) {
     STM32_RTC->CR |= (RTC_CR_ALRAE);
 }
 
-void stm32_rtc_read_alarmA(dt_datetime_t* datetime) {
+void stm32_rtc_read_alarmA(dt_datetime_t* Datetime) {
 
     uint8_t dayTens = (STM32_RTC->ALRMAR & (0x03 << 28)) >> 28;
     uint8_t dayOnes = (STM32_RTC->ALRMAR & (0x0F << 24)) >> 24;
@@ -138,55 +138,55 @@ void stm32_rtc_read_alarmA(dt_datetime_t* datetime) {
     uint8_t secondTens = (STM32_RTC->ALRMAR & (0x07 << 4)) >> 4;
     uint8_t secondOnes = (STM32_RTC->ALRMAR & 0x0F);
 
-    datetime->date.day    = (dayTens * 10) + dayOnes;
-    datetime->time.hour   = (hourTens * 10) + hourOnes;
-    datetime->time.minute = (minuteTens * 10) + minuteOnes;
-    datetime->time.second = (secondTens * 10) + secondOnes;
+    Datetime->Date.day    = (dayTens * 10) + dayOnes;
+    Datetime->Time.hour   = (hourTens * 10) + hourOnes;
+    Datetime->Time.minute = (minuteTens * 10) + minuteOnes;
+    Datetime->Time.second = (secondTens * 10) + secondOnes;
 }
 
-void stm32_rtc_set_alarmB(dt_datetime_t* datetime) {
+void stm32_rtc_set_alarmB(dt_datetime_t* Datetime) {
 
     STM32_RTC->ALRMBR &= ~(0x01 << 31); // Date must match for alarm to trigger
     STM32_RTC->ALRMBR &= ~(0x01 << 23); // Hour must match for alarm to trigger
     STM32_RTC->ALRMBR &= ~(0x01 << 15); // Minute must match for alarm to trigger
     STM32_RTC->ALRMBR &= ~(0x01 << 7);  // Second must match for alarm to trigger
 
-    // Set date to represent calendar day (i.e The 15th of every month) instead of week day (i.e Monday of every week)
+    // Set Date to represent calendar day (i.e The 15th of every month) instead of week day (i.e Monday of every week)
     STM32_RTC->ALRMBR &= ~(0x01 << 30);
 
-    /* Set the date the calendar day the alarm should trigger on */
+    /* Set the Date the calendar day the alarm should trigger on */
 
     // Calculate the day
-    uint32_t dayTens = (datetime->date.day / 10);
-    uint32_t dayOnes = (datetime->date.day % 10);
+    uint32_t dayTens = (Datetime->Date.day / 10);
+    uint32_t dayOnes = (Datetime->Date.day % 10);
 
     // Calculate the Hour
-    uint32_t hourTens = (datetime->date.day / 10);
-    uint32_t hourOnes = (datetime->date.day % 10);
+    uint32_t hourTens = (Datetime->Date.day / 10);
+    uint32_t hourOnes = (Datetime->Date.day % 10);
 
     // Calculate the Minute
-    uint32_t minuteTens = (datetime->date.day / 10);
-    uint32_t minuteOnes = (datetime->date.day % 10);
+    uint32_t minuteTens = (Datetime->Date.day / 10);
+    uint32_t minuteOnes = (Datetime->Date.day % 10);
 
     // Calculate the Second
-    uint32_t secondTens = (datetime->date.day / 10);
-    uint32_t secondOnes = (datetime->date.day % 10);
+    uint32_t secondTens = (Datetime->Date.day / 10);
+    uint32_t secondOnes = (Datetime->Date.day % 10);
 
     STM32_RTC->ALRMBR = (dayTens << 28) | (dayOnes << 24) | (hourTens << 20) | (hourOnes << 16) | (minuteTens << 12) |
                         (minuteOnes << 8) | (secondTens << 4) | (secondOnes);
 }
 
-void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
+void stm32_rtc_write_datetime(dt_datetime_t* Datetime) {
 
-    uint16_t originalYear = datetime->date.year;
-    if (datetime->date.year > 2000) {
-        datetime->date.year -= 2000;
+    uint16_t originalYear = Datetime->Date.year;
+    if (Datetime->Date.year > 2000) {
+        Datetime->Date.year -= 2000;
     }
 
     // Unlock the RTC registers
     stm32_rtc_unlock_registers();
 
-    // Enter initialisation mode so the datetime of the RTC can be updated
+    // Enter initialisation mode so the Datetime of the RTC can be updated
     STM32_RTC->ISR |= RTC_ISR_INIT;
 
     // Wait for the INTIF bit to be set. This is done automatically by the
@@ -197,21 +197,21 @@ void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
     // mcu and confirms the RTC is ready to be configured
     while ((STM32_RTC->ISR & RTC_ISR_INITF) == 0) {}
 
-    // Set the date and time registers to 0
+    // Set the Date and Time registers to 0
     STM32_RTC->TR &= ~(RTC_TR_HT | RTC_TR_HU | RTC_TR_MNT | RTC_TR_MNU | RTC_TR_ST | RTC_TR_SU);
     STM32_RTC->DR &= ~(RTC_DR_YT | RTC_DR_YU | RTC_DR_MT | RTC_DR_MU | RTC_DR_DT | RTC_DR_DU);
 
     // Update the year
-    uint32_t yearTens = (datetime->date.year / 10);
-    uint32_t yearOnes = (datetime->date.year % 10);
+    uint32_t yearTens = (Datetime->Date.year / 10);
+    uint32_t yearOnes = (Datetime->Date.year % 10);
 
     // Update the month
-    uint32_t monthTens = (datetime->date.month / 10);
-    uint32_t monthOnes = (datetime->date.month % 10);
+    uint32_t monthTens = (Datetime->Date.month / 10);
+    uint32_t monthOnes = (Datetime->Date.month % 10);
 
     // Update the day
-    uint32_t dayTens = (datetime->date.day / 10);
-    uint32_t dayOnes = (datetime->date.day % 10);
+    uint32_t dayTens = (Datetime->Date.day / 10);
+    uint32_t dayOnes = (Datetime->Date.day % 10);
 
     // Don't fully understand why this is the case but you cannot do |= on the DR or the TR registers
     // of the RTC. You can only use = thus need precomute everything and set the register in one go
@@ -219,16 +219,16 @@ void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
                      (monthOnes << RTC_DR_MU_Pos) | (dayTens << RTC_DR_DT_Pos) | (dayOnes << RTC_DR_DU_Pos));
 
     // Update the hour
-    uint32_t hourTens = (datetime->time.hour / 10);
-    uint32_t hourOnes = (datetime->time.hour % 10);
+    uint32_t hourTens = (Datetime->Time.hour / 10);
+    uint32_t hourOnes = (Datetime->Time.hour % 10);
 
     // Update the minute
-    uint32_t minuteTens = (datetime->time.minute / 10);
-    uint32_t minuteOnes = (datetime->time.minute % 10);
+    uint32_t minuteTens = (Datetime->Time.minute / 10);
+    uint32_t minuteOnes = (Datetime->Time.minute % 10);
 
     // Update the hour
-    uint32_t secondTens = (datetime->time.second / 10);
-    uint32_t secondOnes = (datetime->time.second % 10);
+    uint32_t secondTens = (Datetime->Time.second / 10);
+    uint32_t secondOnes = (Datetime->Time.second % 10);
 
     STM32_RTC->TR = ((hourTens << RTC_TR_HT_Pos) | (hourOnes << RTC_TR_HU_Pos) | (minuteTens << RTC_TR_MNT_Pos) |
                      (minuteOnes << RTC_TR_MNU_Pos) | (secondTens << RTC_TR_ST_Pos) | (secondOnes << RTC_TR_SU_Pos));
@@ -237,45 +237,45 @@ void stm32_rtc_write_datetime(dt_datetime_t* datetime) {
 
     while ((STM32_RTC->ISR & RTC_ISR_RSF) == 0) {}
 
-    // Set the datetime back to the original year
-    datetime->date.year = originalYear;
+    // Set the Datetime back to the original year
+    Datetime->Date.year = originalYear;
 }
 
-void stm32_rtc_read_datetime(dt_datetime_t* datetime) {
+void stm32_rtc_read_datetime(dt_datetime_t* Datetime) {
 
     // Only the tens and the ones place of the year is stored in the year register.
     // These are stored in BCD format thus 2023 would read 23 for example
     uint8_t yearTens    = (STM32_RTC->DR & RTC_DR_YT) >> RTC_DR_YT_Pos;
     uint8_t yearOnes    = (STM32_RTC->DR & RTC_DR_YU) >> RTC_DR_YU_Pos;
-    datetime->date.year = (yearTens * 10) + yearOnes;
+    Datetime->Date.year = (yearTens * 10) + yearOnes;
 
     uint8_t MonthTens    = (STM32_RTC->DR & RTC_DR_MT) >> RTC_DR_MT_Pos;
     uint8_t MonthOnes    = (STM32_RTC->DR & RTC_DR_MU) >> RTC_DR_MU_Pos;
-    datetime->date.month = (MonthTens * 10) + MonthOnes;
+    Datetime->Date.month = (MonthTens * 10) + MonthOnes;
 
     uint8_t dayTens    = (STM32_RTC->DR & RTC_DR_DT) >> RTC_DR_DT_Pos;
     uint8_t dayOnes    = (STM32_RTC->DR & RTC_DR_DU) >> RTC_DR_DU_Pos;
-    datetime->date.day = (dayTens * 10) + dayOnes;
+    Datetime->Date.day = (dayTens * 10) + dayOnes;
 
     uint8_t hourTens    = (STM32_RTC->TR & RTC_TR_HT) >> RTC_TR_HT_Pos;
     uint8_t hourOnes    = (STM32_RTC->TR & RTC_TR_HU) >> RTC_TR_HU_Pos;
-    datetime->time.hour = (hourTens * 10) + hourOnes;
+    Datetime->Time.hour = (hourTens * 10) + hourOnes;
 
     uint8_t minuteTens    = ((STM32_RTC->TR & RTC_TR_MNT) >> RTC_TR_MNT_Pos);
     uint8_t minuteOnes    = ((STM32_RTC->TR & RTC_TR_MNU) >> RTC_TR_MNU_Pos);
-    datetime->time.minute = (minuteTens * 10) + minuteOnes;
+    Datetime->Time.minute = (minuteTens * 10) + minuteOnes;
 
     uint8_t secondTens    = (STM32_RTC->TR & RTC_TR_ST) >> RTC_TR_ST_Pos;
     uint8_t secondOnes    = (STM32_RTC->TR & RTC_TR_SU) >> RTC_TR_SU_Pos;
-    datetime->time.second = (secondTens * 10) + secondOnes;
+    Datetime->Time.second = (secondTens * 10) + secondOnes;
 
     // The year of the date include just that tens digits so adding the extra 2000
-    datetime->date.year += 2000;
+    Datetime->Date.year += 2000;
 }
 
-void stm32_rtc_format_datetime(dt_datetime_t* datetime, char* string) {
-    sprintf(string, "%i:%i:%i %i/%i/%i\r\n", datetime->time.second, datetime->time.minute, datetime->time.hour,
-            datetime->date.day, datetime->date.month, datetime->date.year);
+void stm32_rtc_format_datetime(dt_datetime_t* Datetime, char* string) {
+    sprintf(string, "%i:%i:%i %i/%i/%i\r\n", Datetime->Time.second, Datetime->Time.minute, Datetime->Time.hour,
+            Datetime->Date.day, Datetime->Date.month, Datetime->Date.year);
 }
 
 void stm32_rtc_unlock_registers(void) {

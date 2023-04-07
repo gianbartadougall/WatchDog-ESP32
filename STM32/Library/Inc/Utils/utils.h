@@ -8,8 +8,8 @@
  * @copyright Copyright (c)
  *
  */
-#ifndef UTILITIES_H
-#define UTILITIES_H
+#ifndef UTILS_H
+#define UTILS_H
 
 /* Public Macros */
 
@@ -26,4 +26,4 @@
 #define UINT_16_BIT_MAX_VALUE 65535
 #define UINT_32_BIT_MAX_VALUE 4294967295
 
-#endif // UTILITIES_H
+#endif // UTILS_H

@@ -1,8 +1,11 @@
 #ifndef DS18B20_H
 #define DS18B20_H
 
-/* Includes */
+/* C Library Includes */
 #include <stdint.h>
+
+/* Personal Includes */
+#include "custom_data_types.h"
 
 /* Public Macros */
 
@@ -68,12 +71,7 @@
                                                          \
     } while (0)
 
-/* Public Enumerations and Strucutres */
-typedef struct ds18b20_temp_t {
-    uint8_t decimal;
-    uint16_t fraction;
-    uint8_t sign; // 0 = positive number, 1 = negative number
-} ds18b20_temp_t;
+/* Public Enumerations and Structures */
 
 /**
  * @brief This function showcases an example use case of this driver to print the temperatures
@@ -128,7 +126,7 @@ void ds18b20_print_temperature(uint8_t id);
  *
  * @param id The id of the DS18B20 sensor to print the temperature of
  */
-uint8_t ds18b20_copy_temperature(uint8_t id, ds18b20_temp_t* temp);
+uint8_t ds18b20_copy_temperature(uint8_t id, cdt_double16_t* temp);
 
 /**
  * @brief Prints the ROM of a given sensor to the console

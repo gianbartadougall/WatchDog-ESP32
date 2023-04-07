@@ -31,13 +31,13 @@ typedef struct dt_date_t {
 } dt_date_t;
 
 typedef struct dt_datetime_t {
-    dt_time_t time;
-    dt_date_t date;
+    dt_time_t Time;
+    dt_date_t Date;
 } dt_datetime_t;
 
-uint8_t dt_time_init(dt_time_t* time, uint8_t second, uint8_t minute, uint8_t hour);
+uint8_t dt_time_init(dt_time_t* Time, uint8_t second, uint8_t minute, uint8_t hour);
 
-uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year);
+uint8_t dt_date_init(dt_date_t* Date, uint8_t day, uint8_t month, uint16_t year);
 
 uint8_t dt_is_valid_hour_min_period(char* date);
 
@@ -45,16 +45,16 @@ uint8_t dt_is_valid_hour_min(char* time);
 
 uint8_t dt_is_valid_date(char* date);
 
-uint8_t dt_time_is_valid(dt_time_t* time);
+uint8_t dt_time_is_valid(dt_time_t* Time);
 uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour);
 
-uint8_t dt_date_is_valid(dt_date_t* date);
+uint8_t dt_date_is_valid(dt_date_t* Date);
 uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year);
 
 void dt_datetime_increment_day(dt_datetime_t* datetime);
-uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t time);
+uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t Time);
 
-uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd);
+uint8_t dt_time_add_time(dt_time_t* Time, dt_time_t timeToAdd);
 
 uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2);
 

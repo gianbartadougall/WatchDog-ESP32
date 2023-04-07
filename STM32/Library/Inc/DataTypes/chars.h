@@ -5,7 +5,7 @@
 #include "stdint.h"
 
 /* Private Includes */
-#include "utilities.h"
+#include "utils.h"
 
 uint16_t chars_get_num_bytes(char* str);
 

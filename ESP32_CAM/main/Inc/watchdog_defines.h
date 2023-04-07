@@ -14,9 +14,9 @@
 
 /* C Library Includes */
 #include "bpacket.h"
-#include "utilities.h"
+#include "utils.h"
 #include "datetime.h"
-#include "ds18b20.h"
+#include "custom_data_types.h"
 #include <stdio.h>
 
 #define MOUNT_POINT_PATH ("/sdcard")
@@ -72,46 +72,6 @@
 #define WD_CAM_RES_1280x1024 12 // FRAMESIZE_SXGA
 #define WD_CAM_RES_1600x1200 13 // FRAMESIZE_UXGA
 
-// UART Packet codes
-#define WATCHDOG_BPK_R_LIST_DIR                  (BPACKET_SPECIFIC_R_OFFSET + 0)
-#define WATCHDOG_BPK_R_COPY_FILE                 (BPACKET_SPECIFIC_R_OFFSET + 1)
-#define WATCHDOG_BPK_R_TAKE_PHOTO                (BPACKET_SPECIFIC_R_OFFSET + 2)
-#define WATCHDOG_BPK_R_WRITE_TO_FILE             (BPACKET_SPECIFIC_R_OFFSET + 3)
-#define WATCHDOG_BPK_R_RECORD_DATA               (BPACKET_SPECIFIC_R_OFFSET + 4)
-#define WATCHDOG_BPK_R_LED_RED_ON                (BPACKET_SPECIFIC_R_OFFSET + 6)
-#define WATCHDOG_BPK_R_LED_RED_OFF               (BPACKET_SPECIFIC_R_OFFSET + 7)
-#define WATCHDOG_BPK_R_CAMERA_VIEW               (BPACKET_SPECIFIC_R_OFFSET + 8)
-#define WATCHDOG_BPK_R_GET_DATETIME              (BPACKET_SPECIFIC_R_OFFSET + 9)
-#define WATCHDOG_BPK_R_SET_DATETIME              (BPACKET_SPECIFIC_R_OFFSET + 10)
-#define WATCHDOG_BPK_R_GET_CAMERA_SETTINGS       (BPACKET_SPECIFIC_R_OFFSET + 13)
-#define WATCHDOG_BPK_R_SET_CAMERA_SETTINGS       (BPACKET_SPECIFIC_R_OFFSET + 14)
-#define WATCHDOG_BPK_R_GET_STATUS                (BPACKET_SPECIFIC_R_OFFSET + 15)
-#define WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS (BPACKET_SPECIFIC_R_OFFSET + 16)
-#define WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS (BPACKET_SPECIFIC_R_OFFSET + 17)
-#define WATCHDOG_BPK_R_STREAM_IMAGE              (BPACKET_SPECIFIC_R_OFFSET + 18)
-#define WATCHDOG_BPK_R_TURN_ON                   (BPACKET_SPECIFIC_R_OFFSET + 19)
-#define WATCHDOG_BPK_R_TURN_OFF                  (BPACKET_SPECIFIC_R_OFFSET + 20)
-#define WATCHDOG_BPK_OFFSET                      (BPACKET_SPECIFIC_R_OFFSET + 21)
-
-static const bp_request_t WD_BPK_R_LIST_DIR                  = {.val = WATCHDOG_BPK_R_LIST_DIR};
-static const bp_request_t WD_BPK_R_COPY_FILE                 = {.val = WATCHDOG_BPK_R_COPY_FILE};
-static const bp_request_t WD_BPK_R_TAKE_PHOTO                = {.val = WATCHDOG_BPK_R_TAKE_PHOTO};
-static const bp_request_t WD_BPK_R_WRITE_TO_FILE             = {.val = WATCHDOG_BPK_R_WRITE_TO_FILE};
-static const bp_request_t WD_BPK_R_RECORD_DATA               = {.val = WATCHDOG_BPK_R_RECORD_DATA};
-static const bp_request_t WD_BPK_R_LED_RED_ON                = {.val = WATCHDOG_BPK_R_LED_RED_ON};
-static const bp_request_t WD_BPK_R_LED_RED_OFF               = {.val = WATCHDOG_BPK_R_LED_RED_OFF};
-static const bp_request_t WD_BPK_R_CAMERA_VIEW               = {.val = WATCHDOG_BPK_R_CAMERA_VIEW};
-static const bp_request_t WD_BPK_R_GET_DATETIME              = {.val = WATCHDOG_BPK_R_GET_DATETIME};
-static const bp_request_t WD_BPK_R_SET_DATETIME              = {.val = WATCHDOG_BPK_R_SET_DATETIME};
-static const bp_request_t WD_BPK_R_GET_CAMERA_SETTINGS       = {.val = WATCHDOG_BPK_R_GET_CAMERA_SETTINGS};
-static const bp_request_t WD_BPK_R_SET_CAMERA_SETTINGS       = {.val = WATCHDOG_BPK_R_SET_CAMERA_SETTINGS};
-static const bp_request_t WD_BPK_R_GET_STATUS                = {.val = WATCHDOG_BPK_R_GET_STATUS};
-static const bp_request_t WD_BPK_R_GET_CAPTURE_TIME_SETTINGS = {.val = WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS};
-static const bp_request_t WD_BPK_R_SET_CAPTURE_TIME_SETTINGS = {.val = WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS};
-static const bp_request_t WD_BPK_R_STREAM_IMAGE              = {.val = WATCHDOG_BPK_R_STREAM_IMAGE};
-static const bp_request_t WD_BPK_R_TURN_ON                   = {.val = WATCHDOG_BPK_R_TURN_ON};
-static const bp_request_t WD_BPK_R_TURN_OFF                  = {.val = WATCHDOG_BPK_R_TURN_OFF};
-
 #define WATCHDOG_PING_CODE_ESP32 23
 #define WATCHDOG_PING_CODE_STM32 47
 
@@ -150,126 +110,128 @@ typedef struct wd_settings_t {
     wd_camera_capture_time_settings_t captureTime;
 } wd_settings_t;
 
-#define WD_ASSERT_VALID_CAMERA_RESOLUTION(resolution)            \
+#define WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, resolution)   \
     do {                                                         \
         if (wd_camera_resolution_is_valid(resolution) != TRUE) { \
-            return BPACKET_ERR_INVALID_RECEIVER;                 \
+            Bpacket->ErrorCode = BPK_Err_Invalid_Receiver;       \
+            return FALSE;                                        \
         }                                                        \
     } while (0)
 
 /* Function Prototypes */
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                               dt_datetime_t* datetime);
-uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime);
+uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                               bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime);
+uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime);
 // uint8_t dt_time_is_valid(dt_time_t* time);
 
-uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings);
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
-                                      uint8_t code, wd_camera_settings_t* cameraSettings);
+uint8_t wd_bpacket_to_camera_settings(bpk_packet_t* Bpacket, wd_camera_settings_t* cameraSettings);
+uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                      bpk_request_t Request, bpk_code_t Code, wd_camera_settings_t* cameraSettings);
 uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution);
 
-uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                             wd_status_t* status);
-uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status);
+uint8_t wd_status_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                             bpk_request_t Request, bpk_code_t Code, wd_status_t* status);
+uint8_t wd_bpacket_to_status(bpk_packet_t* Bpacket, wd_status_t* status);
 
-uint8_t wd_capture_time_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
-                                            uint8_t code, wd_camera_capture_time_settings_t* wdSettings);
-uint8_t wd_bpacket_to_capture_time_settings(bpacket_t* bpacket, wd_camera_capture_time_settings_t* wdSettings);
+uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                            bpk_request_t Request, bpk_code_t Code,
+                                            wd_camera_capture_time_settings_t* wdSettings);
+uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* wdSettings);
 
-uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds18b20_temp_t* temp1,
-                                 ds18b20_temp_t* temp2);
+uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_double16_t* temp1,
+                                 cdt_double16_t* temp2);
 
-uint8_t wd_photo_data_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                                 dt_datetime_t* datetime, ds18b20_temp_t* temp1, ds18b20_temp_t* temp2);
+uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_double16_t* temp1,
+                                 cdt_double16_t* temp2);
 
 void wd_get_error(uint8_t wdError, char* errorMsg);
 
 #ifdef WATCHDOG_FUNCTIONS
 
-uint8_t wd_photo_data_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                                 dt_datetime_t* datetime, ds18b20_temp_t* temp1, ds18b20_temp_t* temp2) {
+uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_double16_t* temp1,
+                                 cdt_double16_t* temp2) {
 
     // Confirm the bpacket has the correct request
-    if (request != WATCHDOG_BPK_R_TAKE_PHOTO) {
-        return WATCHDOG_INVALID_REQUEST;
+    if (Request.val != BPK_WD_Request_Take_Photo.val) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
-    // Assert the sender and receiver are valid
-    BPACKET_ASSERT_VALID_RECEIVER(receiver);
-    BPACKET_ASSERT_VALID_SENDER(sender);
-    BPACKET_ASSERT_VALID_CODE(code);
-
     // Assert the date and time are valid
-    DATETIME_ASSERT_VALID_TIME(&datetime->time, WATCHDOG_INVALID_START_TIME);
-    DATETIME_ASSERT_VALID_DATE(&datetime->date, WATCHDOG_INVALID_DATE);
+    DATETIME_ASSERT_VALID_TIME(&datetime->Time, WATCHDOG_INVALID_START_TIME);
+    DATETIME_ASSERT_VALID_DATE(&datetime->Date, WATCHDOG_INVALID_DATE);
 
-    // Assert the temperatures are valid
-    DS18B20_ASSERT_VALID_TEMPERATURE(temp1);
-    DS18B20_ASSERT_VALID_TEMPERATURE(temp2);
-
-    bpacket->receiver  = receiver;
-    bpacket->sender    = sender;
-    bpacket->request   = request;
-    bpacket->code      = code;
-    bpacket->numBytes  = 14;
-    bpacket->bytes[0]  = datetime->time.second;
-    bpacket->bytes[1]  = datetime->time.minute;
-    bpacket->bytes[2]  = datetime->time.hour;
-    bpacket->bytes[3]  = datetime->date.day;
-    bpacket->bytes[4]  = datetime->date.month;
-    bpacket->bytes[5]  = ((datetime->date.year & 0xFF00) >> 8);
-    bpacket->bytes[6]  = (datetime->date.year & 0x00FF);
-    bpacket->bytes[7]  = temp1->sign;
-    bpacket->bytes[8]  = temp1->decimal;
-    bpacket->bytes[9]  = ((temp1->fraction & 0xFF00) >> 8);
-    bpacket->bytes[10] = temp1->fraction & 0x00FF;
-    bpacket->bytes[11] = temp2->decimal;
-    bpacket->bytes[12] = ((temp2->fraction & 0xFF00) >> 8);
-    bpacket->bytes[13] = temp2->fraction & 0x00FF;
+    Bpacket->Receiver       = Receiver;
+    Bpacket->Sender         = Sender;
+    Bpacket->Request        = Request;
+    Bpacket->Code           = Code;
+    Bpacket->Data.numBytes  = 14;
+    Bpacket->Data.bytes[0]  = datetime->Time.second;
+    Bpacket->Data.bytes[1]  = datetime->Time.minute;
+    Bpacket->Data.bytes[2]  = datetime->Time.hour;
+    Bpacket->Data.bytes[3]  = datetime->Date.day;
+    Bpacket->Data.bytes[4]  = datetime->Date.month;
+    Bpacket->Data.bytes[5]  = ((datetime->Date.year & 0xFF00) >> 8);
+    Bpacket->Data.bytes[6]  = (datetime->Date.year & 0x00FF);
+    Bpacket->Data.bytes[7]  = temp1->info;
+    Bpacket->Data.bytes[8]  = temp1->integer;
+    Bpacket->Data.bytes[9]  = ((temp1->decimal & 0xFF00) >> 8);
+    Bpacket->Data.bytes[10] = temp1->decimal & 0x00FF;
+    Bpacket->Data.bytes[11] = temp2->integer;
+    Bpacket->Data.bytes[12] = ((temp2->decimal & 0xFF00) >> 8);
+    Bpacket->Data.bytes[13] = temp2->decimal & 0x00FF;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_photo_data(bpacket_t* bpacket, dt_datetime_t* datetime, ds18b20_temp_t* temp1,
-                                 ds18b20_temp_t* temp2) {
+uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_double16_t* temp1,
+                                 cdt_double16_t* temp2) {
 
     // Assert the request is valid
-    if (bpacket->request != WATCHDOG_BPK_R_TAKE_PHOTO) {
-        return WATCHDOG_INVALID_REQUEST;
+    if (Bpacket->Request.val != BPK_WD_Request_Take_Photo.val) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
     // Assert the bpacket length is valid
-    if (bpacket->numBytes != 14) {
-        return WATCHDOG_INVALID_BPACKET_SIZE;
+    if (Bpacket->Data.numBytes != 14) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Bpacket_Size;
+        return FALSE;
     }
 
     // Assert the time is valid
-    if (dt_time_valid(bpacket->bytes[0], bpacket->bytes[1], bpacket->bytes[2]) != TRUE) {
-        return WATCHDOG_INVALID_START_TIME;
+    if (dt_time_valid(Bpacket->Data.bytes[0], Bpacket->Data.bytes[1], Bpacket->Data.bytes[2]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Start_Time;
+        return FALSE;
     }
 
     // Assert the date is valid
-    if (dt_date_valid(bpacket->bytes[3], bpacket->bytes[4], (bpacket->bytes[5] << 8) | bpacket->bytes[6]) != TRUE) {
-        return WATCHDOG_INVALID_DATE;
+    if (dt_date_valid(Bpacket->Data.bytes[3], Bpacket->Data.bytes[4],
+                      (Bpacket->Data.bytes[5] << 8) | Bpacket->Data.bytes[6]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Date;
+        return FALSE;
     }
 
-    datetime->time.second = bpacket->bytes[0];
-    datetime->time.minute = bpacket->bytes[1];
-    datetime->time.hour   = bpacket->bytes[2];
-    datetime->date.day    = bpacket->bytes[3];
-    datetime->date.month  = bpacket->bytes[4];
-    datetime->date.year   = ((bpacket->bytes[5] << 8) | bpacket->bytes[6]);
-    temp1->sign           = bpacket->bytes[7];
-    temp1->decimal        = bpacket->bytes[8];
-    temp1->fraction       = ((bpacket->bytes[9] << 8) | bpacket->bytes[10]);
-    temp2->decimal        = bpacket->bytes[11];
-    temp2->fraction       = ((bpacket->bytes[12] << 8) | bpacket->bytes[13]);
+    datetime->Time.second = Bpacket->Data.bytes[0];
+    datetime->Time.minute = Bpacket->Data.bytes[1];
+    datetime->Time.hour   = Bpacket->Data.bytes[2];
+    datetime->Date.day    = Bpacket->Data.bytes[3];
+    datetime->Date.month  = Bpacket->Data.bytes[4];
+    datetime->Date.year   = ((Bpacket->Data.bytes[5] << 8) | Bpacket->Data.bytes[6]);
+    temp1->info           = Bpacket->Data.bytes[7];
+    temp1->integer        = Bpacket->Data.bytes[8];
+    temp1->decimal        = ((Bpacket->Data.bytes[9] << 8) | Bpacket->Data.bytes[10]);
+    temp2->integer        = Bpacket->Data.bytes[11];
+    temp2->decimal        = ((Bpacket->Data.bytes[12] << 8) | Bpacket->Data.bytes[13]);
 
     return TRUE;
 }
 
-uint8_t wd_capture_time_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
-                                            uint8_t code, wd_camera_capture_time_settings_t* captureTime) {
+uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                            bpk_request_t Request, bpk_code_t Code,
+                                            wd_camera_capture_time_settings_t* captureTime) {
 
     /* Assert all the settings are valid */
     DATETIME_ASSERT_VALID_TIME(&captureTime->startTime, WATCHDOG_INVALID_START_TIME);
@@ -277,168 +239,176 @@ uint8_t wd_capture_time_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver
     DATETIME_ASSERT_VALID_TIME(&captureTime->intervalTime, WATCHDOG_INVALID_INTERVAL_TIME);
 
     /* All settings valid. Parse settings into bpacket*/
-    bpacket->receiver = receiver;
-    bpacket->sender   = sender;
-    bpacket->request  = request;
-    bpacket->code     = code;
-    bpacket->numBytes = 6;
-    bpacket->bytes[0] = captureTime->startTime.minute;
-    bpacket->bytes[1] = captureTime->startTime.hour;
-    bpacket->bytes[2] = captureTime->endTime.minute;
-    bpacket->bytes[3] = captureTime->endTime.hour;
-    bpacket->bytes[4] = captureTime->intervalTime.minute;
-    bpacket->bytes[5] = captureTime->intervalTime.hour;
+    Bpacket->Receiver      = Receiver;
+    Bpacket->Sender        = Sender;
+    Bpacket->Request       = Request;
+    Bpacket->Code          = Code;
+    Bpacket->Data.numBytes = 6;
+    Bpacket->Data.bytes[0] = captureTime->startTime.minute;
+    Bpacket->Data.bytes[1] = captureTime->startTime.hour;
+    Bpacket->Data.bytes[2] = captureTime->endTime.minute;
+    Bpacket->Data.bytes[3] = captureTime->endTime.hour;
+    Bpacket->Data.bytes[4] = captureTime->intervalTime.minute;
+    Bpacket->Data.bytes[5] = captureTime->intervalTime.hour;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_capture_time_settings(bpacket_t* bpacket, wd_camera_capture_time_settings_t* captureTime) {
+uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* captureTime) {
 
     // Assert valid bpacket request
-    if ((bpacket->request != WATCHDOG_BPK_R_GET_CAPTURE_TIME_SETTINGS) &&
-        (bpacket->request != WATCHDOG_BPK_R_SET_CAPTURE_TIME_SETTINGS)) {
-        return WATCHDOG_INVALID_REQUEST;
+    if ((Bpacket->Request.val != BPK_WD_Request_Get_Capture_Time_Settings.val) &&
+        (Bpacket->Request.val != BPK_WD_Request_Set_Capture_Time_Settings.val)) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
     // Assert valid start time
-    if (dt_time_valid(0, bpacket->bytes[0], bpacket->bytes[1]) != TRUE) {
-        return WATCHDOG_INVALID_START_TIME;
+    if (dt_time_valid(0, Bpacket->Data.bytes[0], Bpacket->Data.bytes[1]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Start_Time;
+        return FALSE;
     }
 
     // Assert valid end time
-    if (dt_time_valid(0, bpacket->bytes[2], bpacket->bytes[3]) != TRUE) {
-        return WATCHDOG_INVALID_END_TIME;
+    if (dt_time_valid(0, Bpacket->Data.bytes[2], Bpacket->Data.bytes[3]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_End_Time;
+        return FALSE;
     }
 
     // Assert valid interval time
-    if (dt_time_valid(0, bpacket->bytes[4], bpacket->bytes[5]) != TRUE) {
-        return WATCHDOG_INVALID_INTERVAL_TIME;
+    if (dt_time_valid(0, Bpacket->Data.bytes[4], Bpacket->Data.bytes[5]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Interval_Time;
+        return FALSE;
     }
 
     /* All settings valid. Parse settings into bpacket*/
-    captureTime->startTime.minute    = bpacket->bytes[0];
-    captureTime->startTime.hour      = bpacket->bytes[1];
-    captureTime->endTime.minute      = bpacket->bytes[2];
-    captureTime->endTime.hour        = bpacket->bytes[3];
-    captureTime->intervalTime.minute = bpacket->bytes[4];
-    captureTime->intervalTime.hour   = bpacket->bytes[5];
+    captureTime->startTime.minute    = Bpacket->Data.bytes[0];
+    captureTime->startTime.hour      = Bpacket->Data.bytes[1];
+    captureTime->endTime.minute      = Bpacket->Data.bytes[2];
+    captureTime->endTime.hour        = Bpacket->Data.bytes[3];
+    captureTime->intervalTime.minute = Bpacket->Data.bytes[4];
+    captureTime->intervalTime.hour   = Bpacket->Data.bytes[5];
 
     return TRUE;
 }
 
-uint8_t wd_datetime_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                               dt_datetime_t* datetime) {
+uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                               bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime) {
 
     // Confirm the request is valid
-    if ((request != WATCHDOG_BPK_R_GET_DATETIME) && (request != WATCHDOG_BPK_R_SET_DATETIME)) {
-        return BPACKET_ERR_INVALID_REQUEST;
+    if ((Request.val != BPK_WD_Request_Get_Datetime.val) && (Request.val != BPK_WD_Request_Set_Datetime.val)) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
-    BPACKET_ASSERT_VALID_RECEIVER(receiver);
-    BPACKET_ASSERT_VALID_SENDER(sender);
-    BPACKET_ASSERT_VALID_CODE(code);
-
     // Confirm the time is valid
-    if (dt_time_is_valid(&datetime->time) != TRUE) {
-        return WATCHDOG_INVALID_START_TIME;
+    if (dt_time_is_valid(&datetime->Time) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Start_Time;
+        return FALSE;
     }
 
     // Confirm the date is valid
-    if (dt_date_is_valid(&datetime->date) != TRUE) {
-        return WATCHDOG_INVALID_DATE;
+    if (dt_date_is_valid(&datetime->Date) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Date;
+        return FALSE;
     }
 
-    bpacket->receiver = receiver;
-    bpacket->sender   = sender;
-    bpacket->request  = request;
-    bpacket->code     = code;
-    bpacket->numBytes = 7;
-    bpacket->bytes[0] = datetime->time.second;
-    bpacket->bytes[1] = datetime->time.minute;
-    bpacket->bytes[2] = datetime->time.hour;
-    bpacket->bytes[3] = datetime->date.day;
-    bpacket->bytes[4] = datetime->date.month;
-    bpacket->bytes[5] = datetime->date.year >> 8;
-    bpacket->bytes[6] = datetime->date.year & 0xFF;
+    Bpacket->Receiver      = Receiver;
+    Bpacket->Sender        = Sender;
+    Bpacket->Request       = Request;
+    Bpacket->Code          = Code;
+    Bpacket->Data.numBytes = 7;
+    Bpacket->Data.bytes[0] = datetime->Time.second;
+    Bpacket->Data.bytes[1] = datetime->Time.minute;
+    Bpacket->Data.bytes[2] = datetime->Time.hour;
+    Bpacket->Data.bytes[3] = datetime->Date.day;
+    Bpacket->Data.bytes[4] = datetime->Date.month;
+    Bpacket->Data.bytes[5] = datetime->Date.year >> 8;
+    Bpacket->Data.bytes[6] = datetime->Date.year & 0xFF;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_datetime(bpacket_t* bpacket, dt_datetime_t* datetime) {
+uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime) {
 
     // confirm bpacket has the right number of bytes
-    if (bpacket->numBytes != 7) {
-        return WATCHDOG_INVALID_BPACKET_SIZE;
+    if (Bpacket->Data.numBytes != 7) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Bpacket_Size;
+        return FALSE;
     }
 
     // Confirm the request is valid
-    if ((bpacket->request != WATCHDOG_BPK_R_GET_DATETIME) && (bpacket->request != WATCHDOG_BPK_R_SET_DATETIME)) {
-        return WATCHDOG_INVALID_REQUEST;
+    if ((Bpacket->Request.val != BPK_WD_Request_Get_Datetime.val) &&
+        (Bpacket->Request.val != BPK_WD_Request_Set_Datetime.val)) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
     // Confirm the time is valid
-    if (dt_time_valid(bpacket->bytes[0], bpacket->bytes[1], bpacket->bytes[2]) != TRUE) {
-        return WATCHDOG_INVALID_START_TIME;
+    if (dt_time_valid(Bpacket->Data.bytes[0], Bpacket->Data.bytes[1], Bpacket->Data.bytes[2]) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Start_Time;
+        return FALSE;
     }
 
-    uint16_t year = (bpacket->bytes[5] << 8) | bpacket->bytes[6];
-    if (dt_date_valid(bpacket->bytes[3], bpacket->bytes[4], year) != TRUE) {
-        return WATCHDOG_INVALID_DATE;
+    uint16_t year = (Bpacket->Data.bytes[5] << 8) | Bpacket->Data.bytes[6];
+    if (dt_date_valid(Bpacket->Data.bytes[3], Bpacket->Data.bytes[4], year) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Date;
+        return FALSE;
     }
 
     // Confirm year is valid
     if (year < 2023 || year > 2099) {
-        return WATCHDOG_INVALID_YEAR;
+        Bpacket->ErrorCode = BPK_Err_Invalid_Year;
+        return FALSE;
     }
 
-    datetime->time.second = bpacket->bytes[0];
-    datetime->time.minute = bpacket->bytes[1];
-    datetime->time.hour   = bpacket->bytes[2];
-    datetime->date.day    = bpacket->bytes[3];
-    datetime->date.month  = bpacket->bytes[4];
-    datetime->date.year   = year;
+    datetime->Time.second = Bpacket->Data.bytes[0];
+    datetime->Time.minute = Bpacket->Data.bytes[1];
+    datetime->Time.hour   = Bpacket->Data.bytes[2];
+    datetime->Date.day    = Bpacket->Data.bytes[3];
+    datetime->Date.month  = Bpacket->Data.bytes[4];
+    datetime->Date.year   = year;
 
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request,
-                                      uint8_t code, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                      bpk_request_t Request, bpk_code_t Code, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((request != WATCHDOG_BPK_R_GET_CAMERA_SETTINGS) && (request != WATCHDOG_BPK_R_SET_CAMERA_SETTINGS)) {
-        return WATCHDOG_INVALID_REQUEST;
+    if ((Request.val != BPK_WD_Request_Get_Camera_Settings.val) &&
+        (Request.val != BPK_WD_Request_Set_Camera_Settings.val)) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
-
-    BPACKET_ASSERT_VALID_RECEIVER(receiver);
-    BPACKET_ASSERT_VALID_SENDER(sender);
-    BPACKET_ASSERT_VALID_CODE(code);
 
     // Confirm the resolution is valid
     if (wd_camera_resolution_is_valid(cameraSettings->resolution) != TRUE) {
         return WATCHDOG_INVALID_CAMERA_RESOLUTION;
     }
 
-    bpacket->receiver = receiver;
-    bpacket->sender   = sender;
-    bpacket->request  = request;
-    bpacket->code     = code;
-    bpacket->numBytes = 1;
-    bpacket->bytes[0] = cameraSettings->resolution;
+    Bpacket->Receiver      = Receiver;
+    Bpacket->Sender        = Sender;
+    Bpacket->Request       = Request;
+    Bpacket->Code          = Code;
+    Bpacket->Data.numBytes = 1;
+    Bpacket->Data.bytes[0] = cameraSettings->resolution;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_camera_settings(bpacket_t* bpacket, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_bpacket_to_camera_settings(bpk_packet_t* Bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((bpacket->request != WATCHDOG_BPK_R_GET_CAMERA_SETTINGS) &&
-        (bpacket->request != WATCHDOG_BPK_R_SET_CAMERA_SETTINGS)) {
-        return WATCHDOG_INVALID_REQUEST;
+    if ((Bpacket->Request.val != BPK_WD_Request_Get_Camera_Settings.val) &&
+        (Bpacket->Request.val != BPK_WD_Request_Set_Camera_Settings.val)) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+        return FALSE;
     }
 
-    WD_ASSERT_VALID_CAMERA_RESOLUTION(bpacket->bytes[0]);
+    WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, Bpacket->Data.bytes[0]);
 
-    cameraSettings->resolution = bpacket->bytes[0];
+    cameraSettings->resolution = Bpacket->Data.bytes[0];
 
     return TRUE;
 }
@@ -459,56 +429,50 @@ uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution) {
     }
 }
 
-uint8_t wd_status_to_bpacket(bpacket_t* bpacket, uint8_t receiver, uint8_t sender, uint8_t request, uint8_t code,
-                             wd_status_t* status) {
+uint8_t wd_status_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                             bpk_request_t Request, bpk_code_t Code, wd_status_t* status) {
 
     // Confirm the status is valid
-    if (status->status != WATCHDOG_BPK_R_GET_STATUS) {
+    if (status->status != BPK_REQUEST_STATUS) {
         return FALSE;
     }
 
-    if (BPACKET_RECEIVER_IS_INVALID(receiver) || BPACKET_SENDER_IS_INVALID(sender) ||
-        BPACKET_REQUEST_IS_INVALID(request) || BPACKET_CODE_IS_INVALID(code)) {
-        return FALSE;
-    }
-
-    bpacket->receiver = receiver;
-    bpacket->sender   = sender;
-    bpacket->request  = request;
-    bpacket->code     = code;
-    bpacket->request  = WATCHDOG_BPK_R_GET_STATUS;
-    bpacket->numBytes = 5;
-    bpacket->bytes[0] = status->id;
-    bpacket->bytes[1] = status->status;
-    bpacket->bytes[2] = status->numImages;
-    bpacket->bytes[3] = status->batteryCapacity;
-    bpacket->bytes[4] = status->sdCardFreeSpaceMb;
+    Bpacket->Receiver      = Receiver;
+    Bpacket->Sender        = Sender;
+    Bpacket->Request       = Request;
+    Bpacket->Code          = Code;
+    Bpacket->Data.numBytes = 5;
+    Bpacket->Data.bytes[0] = status->id;
+    Bpacket->Data.bytes[1] = status->status;
+    Bpacket->Data.bytes[2] = status->numImages;
+    Bpacket->Data.bytes[3] = status->batteryCapacity;
+    Bpacket->Data.bytes[4] = status->sdCardFreeSpaceMb;
 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_status(bpacket_t* bpacket, wd_status_t* status) {
+uint8_t wd_bpacket_to_status(bpk_packet_t* Bpacket, wd_status_t* status) {
 
     // Confirm the request is valid
-    if ((bpacket->request != WATCHDOG_BPK_R_GET_STATUS) && (bpacket->request != BPACKET_CODE_SUCCESS)) {
+    if ((Bpacket->Request.val != BPK_REQUEST_STATUS) && (Bpacket->Request.val != BPK_Code_Success.val)) {
         return FALSE;
     }
 
     // Confirm the number of bytes is valid
-    if (bpacket->numBytes != 5) {
+    if (Bpacket->Data.numBytes != 5) {
         return FALSE;
     }
 
     // Confirm the status is valid
-    if (bpacket->bytes[1] != WATCHDOG_BPK_R_GET_STATUS) {
+    if (Bpacket->Data.bytes[1] != BPK_REQUEST_STATUS) {
         return FALSE;
     }
 
-    status->id                = bpacket->bytes[0];
-    status->status            = bpacket->bytes[1];
-    status->numImages         = bpacket->bytes[2];
-    status->batteryCapacity   = bpacket->bytes[3];
-    status->sdCardFreeSpaceMb = bpacket->bytes[4];
+    status->id                = Bpacket->Data.bytes[0];
+    status->status            = Bpacket->Data.bytes[1];
+    status->numImages         = Bpacket->Data.bytes[2];
+    status->batteryCapacity   = Bpacket->Data.bytes[3];
+    status->sdCardFreeSpaceMb = Bpacket->Data.bytes[4];
 
     return TRUE;
 }

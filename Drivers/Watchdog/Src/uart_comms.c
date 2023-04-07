@@ -28,7 +28,7 @@
 // /* Function Declarations */
 // int uart_comms_read(char* data, int timeout);
 
-// void uart_comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data) {
+// void uart_comms_create_packet(packet_t* packet, bpk_request_t Request, char* instruction, char* data) {
 //     packet->request = request;
 //     sprintf(packet->instruction, "%s", instruction);
 //     sprintf(packet->data, "%s", data);

@@ -28,7 +28,7 @@
 #include "ds18b20.h"
 #include "log.h"
 #include "hardware_config.h"
-#include "utilities.h"
+#include "utils.h"
 
 /* Private Macros */
 #define SET_PIN_LOW(port, pin) (port->BSRR |= (0x01 << (pin + 16)))
@@ -45,9 +45,7 @@
 typedef struct ds18b20_t {
     uint8_t id;
     uint64_t rom;
-    uint8_t decimal;
-    uint16_t fraction;
-    uint8_t sign; // 0 = positive number, 1 = negative number
+    cdt_double16_t Temperature;
 } ds18b20_t;
 
 /* Private Variable Declarations */
@@ -88,15 +86,15 @@ void ds18b20_deinit(void) {
     DS18B20_TIMER->CR1 &= ~(TIM_CR1_CEN);
 }
 
-uint8_t ds18b20_copy_temperature(uint8_t id, ds18b20_temp_t* temp) {
+uint8_t ds18b20_copy_temperature(uint8_t id, cdt_double16_t* temp) {
 
     if (ID_INVALID(id) == TRUE) {
         return FALSE;
     }
 
-    temp->sign     = sensors[id].sign;
-    temp->decimal  = sensors[id].decimal;
-    temp->fraction = sensors[id].fraction;
+    temp->info    = sensors[id].Temperature.info;
+    temp->integer = sensors[id].Temperature.integer;
+    temp->decimal = sensors[id].Temperature.decimal;
 
     return TRUE;
 }
@@ -108,12 +106,12 @@ uint8_t ds18b20_read_temperature(uint8_t id) {
     }
 
     if (ds18b20_convert_temperature() != TRUE) {
-        log_prints("Failed to convert temperature\r\n");
+        log_error("Failed to convert temperature\r\n");
         return FALSE;
     }
 
     if (ds18b20_read_scratch_pad(&sensors[id]) != TRUE) {
-        log_prints("Failed to read scratch pad\r\n");
+        log_error("Failed to read scratch pad\r\n");
         return FALSE;
     }
 
@@ -123,21 +121,17 @@ uint8_t ds18b20_read_temperature(uint8_t id) {
 void ds18b20_print_temperatures(void) {
 
     for (uint8_t i = 0; i < NUM_SENSORS; i++) {
-        char msg[100];
-        sprintf(msg, "%i: %s%i.%s%i\t", i + 1, sensors[i].sign == 1 ? "-" : "", sensors[i].decimal,
-                sensors[i].fraction < 1000 ? "0" : "", sensors[i].fraction);
-        log_prints(msg);
+        log_message("%i: %s%i.%s%i\t", i + 1, sensors[i].Temperature.info == 1 ? "-" : "",
+                    sensors[i].Temperature.integer, sensors[i].Temperature.decimal < 1000 ? "0" : "",
+                    sensors[i].Temperature.decimal);
     }
 
-    log_prints("\r\n");
+    log_message("\r\n");
 }
 
 void ds18b20_print_temperature(uint8_t id) {
-
-    char msg[100];
-    sprintf(msg, "Temp: %s%i.%s%i\r\n", sensors[id].sign == 1 ? "-" : "", sensors[id].decimal,
-            sensors[id].fraction < 1000 ? "0" : "", sensors[id].fraction);
-    log_prints(msg);
+    printf("Temp: %s%i.%s%i\r\n", (sensors[id].Temperature.info == 1) ? "-" : "", sensors[id].Temperature.integer,
+           sensors[id].Temperature.decimal < 100 ? "0" : "", sensors[id].Temperature.decimal);
 }
 
 void ds18b20_print_rom(uint8_t id) {
@@ -145,8 +139,9 @@ void ds18b20_print_rom(uint8_t id) {
 }
 
 void ds18b20_get_temperature(uint8_t id, char tempStr[30]) {
-    sprintf(tempStr, "Temp: %s%i.%s%i\r\n", sensors[id].sign == 1 ? "-" : "", sensors[id].decimal,
-            sensors[id].fraction < 1000 ? "0" : "", sensors[id].fraction);
+    sprintf(tempStr, "Temp: %s%i.%s%i\r\n", sensors[id].Temperature.info == 1 ? "-" : "",
+            sensors[id].Temperature.integer, sensors[id].Temperature.decimal < 1000 ? "0" : "",
+            sensors[id].Temperature.decimal);
 }
 
 /**
@@ -163,12 +158,12 @@ void ds18b20_test(void) {
 
         // Read the temperature of sensor 1 connected to the line
         if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
-            log_prints("Error reading temperature from sensor 1\r\n");
+            log_error("Error reading temperature from sensor 1\r\n");
         }
 
         // Read the temperature of sensor 2 connected to the line
         if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
-            log_prints("Error reading temperature from sensor 2\r\n");
+            log_error("Error reading temperature from sensor 2\r\n");
         }
 
         // Print the temperatures of all the sensors to the console
@@ -199,7 +194,7 @@ void ds18b20_match_rom(ds18b20_t* ds18b20) {
 }
 
 /**
- * @brief Prints an unsigned 64 bit number to the console in hex. The 64-bit number
+ * @brief Prints an uninfoed 64 bit number to the console in hex. The 64-bit number
  * is seperated by spaces every 2 bytes. This function is was used for logging
  * when printing the ROM code/datareceived from the DS18B20 sensor. This function
  * has been kept incase further development on this peripheral drive is conducted
@@ -214,9 +209,7 @@ void ds18b20_print_64_bit(uint64_t number) {
     uint16_t bytes56 = ((number >> 32) & 0xFFFF);
     uint16_t bytes78 = ((number >> 48) & 0xFFFF);
 
-    char msg[100];
-    sprintf(msg, "Num: %x %x %x %x\r\n", bytes78, bytes56, bytes34, bytes12);
-    log_prints(msg);
+    log_message("Num: %x %x %x %x\r\n", bytes78, bytes56, bytes34, bytes12);
 }
 
 /**
@@ -348,13 +341,13 @@ uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
 uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) {
 
     // Reset temperature value
-    ds18b20->decimal  = 0;
-    ds18b20->fraction = 0;
-    ds18b20->sign     = 0;
+    ds18b20->Temperature.integer = 0;
+    ds18b20->Temperature.decimal = 0;
+    ds18b20->Temperature.info    = 0;
 
     // Temperature data is stored in 2's complement. Convert if temperature is negative
     if ((rawTempData & (0x01 << 11)) != 0) {
-        ds18b20->sign = 1;
+        ds18b20->Temperature.info = 1;
 
         // Convert negative data to positive data
         rawTempData = (~rawTempData) + 1;
@@ -363,24 +356,24 @@ uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) 
     // Extract decimal component
     for (uint8_t i = 4; i < 11; i++) {
         if ((rawTempData & (0x01 << i)) != 0) {
-            ds18b20->decimal += ds18b20_pow(2, i - 4);
+            ds18b20->Temperature.integer += ds18b20_pow(2, i - 4);
         }
     }
 
     // Extract Fractional component
     for (uint8_t i = 0; i < 4; i++) {
         if ((rawTempData & (0x01 << i)) != 0) {
-            ds18b20->fraction += 625 * ds18b20_pow(2, i);
+            ds18b20->Temperature.decimal += 625 * ds18b20_pow(2, i);
         }
     }
 
-    // Bits 11 - 15 should all be the same as they are sign bits
+    // Bits 11 - 15 should all be the same as they are info bits
     if (((uint8_t)(rawTempData >> 11) != 0x00) && ((uint8_t)(rawTempData >> 11) != 0x1F)) {
         return FALSE;
     }
 
-    // Extract sign bit
-    ds18b20->sign = ((rawTempData & (0x01 << 12)) != 0) ? 1 : 0;
+    // Extract info bit
+    ds18b20->Temperature.info = ((rawTempData & (0x01 << 12)) != 0) ? 1 : 0;
     return TRUE;
 }
 
@@ -567,7 +560,7 @@ uint8_t ds18b20_reset(void) {
     }
 
     if (ds18b20Responded == FALSE) {
-        log_prints("Failed to reset\r\n");
+        log_error("Failed to reset\r\n");
     }
 
     return ds18b20Responded;

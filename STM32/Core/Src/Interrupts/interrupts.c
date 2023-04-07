@@ -25,13 +25,13 @@ void USART1_IRQHandler(void) {
         char c = USART1->RDR;
         // uint8_t c = USART1->RDR;
         // log_send_data(&c, 1);
-        // log_prints("got char\r\n");
+        // log_message("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
         comms_add_to_buffer(BUFFER_1_ID, (uint8_t)c);
     }
 
     if ((USART1->ISR & USART_ISR_PE) != 0) {
-        log_prints("Parity error UART 1\r\n");
+        log_message("Parity error UART 1\r\n");
     }
 
     if ((USART1->ISR & USART_ISR_ORE) != 0) {
@@ -53,7 +53,7 @@ void USART2_IRQHandler(void) {
     }
 
     if ((USART2->ISR & USART_ISR_PE) != 0) {
-        log_prints("Parity error UART 2\r\n");
+        log_message("Parity error UART 2\r\n");
     }
 
     if ((USART2->ISR & USART_ISR_EOBF) != 0) {

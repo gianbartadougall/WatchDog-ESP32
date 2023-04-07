@@ -12,7 +12,7 @@
 /* Personal Includes */
 #include "bpacket.h"
 
-void unit_tests_init(bpacket_t* packetBuffer, uint32_t* packetBufferIndex, uint32_t* packetPendingIndex);
+void unit_tests_init(bpk_packet_t* packetBuffer, uint32_t* packetBufferIndex, uint32_t* packetPendingIndex);
 
 uint8_t ut_test_red_led_on(void);
 

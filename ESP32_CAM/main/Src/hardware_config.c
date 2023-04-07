@@ -7,22 +7,21 @@
 #include "sd_card.h"
 #include "camera.h"
 #include "uart_comms.h"
-#include "utilities.h"
+#include "utils.h"
 
 /* Private Function Definitions */
 void hardware_config_leds(void);
 void hardware_config_uart_comms(void);
 
-uint8_t hardware_config(bpacket_t* bpacket) {
+uint8_t hardware_config(bpk_packet_t* Bpacket) {
 
     /* Configure all the required hardware */
-    uint8_t request = bpacket->request;
 
     // Configure the SD card and ensure it can be used. This is done before
     // any other hardware so that everything else can be logged
     if (sd_card_open() != TRUE) {
-        bp_create_string_packet(bpacket, BP_ADDRESS_R_MAPLE, BP_ADDRESS_S_ESP32, BP_GEN_R_MESSAGE, BP_CODE_ERROR,
-                                "SD Card failed to init\0");
+        bp_create_string_packet(Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message,
+                                BPK_Code_Error, "SD Card failed to init\0");
         return FALSE;
     }
 

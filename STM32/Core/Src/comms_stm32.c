@@ -11,7 +11,7 @@
 
 /* Personal Includes */
 #include "comms_stm32.h"
-#include "utilities.h"
+#include "utils.h"
 #include "log.h"
 #include "watchdog_defines.h"
 #include "chars.h"
@@ -51,7 +51,6 @@ uint8_t lastByte = 0;
 
 /* Function Prototyes */
 void comms_send_byte(uint8_t bufferId, uint8_t byte);
-void comms_stm32_log_invalid_byte(uint8_t bufferId, uint8_t byte);
 
 void comms_stm32_init(void) {
 
@@ -70,7 +69,7 @@ void comms_add_to_buffer(uint8_t bufferId, uint8_t byte) {
     bpacket_increment_circ_buff_index(&rxBufIndexes[bufferId], RX_BUFFER_SIZE);
 }
 
-uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
+uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
 
     while (rxBufProcessedIndexes[bufferId] != rxBufIndexes[bufferId]) {
 
@@ -94,14 +93,14 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             }
 
             // Add byte to bpacket
-            bpacket->bytes[bpacketByteIndex[bufferId]++] = byte;
+            Bpacket->Data.bytes[bpacketByteIndex[bufferId]++] = byte;
             continue;
         }
 
         if ((expectedByteId[bufferId] == BPACKET_STOP_BYTE_LOWER_ID) && (byte == BPACKET_STOP_BYTE_LOWER)) {
 
             // if (bufferId == BUFFER_1_ID) {
-            //     log_send_data(" STP BYTE LW ", 13);
+            //     uart_transmit_data(" STP BYTE LW ", 13);
             // }
             // End of packet reached. Reset the system. It is important that this is done
             // regardless of whether the bytes were diverted or not. This ensures the next
@@ -122,7 +121,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
         if ((expectedByteId[bufferId] == BPACKET_STOP_BYTE_UPPER_ID) && (byte == BPACKET_STOP_BYTE_UPPER)) {
 
             // if (bufferId == BUFFER_1_ID) {
-            //     log_send_data(" STP BYTE UP ", 13);
+            //     uart_transmit_data(" STP BYTE UP ", 13);
             // }
             expectedByteId[bufferId] = BPACKET_STOP_BYTE_LOWER_ID;
 
@@ -137,7 +136,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     char y[20];
             //     sprintf(y, " LEN BYTE[%i] ", byte);
-            //     log_send_data(y, chars_get_num_bytes(y));
+            //     uart_transmit_data(y, chars_get_num_bytes(y));
             // }
 
             if (divertBytes[bufferId] == TRUE) {
@@ -145,7 +144,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             } else {
 
                 // Set the number of bytes in the bpacket
-                bpacket->numBytes = byte;
+                Bpacket->Data.numBytes = byte;
             }
             // Set the number of data bytes expected
             numDataBytesExpected[bufferId] = byte;
@@ -166,12 +165,12 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     char y[20];
             //     sprintf(y, " COD BYTE[%i] ", byte);
-            //     log_send_data(y, chars_get_num_bytes(y));
+            //     uart_transmit_data(y, chars_get_num_bytes(y));
             // }
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
-                bpacket->code = byte;
+                Bpacket->Code.val = byte;
             }
             expectedByteId[bufferId] = BPACKET_NUM_BYTES_BYTE_ID;
             continue;
@@ -181,13 +180,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     char y[20];
             //     sprintf(y, " REQ BYTE[%i] ", byte);
-            //     log_send_data(y, chars_get_num_bytes(y));
+            //     uart_transmit_data(y, chars_get_num_bytes(y));
             // }
 
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
-                bpacket->request = byte;
+                Bpacket->Request.val = byte;
             }
             expectedByteId[bufferId] = BPACKET_CODE_BYTE_ID;
             continue;
@@ -197,13 +196,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
             // if (bufferId == BUFFER_1_ID) {
             //     char y[20];
             //     sprintf(y, " SND BYTE[%i] ", byte);
-            //     log_send_data(y, chars_get_num_bytes(y));
+            //     uart_transmit_data(y, chars_get_num_bytes(y));
             // }
 
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
             } else {
-                bpacket->sender = byte;
+                Bpacket->Sender.val = byte;
             }
             expectedByteId[bufferId] = BPACKET_REQUEST_BYTE_ID;
             continue;
@@ -211,17 +210,17 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
         if (expectedByteId[bufferId] == BPACKET_RECEIVER_BYTE_ID) {
             // if (bufferId == BUFFER_1_ID) {
-            //     log_send_data(" REC BYTE  ", 10);
+            //     uart_transmit_data(" REC BYTE  ", 10);
             // }
 
             // Determine if this bpacket needs to be diverted to another mcu or not
             switch (byte) {
 
-                case BPACKET_ADDRESS_ESP32: // Required to divert bytes to ESP32
+                case BPK_ADDRESS_ESP32: // Required to divert bytes to ESP32
                     // if (bufferId == BUFFER_1_ID) {
-                    //     log_send_data(" REC ESP ", 9);
+                    //     uart_transmit_data(" REC ESP ", 9);
                     // }
-                    // log_send_data(" DIV ESP ", 9);
+                    // uart_transmit_data(" DIV ESP ", 9);
                     // Set the flag to divert bytes
                     divertBytes[bufferId]           = TRUE;
                     divertedBytesBufferId[bufferId] = BUFFER_1_ID;
@@ -229,13 +228,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                     // Send the start bytes and the receiver address to the ESP32
                     comms_send_byte(BUFFER_1_ID, BPACKET_START_BYTE_UPPER);
                     comms_send_byte(BUFFER_1_ID, BPACKET_START_BYTE_LOWER);
-                    comms_send_byte(BUFFER_1_ID, BPACKET_ADDRESS_ESP32);
+                    comms_send_byte(BUFFER_1_ID, BPK_ADDRESS_ESP32);
                     break;
 
-                case BPACKET_ADDRESS_MAPLE: // Required to divert bytes to STM32
-                    // log_send_data(" DIV MPL ", 9);
+                case BPK_ADDRESS_MAPLE: // Required to divert bytes to STM32
+                    // uart_transmit_data(" DIV MPL ", 9);
                     // if (bufferId == BUFFER_1_ID) {
-                    //     log_send_data(" REC MPL", 9);
+                    //     uart_transmit_data(" REC MPL", 9);
                     // }
                     // Set the flag to divert bytes
                     divertBytes[bufferId]           = TRUE;
@@ -244,13 +243,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
                     // Send the start bytes and the receiver address to Maple
                     comms_send_byte(BUFFER_2_ID, BPACKET_START_BYTE_UPPER);
                     comms_send_byte(BUFFER_2_ID, BPACKET_START_BYTE_LOWER);
-                    comms_send_byte(BUFFER_2_ID, BPACKET_ADDRESS_MAPLE);
+                    comms_send_byte(BUFFER_2_ID, BPK_ADDRESS_MAPLE);
                     break;
 
-                case BPACKET_ADDRESS_STM32: // No need to divert bytes
+                case BPK_ADDRESS_STM32: // No need to divert bytes
 
                 default: // Unknown receiver address. Pass onto STM32 and let STM32 handle it
-                    bpacket->receiver     = BPACKET_ADDRESS_STM32;
+                    Bpacket->Receiver.val = BPK_Addr_Send_Stm32.val;
                     divertBytes[bufferId] = FALSE;
                     break;
             }
@@ -261,7 +260,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
         if ((expectedByteId[bufferId] == BPACKET_START_BYTE_LOWER_ID) && (byte == BPACKET_START_BYTE_LOWER)) {
             // if (bufferId == BUFFER_1_ID) {
-            //     log_send_data(" START LOWER ", 13);
+            //     uart_transmit_data(" START LOWER ", 13);
             // }
             expectedByteId[bufferId] = BPACKET_RECEIVER_BYTE_ID;
             continue;
@@ -269,7 +268,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
         if ((expectedByteId[bufferId] == BPACKET_START_BYTE_UPPER_ID) && (byte == BPACKET_START_BYTE_UPPER)) {
             // if (bufferId == BUFFER_1_ID) {
-            //     log_send_data(" START UPPER ", 13);
+            //     uart_transmit_data(" START UPPER ", 13);
             // }
             expectedByteId[bufferId] = BPACKET_START_BYTE_LOWER_ID;
 
@@ -278,10 +277,6 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpacket_t* bpacket) {
 
             continue;
         }
-
-        // Log data if required
-        // comms_send_byte(bufferId, byte);
-        // comms_stm32_log_invalid_byte(bufferId, byte);
 
         // Erraneous byte. Reset the system
         expectedByteId[bufferId] = BPACKET_START_BYTE_UPPER_ID;
@@ -298,16 +293,10 @@ uint8_t comms_stm32_request_pending(uint8_t bufferId) {
     return TRUE;
 }
 
-void comms_stm32_log_invalid_byte(uint8_t bufferId, uint8_t byte) {
-    char m[30];
-    sprintf(m, " BUF[%i][%i]", bufferId, byte);
-    log_send_data(m, chars_get_num_bytes(m));
-}
-
 /* Generic USART Commuincation Functions */
 
 void comms_send_byte(uint8_t bufferId, uint8_t byte) {
-    // log_send_data("rx SENT ", 8);
+    // uart_transmit_data("rx SENT ", 8);
     // Wait for USART to be ready to send a byte
     while ((uarts[bufferId]->ISR & USART_ISR_TXE) == 0) {};
 

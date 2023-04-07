@@ -15,7 +15,7 @@
 /* C Library Includes */
 
 /* Personal Includes */
-#include "datetime.h"
+#include "Datetime.h"
 
 /* STM32 Includes */
 #include "stm32l432xx.h"
@@ -29,16 +29,16 @@
 
 void stm32_rtc_init(void);
 
-void stm32_rtc_read_datetime(dt_datetime_t* datetime);
+void stm32_rtc_read_datetime(dt_datetime_t* Datetime);
 
-void stm32_rtc_write_datetime(dt_datetime_t* datetime);
+void stm32_rtc_write_datetime(dt_datetime_t* Datetime);
 
-void stm32_rtc_format_datetime(dt_datetime_t* datetime, char* string);
+void stm32_rtc_format_datetime(dt_datetime_t* Datetime, char* string);
 
-void stm32_rtc_set_alarmA(dt_datetime_t* datetime);
+void stm32_rtc_set_alarmA(dt_datetime_t* Datetime);
 
-void stm32_rtc_read_alarmA(dt_datetime_t* datetime);
+void stm32_rtc_read_alarmA(dt_datetime_t* Datetime);
 
-void stm32_rtc_set_alarmB(dt_datetime_t* datetime);
+void stm32_rtc_set_alarmB(dt_datetime_t* Datetime);
 
 #endif // STM32_RTC_H

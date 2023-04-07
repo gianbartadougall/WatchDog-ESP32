@@ -17,13 +17,15 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h> // Use for ms timer
 
 /* Personal Includes */
 #include "gui.h"
-#include "utilities.h"
+#include "utils.h"
 #include "chars.h"
 #include "watchdog_defines.h"
 #include "bpacket.h"
+#include "log.h"
 
 // #define STB_IMAGE_IMPLEMENTATION // Required for stb_image
 #include "stb_image.h"
@@ -111,6 +113,7 @@
 // Struct that contains all of the settings
 // wd_camera_settings_t settings;
 uint8_t settingsFlag;
+clock_t liveStreamTime;
 
 typedef struct rectangle_t {
     int startX;
@@ -132,7 +135,7 @@ uint32_t* flags;
 bpacket_circular_buffer_t* guiTransmitBuffer;
 bpacket_circular_buffer_t* guiReceiveBuffer;
 
-// Macro that takes the bpacket out of the circular buffer at the read index
+// Macro that takes the Bpacket out of the circular buffer at the read index
 #define GUI_RECIEVE_BPACKET()  (guiReceiveBuffer->buffer[*guiReceiveBuffer->rIndex])
 #define GUI_TRANSMIT_BPACKET() (guiTransmitBuffer->buffer[*guiTransmitBuffer->wIndex])
 /*
@@ -159,6 +162,13 @@ wd_camera_capture_time_settings_t captureTime = {
     .intervalTime.second = 0,
     .intervalTime.minute = 0,
     .intervalTime.hour   = 0,
+};
+
+rectangle_t LiveStreamImageFrame = {
+    .startX = COL_1,
+    .startY = ROW_2,
+    .width  = 600,
+    .height = 480,
 };
 
 /*
@@ -436,7 +446,7 @@ uint8_t click_off_start_tb(HWND hwnd) {
         if (chars_same(period, "pm\0") == TRUE) {
             startTimeHr += 12;
         }
-        // TODO: Send the bpacket to change the start time
+        // TODO: Send the Bpacket to change the start time
     } else {
         // Write, in red, invalid input over the textbox
         ShowWindow(textBoxList[TEXT_BOX_START_TIME].label.handle, SW_SHOW);
@@ -556,8 +566,8 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 void gui_transmit_capture_time_settings(void) {
 
     uint8_t result =
-        wd_capture_time_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
-                                            WD_BPK_R_SET_CAPTURE_TIME_SETTINGS.val, BPACKET_CODE_EXECUTE, &captureTime);
+        wd_capture_time_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                                            BPK_WD_Request_Set_Capture_Time_Settings, BPK_Code_Execute, &captureTime);
     if (result != TRUE) {
         char msg[50];
         wd_get_error(result, msg);
@@ -570,8 +580,8 @@ void gui_transmit_capture_time_settings(void) {
 void gui_transmit_camera_resolution_settings(void) {
 
     uint8_t result =
-        wd_camera_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPACKET_ADDRESS_ESP32, BPACKET_ADDRESS_MAPLE,
-                                      WD_BPK_R_SET_CAMERA_SETTINGS.val, BPACKET_CODE_EXECUTE, &cameraSettings);
+        wd_camera_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                      BPK_WD_Request_Set_Camera_Settings, BPK_Code_Execute, &cameraSettings);
     if (result != TRUE) {
         char msg[50];
         wd_get_error(result, msg);
@@ -627,16 +637,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_LED_RED_ON,
-                                 BP_CODE_EXECUTE, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                 BPK_WD_Request_Led_Red_On, BPK_Code_Execute, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
                 // TODO: decide what is going to happen when this button is clicked
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_LED_RED_OFF,
-                                 BP_CODE_EXECUTE, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                 BPK_WD_Request_Led_Red_Off, BPK_Code_Execute, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
                 // printf("Exporting SD card data\n");
             }
@@ -647,16 +657,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
                 printf("Starting livestream\n");
                 InvalidateRect(hwnd, NULL, TRUE);
-                rectangle_t rectangle;
-                rectangle.startX = COL_1;
-                rectangle.startY = ROW_3;
-                rectangle.width  = 600;
-                rectangle.height = 480;
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_STREAM_IMAGE,
-                                 BP_CODE_EXECUTE, 0, NULL);
+
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                 BPK_WD_Request_Stream_Images, BPK_Code_Execute, 0, NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
 
-                draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
+                // Set live stream flag and update live stream time
+                *flags |= GUI_LIVE_STREAM;
+                liveStreamTime = clock();
             }
 
             if (LOWORD(wParam) == BUTTON_HELP_HANDLE) {
@@ -665,14 +673,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if ((HWND)lParam == buttonList[BUTTON_NORMAL_VIEW].handle) {
                 cameraViewOn = FALSE;
-
                 // Clear the screen
-                rectangle_t rectangle;
-                rectangle.startX = COL_1;
-                rectangle.startY = ROW_2;
-                rectangle.width  = 600;
-                rectangle.height = 480;
-                draw_rectangle(hwnd, &rectangle, 255, 255, 255);
+                draw_rectangle(hwnd, &LiveStreamImageFrame, 255, 255, 255);
                 gui_change_view(NORMAL_VIEW, hwnd);
             }
 
@@ -698,7 +700,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     cameraSettings.resolution = (uint8_t)cameraResolutions[itemIndex];
 
                     gui_transmit_camera_resolution_settings();
-                    // TODO: send bpacket of which camera resolution is wanted
+                    // TODO: send Bpacket of which camera resolution is wanted
                 }
             }
 
@@ -840,49 +842,63 @@ DWORD WINAPI gui(void* arg) {
     }
 
     /* Need to retrieve ESP32 settings to display them on GUI */
-    // Create bpacket requests
-    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_STM32, BP_ADDRESS_S_MAPLE,
-                         WD_BPK_R_GET_CAPTURE_TIME_SETTINGS, BP_CODE_EXECUTE, 0, NULL) != TRUE) {
-        printf("Bpacket creating failed. File %s on line %d with error %i\n", __FILE__, __LINE__,
-               GUI_TRANSMIT_BPACKET()->status);
+    // Create Bpacket requests
+    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                         BPK_WD_Request_Get_Capture_Time_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+        printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
+               GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {
         bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
     }
 
-    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BP_ADDRESS_R_ESP32, BP_ADDRESS_S_MAPLE, WD_BPK_R_GET_CAMERA_SETTINGS,
-                         BP_CODE_EXECUTE, 0, NULL) != TRUE) {
-        printf("Bpacket creating failed. File %s on line %d with error %i\n", __FILE__, __LINE__,
-               GUI_TRANSMIT_BPACKET()->status);
+    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                         BPK_WD_Request_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+        printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
+               GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {
         bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
     }
 
-    bpacket_t* receivedBpacket;
+    bpk_packet_t* receivedBpacket;
     uint8_t numSettingsUpdated = 0;
 
     // Before it goes into the main loop the settings from the ESP32 need to be retreived
-    while (numSettingsUpdated < 2) {
+    clock_t time    = clock();
+    uint8_t timeout = FALSE;
+    while ((numSettingsUpdated < 2) && (!timeout)) {
+
+        if ((clock() - time) > 3000) {
+            timeout = TRUE;
+        }
 
         if (*guiReceiveBuffer->rIndex != *guiReceiveBuffer->wIndex) {
 
             receivedBpacket = GUI_RECIEVE_BPACKET();
             bpacket_increment_circular_buffer_index(guiReceiveBuffer->rIndex);
 
-            if (receivedBpacket->request == WD_BPK_R_GET_CAPTURE_TIME_SETTINGS.val) {
-                uint8_t code = wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime);
-                printf("Received capture time settings %i with code %i\n", captureTime.startTime.hour, code);
+            if (receivedBpacket->Request.val == BPK_WD_Request_Get_Capture_Time_Settings.val) {
+                if (wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime) != TRUE) {
+                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__, receivedBpacket->ErrorCode.val);
+                }
                 numSettingsUpdated++;
                 text_box_default_text(captureTime);
                 continue;
             }
 
-            if (receivedBpacket->request == WD_BPK_R_GET_CAMERA_SETTINGS.val) {
-                uint8_t code = wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings);
-                printf("Received camera settings %i with code %i\n", cameraSettings.resolution, code);
+            if (receivedBpacket->Request.val == BPK_WD_Request_Get_Camera_Settings.val) {
+                if (wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings) != TRUE) {
+                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__, receivedBpacket->ErrorCode.val);
+                }
                 numSettingsUpdated++;
                 continue;
             }
         }
+    }
+
+    if (timeout == TRUE) {
+        log_error("GUI failed to receive settings from ESP32\r\n");
+        *flags |= GUI_CLOSE;
+        while (1) {}
     }
 
     // Create the window
@@ -900,6 +916,8 @@ DWORD WINAPI gui(void* arg) {
     // Free the memory for the default text box text
     free_text_box_default_text();
 
+    liveStreamTime = clock();
+
     // message loop
     while (GetMessage(&msg, NULL, 0, 0) > 0) {
 
@@ -916,25 +934,32 @@ DWORD WINAPI gui(void* arg) {
 
             receivedBpacket = GUI_RECIEVE_BPACKET();
             bpacket_increment_circular_buffer_index(guiReceiveBuffer->rIndex);
-            if (receivedBpacket->code != BP_CODE_SUCCESS.val) {
+            if (receivedBpacket->Code.val != BPK_Code_Success.val) {
                 char msg[50];
                 bpacket_get_info(receivedBpacket, msg);
-                printf("Gui received erronous bpacket with code: %s\n", msg);
+                log_error("Gui received erronous Bpacket with code: %s\n", msg);
             }
 
-            if (receivedBpacket->request == WD_BPK_R_STREAM_IMAGE.val) {
-                // Clear the screen
-                rectangle_t rectangle;
-                rectangle.startX = COL_1;
-                rectangle.startY = ROW_2;
-                rectangle.width  = 600;
-                rectangle.height = 480;
-                draw_rectangle(hwnd, &rectangle, 255, 255, 255);
-                draw_image(hwnd, CAMERA_VIEW_FILENAME, &rectangle);
+            if (receivedBpacket->Request.val == BPK_WD_Request_Stream_Images.val) {
+
+                if ((*flags & GUI_LIVE_STREAM) != 0) {
+                    draw_rectangle(hwnd, &LiveStreamImageFrame, 255, 255, 255);
+                    draw_image(hwnd, CAMERA_VIEW_FILENAME, &LiveStreamImageFrame);
+                    liveStreamTime = clock();
+                } else {
+                    log_error("GUI error, live stream image request when not in live steam mode\n");
+                }
             }
 
-            // The bpacket is now received, now it can be one of a bunch of possible requets.
+            // The Bpacket is now received, now it can be one of a bunch of possible requets.
             // Now check which request it is and do what you need to do
+        }
+
+        if ((*flags & GUI_LIVE_STREAM) != 0) {
+            if ((clock() - liveStreamTime) > 3000) {
+                log_error("GUI live stream timeout occured\n");
+                *flags &= ~(GUI_LIVE_STREAM);
+            }
         }
     }
 

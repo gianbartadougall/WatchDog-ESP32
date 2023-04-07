@@ -14,7 +14,7 @@
 /* Personal includes */
 #include "main.h"
 #include "hardware_config.h"
-#include "utilities.h"
+#include "utils.h"
 #include "watchdog.h"
 #include "log.h"
 #include "led.h"
@@ -22,6 +22,7 @@
 #include "stm32_rtc.h"
 #include "bpacket.h"
 #include "watchdog_defines.h"
+#include "stm32_uart.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -38,12 +39,12 @@ void SystemClock_Config(void);
 
 void rtc_testing(void) {
     dt_datetime_t datetime;
-    datetime.date.year   = 23;
-    datetime.date.month  = 1;
-    datetime.date.day    = 1;
-    datetime.time.hour   = 0;
-    datetime.time.minute = 0;
-    datetime.time.second = 0;
+    datetime.Date.year   = 23;
+    datetime.Date.month  = 1;
+    datetime.Date.day    = 1;
+    datetime.Time.hour   = 0;
+    datetime.Time.minute = 0;
+    datetime.Time.second = 0;
 
     // date_time_t dt;
     stm32_rtc_write_datetime(&datetime);
@@ -76,10 +77,24 @@ void rtc_testing(void) {
 
         stm32_rtc_read_datetime(&datetime);
 
-        if (lastSecond != datetime.time.second) {
-            lastSecond = datetime.time.second;
+        if (lastSecond != datetime.Time.second) {
+            lastSecond = datetime.Time.second;
             // stm32_rtc_print_datetime(&datetime);
         }
+    }
+}
+
+void log_p(char* msg) {
+
+    // Transmit over uart if using a micrcontroller
+    uint16_t i = 0;
+
+    // Transmit until end of message reached
+    while (msg[i] != '\0') {
+        while ((USART2->ISR & USART_ISR_TXE) == 0) {};
+
+        USART2->TDR = msg[i];
+        i++;
     }
 }
 
@@ -100,6 +115,7 @@ int main(void) {
     watchdog_enter_state_machine();
 
     while (1) {
+
         // watchdog_update();
     }
 

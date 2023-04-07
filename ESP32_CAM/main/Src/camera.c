@@ -13,7 +13,7 @@
 #include "camera.h"
 #include "sd_card.h"
 #include "esp32_uart.h"
-#include "utilities.h"
+#include "utils.h"
 #include "ds18b20.h"
 #include "datetime.h"
 
@@ -76,7 +76,7 @@ static camera_config_t camera_config = {
 
     .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG - This was the deafultPIXFORMAT_RGB565
     .frame_size =
-        FRAMESIZE_UXGA, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of
+        FRAMESIZE_SVGA, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of
                         // the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
 
     .jpeg_quality = 8, // 0-63, for OV series camera sensors, lower number means higher quality
@@ -91,13 +91,21 @@ uint8_t camera_capture_image(camera_fb_t** image);
 
 uint8_t camera_init(void) {
 
-    // Initialize the camera
-    if (esp_camera_init(&camera_config) != ESP_OK) {
-        cameraInitalised = FALSE;
+    if ((cameraInitalised != TRUE) && (esp_camera_init(&camera_config) != ESP_OK)) {
         return FALSE;
     }
 
     cameraInitalised = TRUE;
+    return TRUE;
+}
+
+uint8_t camera_deinit(void) {
+
+    if ((cameraInitalised != FALSE) && (esp_camera_deinit() != ESP_OK)) {
+        return FALSE;
+    }
+
+    cameraInitalised = FALSE;
     return TRUE;
 }
 
@@ -139,45 +147,41 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
-void camera_stream_image(bpacket_t* bpacket) {
+void camera_stream_image(bpk_packet_t* Bpacket) {
 
     camera_fb_t* image = NULL;
 
     if (camera_capture_image(&image) != TRUE) {
-        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Camera could not taken photo\r\n\0");
-        esp32_uart_send_bpacket(bpacket);
+        bp_create_string_response(Bpacket, BPK_Code_Error, "Camera could not taken photo\r\n\0");
+        esp32_uart_send_bpacket(Bpacket);
         return;
     }
 
     // Image was able to be taken. Send image back to sender
-    if (bpacket_send_data(esp32_uart_send_data, bpacket->sender, bpacket->receiver, bpacket->request, image->buf,
-                          image->len) != TRUE) {
-        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Failed to send image\r\n\0");
-        esp32_uart_send_bpacket(bpacket);
+    bpk_addr_receive_t Receiver = {.val = Bpacket->Sender.val};
+    bpk_addr_send_t Sender      = {.val = Bpacket->Receiver.val};
+    if (bpacket_send_data(esp32_uart_send_data, Receiver, Sender, Bpacket->Request, image->buf, image->len) != TRUE) {
+        bp_create_string_response(Bpacket, BPK_Code_Error, "Failed to send image\r\n\0");
+        esp32_uart_send_bpacket(Bpacket);
     }
 
     // Free the image
     esp_camera_fb_return(image);
 }
 
-void camera_capture_and_save_image(bpacket_t* bpacket) {
-
-    // Save the address
-    uint8_t request  = bpacket->request;
-    uint8_t receiver = bpacket->receiver;
-    uint8_t sender   = bpacket->sender;
+void camera_capture_and_save_image(bpk_packet_t* Bpacket) {
 
     // Confirm camera has been initialised
     if (cameraInitalised != TRUE) {
-        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Camera was unitailised\0");
-        esp32_uart_send_bpacket(bpacket);
+        bp_create_string_response(Bpacket, BPK_Code_Error, "Camera was unitailised\0");
+        esp32_uart_send_bpacket(Bpacket);
         return;
     }
 
     // Confirm the SD card can be mounted
     if (sd_card_open() != TRUE) {
-        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "SD card could not open\0");
-        esp32_uart_send_bpacket(bpacket);
+        bp_create_string_response(Bpacket, BPK_Code_Error, "SD card could not open\0");
+        esp32_uart_send_bpacket(Bpacket);
         return;
     }
 
@@ -187,17 +191,17 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 
     // Return error if picture could not be taken
     if (pic == NULL) {
-        bp_convert_to_string_response(bpacket, BP_CODE_ERROR, "Failed to take a photo\0");
-        esp32_uart_send_bpacket(bpacket);
+        bp_create_string_response(Bpacket, BPK_Code_Error, "Failed to take a photo\0");
+        esp32_uart_send_bpacket(Bpacket);
         sd_card_log(SYSTEM_LOG_FILE, "Camera failed to take image");
-    } else if (sd_card_save_image(pic->buf, pic->len, bpacket) != TRUE) {
+    } else if (sd_card_save_image(pic->buf, pic->len, Bpacket) != TRUE) {
         sd_card_log(SYSTEM_LOG_FILE, "Image could not be saved");
     } else {
         char msg[100];
         sprintf(msg, "Image was %zu bytes", pic->len);
         sd_card_log(SYSTEM_LOG_FILE, msg);
-        bp_convert_to_string_response(bpacket, BP_CODE_SUCCESS, msg);
-        esp32_uart_send_bpacket(bpacket);
+        bp_create_string_response(Bpacket, BPK_Code_Success, msg);
+        esp32_uart_send_bpacket(Bpacket);
     }
 
     esp_camera_fb_return(pic);
@@ -206,9 +210,13 @@ void camera_capture_and_save_image(bpacket_t* bpacket) {
 }
 
 uint8_t camera_capture_image(camera_fb_t** image) {
+    bpk_packet_t Bpacket;
 
     // Initialise the camera
     if (camera_init() != TRUE) {
+        bp_create_string_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message,
+                                BPK_Code_Error, "Camera Init failed\r\n\0");
+        esp32_uart_send_bpacket(&Bpacket);
         return FALSE;
     }
 
@@ -216,11 +224,17 @@ uint8_t camera_capture_image(camera_fb_t** image) {
 
     if (*image == NULL) {
         esp_camera_fb_return(*image);
+        bp_create_string_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message,
+                                BPK_Code_Error, "Camera failed to take photo\r\n\0");
+        esp32_uart_send_bpacket(&Bpacket);
         return FALSE;
     }
 
     // Deinitialise the camera
-    if (esp_camera_deinit() != ESP_OK) {
+    if (camera_deinit() != TRUE) {
+        bp_create_string_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message,
+                                BPK_Code_Error, "Camera deInit failed\r\n\0");
+        esp32_uart_send_bpacket(&Bpacket);
         return FALSE;
     }
 

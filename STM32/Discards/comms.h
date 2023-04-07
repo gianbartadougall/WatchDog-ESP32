@@ -45,6 +45,6 @@ void comms_add_to_buffer(USART_TypeDef* usart, char c);
 
 void comms_usart1_print_buffer(void);
 
-// void comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data);
+// void comms_create_packet(packet_t* packet, bpk_request_t Request, char* instruction, char* data);
 
 #endif // COMMS_H

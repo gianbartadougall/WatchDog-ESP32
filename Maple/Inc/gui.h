@@ -29,6 +29,7 @@
 #define GUI_CLOSE                       (0x01 << 2)
 #define GUI_CAMERA_VIEW_STATE           (0x01 << 3)
 #define GUI_UPDATE_CAMERA_VIEW          (0x01 << 4)
+#define GUI_LIVE_STREAM                 (0x01 << 5)
 #define CAMERA_VIEW_FILENAME            ("Watchdog/cameraView.jpg\0")
 #define GUI_WATCHDOG_FOLDER             "Watchdog"
 

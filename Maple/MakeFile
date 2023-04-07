@@ -11,14 +11,18 @@ C_SOURCES = \
 Src/main.c \
 Src/gui.c \
 ../STM32/Core/Src/watchdog_defines.c \
-../STM32/Core/Src/Utilities/chars.c \
-../STM32/Library/Src/bpacket.c \
-../STM32/Library/Src/datetime.c
+../STM32/Library/Src/DataTypes/chars.c \
+../STM32/Library/Src/Communications/bpacket.c \
+../STM32/Library/Src/Utils/datetime.c \
+../STM32/Library/Src/Utils/log.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \
 -I../ESP32_CAM/main/Inc \
 -I../STM32/Core/Inc/Utilities \
+-I../STM32/Library/Inc/DataTypes \
+-I../STM32/Library/Inc/Utils \
+-I../STM32/Library/Inc/Communications \
 -I../STM32/Core/Inc/Board \
 -I../STM32/Library/Inc \
 -I../Drivers/ESP32_Camera/driver/include \

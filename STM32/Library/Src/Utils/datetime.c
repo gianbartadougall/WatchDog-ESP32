@@ -14,7 +14,7 @@
 
 /* Personal Includes */
 #include "datetime.h"
-#include "utilities.h"
+#include "utils.h"
 #include "chars.h"
 
 #define JANUARY   1
@@ -38,38 +38,38 @@ const uint8_t daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
 /* Function Prototypes */
 
-uint8_t dt_time_is_valid(dt_time_t* time) {
-    return dt_time_valid(time->second, time->minute, time->hour);
+uint8_t dt_time_is_valid(dt_time_t* Time) {
+    return dt_time_valid(Time->second, Time->minute, Time->hour);
 }
 
-uint8_t dt_time_init(dt_time_t* time, uint8_t second, uint8_t minute, uint8_t hour) {
+uint8_t dt_time_init(dt_time_t* Time, uint8_t second, uint8_t minute, uint8_t hour) {
 
     if (dt_time_valid(second, minute, hour) != TRUE) {
         return FALSE;
     }
 
-    time->second = second;
-    time->minute = minute;
-    time->hour   = hour;
+    Time->second = second;
+    Time->minute = minute;
+    Time->hour   = hour;
 
     return TRUE;
 }
 
-uint8_t dt_date_init(dt_date_t* date, uint8_t day, uint8_t month, uint16_t year) {
+uint8_t dt_date_init(dt_date_t* Date, uint8_t day, uint8_t month, uint16_t year) {
 
     if (dt_date_valid(day, month, year) != TRUE) {
         return FALSE;
     }
 
-    date->day   = day;
-    date->month = month;
-    date->year  = year;
+    Date->day   = day;
+    Date->month = month;
+    Date->year  = year;
 
     return TRUE;
 }
 
-uint8_t dt_date_is_valid(dt_date_t* date) {
-    return dt_date_valid(date->day, date->month, date->year);
+uint8_t dt_date_is_valid(dt_date_t* Date) {
+    return dt_date_valid(Date->day, Date->month, Date->year);
 }
 
 uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year) {
@@ -107,22 +107,22 @@ uint8_t dt_time_t1_leq_t2(dt_time_t* t1, dt_time_t* t2) {
     return FALSE;
 }
 
-uint8_t dt_time_add_time(dt_time_t* time, dt_time_t timeToAdd) {
+uint8_t dt_time_add_time(dt_time_t* Time, dt_time_t timeToAdd) {
 
-    time->second += timeToAdd.second;
-    if (time->second > 60) {
-        time->second -= 60;
-        time->minute++;
+    Time->second += timeToAdd.second;
+    if (Time->second > 60) {
+        Time->second -= 60;
+        Time->minute++;
     }
 
-    time->minute += timeToAdd.minute;
-    if (time->minute > 60) {
-        time->minute -= 60;
-        time->hour++;
+    Time->minute += timeToAdd.minute;
+    if (Time->minute > 60) {
+        Time->minute -= 60;
+        Time->hour++;
     }
 
-    time->hour += timeToAdd.hour;
-    if (time->minute > 23) {
+    Time->hour += timeToAdd.hour;
+    if (Time->minute > 23) {
         return FALSE;
     }
 
@@ -133,39 +133,39 @@ void dt_datetime_increment_day(dt_datetime_t* datetime) {
 
     uint8_t nextMonth = FALSE;
 
-    if (datetime->date.month == FEBRUARY && YEAR_IS_LEAP_YEAR(datetime->date.year) == TRUE) {
-        if (datetime->date.day == 29) {
+    if (datetime->Date.month == FEBRUARY && YEAR_IS_LEAP_YEAR(datetime->Date.year) == TRUE) {
+        if (datetime->Date.day == 29) {
             nextMonth = TRUE;
         }
     }
 
-    if (daysInMonth[datetime->date.month] == datetime->date.day) {
+    if (daysInMonth[datetime->Date.month] == datetime->Date.day) {
         nextMonth = TRUE;
     }
 
     if (nextMonth == TRUE) {
-        datetime->date.day = 1;
-        datetime->date.month++;
+        datetime->Date.day = 1;
+        datetime->Date.month++;
     } else {
-        datetime->date.day++;
+        datetime->Date.day++;
     }
 
     // Correct for decemeber
-    if (datetime->date.month > DECEMBER) {
-        datetime->date.month = JANUARY;
+    if (datetime->Date.month > DECEMBER) {
+        datetime->Date.month = JANUARY;
     }
 }
 
-uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t time) {
+uint8_t dt_datetime_set_time(dt_datetime_t* datetime, dt_time_t Time) {
 
     // Confirm the time is valid
-    if (dt_time_is_valid(&time) != TRUE) {
+    if (dt_time_is_valid(&Time) != TRUE) {
         return FALSE;
     }
 
-    datetime->time.second = time.second;
-    datetime->time.minute = time.minute;
-    datetime->time.hour   = time.hour;
+    datetime->Time.second = Time.second;
+    datetime->Time.minute = Time.minute;
+    datetime->Time.hour   = Time.hour;
 
     return TRUE;
 }
@@ -305,8 +305,8 @@ uint8_t dt_is_valid_hour_min_period(char* time) {
 }
 
 void dt_datetime_to_string(dt_datetime_t* datetime, char* string) {
-    sprintf(string, "%i:%i:%i %i/%i/%i", datetime->time.hour, datetime->time.minute, datetime->time.second,
-            datetime->date.day, datetime->date.month, datetime->date.year);
+    sprintf(string, "%i:%i:%i %i/%i/%i", datetime->Time.hour, datetime->Time.minute, datetime->Time.second,
+            datetime->Date.day, datetime->Date.month, datetime->Date.year);
 }
 
 void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod) {

@@ -24,10 +24,10 @@
     #define portTICK_RATE_MS portTICK_PERIOD_MS
 #endif
 
-void esp32_uart_send_bpacket(bpacket_t* bpacket) {
+void esp32_uart_send_bpacket(bpk_packet_t* Bpacket) {
 
-    bpacket_buffer_t bpacketBuffer;
-    bpacket_to_buffer(bpacket, &bpacketBuffer);
+    bpk_buffer_t bpacketBuffer;
+    bpacket_to_buffer(Bpacket, &bpacketBuffer);
     uart_write_bytes(UART_NUM, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 }
 
@@ -37,26 +37,27 @@ void esp32_uart_send_data(uint8_t* data, uint16_t numBytes) {
 
 void esp32_uart_send_string(char* string) {
 
-    bpacket_t bpacket;
-    bpacket.request  = BPACKET_CODE_IN_PROGRESS;
-    bpacket.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
-    int pi           = 0;
-    int numBytes     = chars_get_num_bytes(string);
+    bpk_packet_t Bpacket;
+    Bpacket.Request       = BPK_Request_Message;
+    Bpacket.Code          = BPK_Code_In_Progress;
+    Bpacket.Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+    int pi                = 0;
+    int numBytes          = chars_get_num_bytes(string);
 
     for (uint32_t i = 0; i < numBytes; i++) {
 
-        bpacket.bytes[pi++] = string[i];
+        Bpacket.Data.bytes[pi++] = string[i];
 
         if (pi < BPACKET_MAX_NUM_DATA_BYTES && (i + 1) != numBytes) {
             continue;
         }
 
         if ((i + 1) == numBytes) {
-            bpacket.request  = BPACKET_CODE_SUCCESS;
-            bpacket.numBytes = pi--;
+            Bpacket.Code          = BPK_Code_Success;
+            Bpacket.Data.numBytes = pi--;
         }
 
-        esp32_uart_send_bpacket(&bpacket);
+        esp32_uart_send_bpacket(&Bpacket);
         pi = 0;
     }
 }

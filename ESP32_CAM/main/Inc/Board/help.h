@@ -13,7 +13,7 @@
 #define HELP_H
 
 /* Personal Includes */
-#include "uart_lib.h"
+#include "log.h"
 
 // Generic Commands
 #define HEADER    "------------------------------------\n"

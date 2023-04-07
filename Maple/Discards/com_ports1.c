@@ -15,7 +15,7 @@
 
 /* Personal Includes */
 #include "com_ports.h"
-#include "utilities.h"
+#include "utils.h"
 
 // For testng only
 #include "datetime.h"
@@ -31,7 +31,7 @@ enum sp_return com_ports_open_port(struct sp_port* port);
 enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address, uint8_t pingResponse);
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
-uint8_t com_ports_send_bpacket(bpacket_t* bpacket);
+uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket);
 void comms_port_test(void);
 
 /* Private Variables */
@@ -123,7 +123,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    bpacket_t bpacket;
+    bpk_packet_t Bpacket;
     for (int i = 0; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
@@ -134,9 +134,9 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         // Ping port
-        bpacket_create_p(&bpacket, address, BPACKET_ADDRESS_MAPLE, BPACKET_GEN_R_PING, BPACKET_CODE_EXECUTE, 0, NULL);
-        bpacket_buffer_t packetBuffer;
-        bpacket_to_buffer(&bpacket, &packetBuffer);
+        bpacket_create_p(&Bpacket, address, BPK_Addr_Send_Maple, BPK_REQUEST_PING, BPACKET_CODE_EXECUTE, 0, NULL);
+        bpk_buffer_t packetBuffer;
+        bpacket_to_buffer(&Bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
             printf("Unable to write\n");
             continue;
@@ -159,11 +159,11 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             continue;
         }
 
-        bpacket_buffer_decode(&bpacket, response);
+        bpacket_buffer_decode(&Bpacket, response);
 
-        if ((bpacket.request != BPACKET_CODE_SUCCESS) && (bpacket.bytes[0] != pingResponse)) {
+        if ((Bpacket.Request != BPACKET_CODE_SUCCESS) && (Bpacket.Data.bytes[0] != pingResponse)) {
             sp_close(port);
-            printf("Request: [%i] with ping: [%i]\n", bpacket.request, bpacket.bytes[0]);
+            printf("Request: [%i] with ping: [%i]\n", Bpacket.Request, Bpacket.Data.bytes[0]);
             continue;
         }
 
@@ -202,9 +202,9 @@ int com_ports_check(enum sp_return result) {
     }
 }
 
-uint8_t com_ports_send_bpacket(bpacket_t* bpacket) {
-    bpacket_buffer_t packetBuffer;
-    bpacket_to_buffer(bpacket, &packetBuffer);
+uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket) {
+    bpk_buffer_t packetBuffer;
+    bpacket_to_buffer(Bpacket, &packetBuffer);
 
     if (sp_blocking_write(activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
         return FALSE;
@@ -237,10 +237,10 @@ void comms_port_test(void) {
             continue;
         }
 
-        bpacket_t getRTCTime, setRTCTime;
-        bpacket_buffer_t getPacketBuffer, setPacketBuffer;
+        bpk_packet_t getRTCTime, setRTCTime;
+        bpk_buffer_t getPacketBuffer, setPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE, WATCHDOG_BPK_R_GET_DATETIME,
+        bpacket_create_p(&getRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple, WATCHDOG_BPK_R_GET_DATETIME,
                          BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
 
@@ -251,7 +251,7 @@ void comms_port_test(void) {
         // uint8_t data[length];
         // data[0] = BPACKET_START_BYTE;
         // data[1] = 3;
-        // data[2] = BPACKET_GEN_R_PING;
+        // data[2] = BPK_REQUEST_PING;
         // data[3] = 'G';
         // data[4] = 'H';
         // data[5] = BPACKET_STOP_BYTE;
@@ -271,19 +271,20 @@ void comms_port_test(void) {
 
             uint8_t result = bpacket_buffer_decode(&getRTCTime, response);
 
-            if (result != TRUE) {
-                char errMsg[50];
-                bpacket_get_error(result, errMsg);
-                printf(errMsg);
-                printf("%s\n", response);
-                continue;
-            }
+            // if (result != TRUE) {
+            //     char errMsg[50];
+            //     bpacket_get_error(result, errMsg);
+            //     printf(errMsg);
+            //     printf("%s\n", response);
+            //     continue;
+            // }
 
             if (getRTCTime.code == BPACKET_CODE_SUCCESS) {
-                printf("%i:%i:%i %i/%i/%i\n", getRTCTime.bytes[0], getRTCTime.bytes[1], getRTCTime.bytes[2],
-                       getRTCTime.bytes[3], getRTCTime.bytes[4], (getRTCTime.bytes[5] << 8) | getRTCTime.bytes[6]);
+                printf("%i:%i:%i %i/%i/%i\n", getRTCTime.Data.bytes[0], getRTCTime.Data.bytes[1],
+                       getRTCTime.Data.bytes[2], getRTCTime.Data.bytes[3], getRTCTime.Data.bytes[4],
+                       (getRTCTime.Data.bytes[5] << 8) | getRTCTime.Data.bytes[6]);
 
-                if (getRTCTime.bytes[0] >= 15) {
+                if (getRTCTime.Data.bytes[0] >= 15) {
 
                     // Reset the RTC
                     dt_datetime_t datetime;
@@ -291,14 +292,14 @@ void comms_port_test(void) {
                     datetime.time.second = 0;
                     datetime.time.minute = 0;
 
-                    result = wd_datetime_to_bpacket(&setRTCTime, BPACKET_ADDRESS_STM32, BPACKET_ADDRESS_MAPLE,
+                    result = wd_datetime_to_bpacket(&setRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple,
                                                     WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &datetime);
-                    if (result != TRUE) {
-                        char errMsg[50];
-                        bpacket_get_error(result, errMsg);
-                        printf(errMsg);
-                        continue;
-                    }
+                    // if (result != TRUE) {
+                    //     char errMsg[50];
+                    //     bpacket_get_error(result, errMsg);
+                    //     printf(errMsg);
+                    //     continue;
+                    // }
 
                     bpacket_to_buffer(&setRTCTime, &setPacketBuffer);
 
@@ -314,12 +315,12 @@ void comms_port_test(void) {
 
                     result = bpacket_buffer_decode(&getRTCTime, response);
 
-                    if (result != TRUE) {
-                        char errMsg[50];
-                        bpacket_get_error(result, errMsg);
-                        printf(errMsg);
-                        continue;
-                    }
+                    // if (result != TRUE) {
+                    //     char errMsg[50];
+                    //     bpacket_get_error(result, errMsg);
+                    //     printf(errMsg);
+                    //     continue;
+                    // }
 
                     printf("Request: [%i] with code: [%i]\n", getRTCTime.request, getRTCTime.code);
 

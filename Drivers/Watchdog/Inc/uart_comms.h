@@ -59,6 +59,6 @@
 
 // int string_to_packet(packet_t* packet, char data[RX_BUF_SIZE]);
 
-// void uart_comms_create_packet(packet_t* packet, uint8_t request, char* instruction, char* data);
+// void uart_comms_create_packet(packet_t* packet, bpk_request_t Request, char* instruction, char* data);
 
 // #endif // UART_COMMS_H

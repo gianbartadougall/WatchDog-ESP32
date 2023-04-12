@@ -47,6 +47,17 @@ enum bpk_code_e {
     BPK_CODE_DEBUG
 };
 
+enum bpk_byte_type_e {
+    BPK_BYTE_START_BYTE_UPPER = 66,
+    BPK_BYTE_START_BYTE_LOWER = 122,
+    BPK_BYTE_ADDRESS_RECEIVER = 0,
+    BPK_BYTE_ADDRESS_SENDER,
+    BPK_BYTE_REQUEST,
+    BPK_BYTE_CODE,
+    BPK_BYTE_LENGTH,
+    BPK_BYTE_DATA,
+};
+
 #define BPACKET_MAX_REQUEST_VALUE 63 // Allow maximum of 63 different request values
 
 enum bpk_request_e {
@@ -57,31 +68,26 @@ enum bpk_request_e {
     BPK_REQUEST_MESSAGE,
 
     /* User defined Watchdog requests */
-    BPK_WD_REQUEST_LIST_DIR,
-    BPK_WD_REQUEST_COPY_FILE,
-    BPK_WD_REQUEST_TAKE_PHOTO,
-    BPK_WD_REQUEST_WRITE_TO_FILE,
-    BPK_WD_REQUEST_RECORD_DATA,
-    BPK_WD_REQUEST_LED_RED_ON,
-    BPK_WD_REQUEST_LED_RED_OFF,
-    BPK_WD_REQUEST_CAMERA_VIEW,
-    BPK_WD_REQUEST_GET_DATETIME,
-    BPK_WD_REQUEST_SET_DATETIME,
-    BPK_WD_REQUEST_GET_CAMERA_SETTINGS,
-    BPK_WD_REQUEST_SET_CAMERA_SETTINGS,
-    BPK_WD_REQUEST_GET_CAPTURE_TIME_SETTINGS,
-    BPK_WD_REQUEST_SET_CAPTURE_TIME_SETTINGS,
-    BPK_WD_REQUEST_STREAM_IMAGE,
-    BPK_WD_REQUEST_TURN_ON,
-    BPK_WD_REQUEST_TURN_OFF,
+    BPK_REQ_LIST_DIR,
+    BPK_REQ_COPY_FILE,
+    BPK_REQ_TAKE_PHOTO,
+    BPK_REQ_WRITE_TO_FILE,
+    BPK_REQ_RECORD_DATA,
+    BPK_REQ_LED_RED_ON,
+    BPK_REQ_LED_RED_OFF,
+    BPK_REQ_CAMERA_VIEW,
+    BPK_REQ_GET_DATETIME,
+    BPK_REQ_SET_DATETIME,
+    BPK_REQ_GET_CAMERA_SETTINGS,
+    BPK_REQ_SET_CAMERA_SETTINGS,
+    BPK_REQ_GET_CAMERA_CAPTURE_TIMES,
+    BPK_REQ_SET_CAMERA_CAPTURE_TIMES,
+    BPK_REQ_STREAM_IMAGE,
+    BPK_REQ_TURN_ON,
+    BPK_REQ_TURN_OFF,
 
     /* User defined Maple Requeusts */
 };
-
-#define BPACKET_CODE_IS_INVALID(code)         ((code > BPACKET_CODE_EXECUTE) == TRUE)
-#define BPACKET_SENDER_IS_INVALID(sender)     ((sender > BPACKET_ADDRESS_15) == TRUE)
-#define BPACKET_RECEIVER_IS_INVALID(receiver) ((receiver > BPACKET_ADDRESS_15) == TRUE)
-#define BPACKET_REQUEST_IS_INVALID(request)   ((request > 31) == TRUE) // Max value for request is 31
 
 #define BP_DEFAULT_DATA_VALUE 0
 
@@ -95,12 +101,7 @@ enum bpk_address_e {
 };
 
 #define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 65535 as the max number that can fit into one byte is 255
-#define BPACKET_NUM_START_BYTES     2
-#define BPACKET_NUM_ADDRESS_BYTES   2 // The address bytes contains one byte for receiver and one for sender
-#define BPACKET_NUM_REQUEST_BYTES   2
-#define BPACKET_NUM_INFO_BYTES      1 // Indicateds number of data bytes (0 - max number of data bytes allowed)
-#define BPACKET_NUM_STOP_BYTES      2
-#define BPACKET_NUM_NON_DATA_BYTES  9
+#define BPACKET_NUM_NON_DATA_BYTES  7
 #define BPACKET_BUFFER_LENGTH_BYTES (BPACKET_MAX_NUM_DATA_BYTES + BPACKET_NUM_NON_DATA_BYTES)
 
 #define BPACKET_CIRCULAR_BUFFER_SIZE 10
@@ -133,6 +134,7 @@ enum bpk_error_code_e {
     BPK_ERR_INVALID_DATE,
     BPK_ERR_INVALID_YEAR,
     BPK_ERR_INVALID_PACKET_SIZE,
+    BPK_ERR_INVALID_CAMERA_RESOLUTION,
 };
 
 typedef struct bpk_error_code_t {
@@ -177,7 +179,8 @@ typedef struct bpk_packet_t {
 } bpk_packet_t;
 
 typedef struct bpk_buffer_t {
-    uint16_t numBytes; // Bpacket size needs to be a uint16_t because bpacket buffer > 255 bytes when put into a buffer
+    uint16_t numBytes; // Bpacket size needs to be a uint16_t because bpacket buffer > 255 bytes when put into a
+                       // buffer
     uint8_t buffer[BPACKET_BUFFER_LENGTH_BYTES];
 } bpk_buffer_t;
 
@@ -188,8 +191,8 @@ typedef struct bpacket_char_array_t {
 
 typedef struct bpacket_circular_buffer_t {
     uint8_t* rIndex; // The index that the writing end of the buffer would use to know where to put the bpacket
-    uint8_t* wIndex; // The index that the reading end of the buffer would use to see if they are up to date with
-                     // the reading
+    uint8_t* wIndex; // The index that the reading end of the buffer would use to see if they are up to date
+                     // with the reading
     bpk_packet_t* buffer[BPACKET_CIRCULAR_BUFFER_SIZE];
 } bpacket_circular_buffer_t;
 
@@ -214,23 +217,23 @@ extern const bpk_request_t BPK_Request_Ping;
 extern const bpk_request_t BPK_Request_Status;
 extern const bpk_request_t BPK_Request_Message;
 
-extern const bpk_request_t BPK_WD_Request_List_Dir;
-extern const bpk_request_t BPK_WD_Request_Copy_File;
-extern const bpk_request_t BPK_WD_Request_Take_Photo;
-extern const bpk_request_t BPK_WD_Request_Write_To_File;
-extern const bpk_request_t BPK_WD_Request_Record_Data;
-extern const bpk_request_t BPK_WD_Request_Led_Red_On;
-extern const bpk_request_t BPK_WD_Request_Led_Red_Off;
-extern const bpk_request_t BPK_WD_Request_Camera_View;
-extern const bpk_request_t BPK_WD_Request_Get_Datetime;
-extern const bpk_request_t BPK_WD_Request_Set_Datetime;
-extern const bpk_request_t BPK_WD_Request_Get_Camera_Settings;
-extern const bpk_request_t BPK_WD_Request_Set_Camera_Settings;
-extern const bpk_request_t BPK_WD_Request_Get_Capture_Time_Settings;
-extern const bpk_request_t BPK_WD_Request_Set_Capture_Time_Settings;
-extern const bpk_request_t BPK_WD_Request_Stream_Images;
-extern const bpk_request_t BPK_WD_Request_Turn_On;
-extern const bpk_request_t BPK_WD_Request_Turn_Off;
+extern const bpk_request_t BPK_Req_List_Dir;
+extern const bpk_request_t BPK_Req_Copy_File;
+extern const bpk_request_t BPK_Req_Take_Photo;
+extern const bpk_request_t BPK_Req_Write_To_File;
+extern const bpk_request_t BPK_Req_Record_Data;
+extern const bpk_request_t BPK_Req_Led_Red_On;
+extern const bpk_request_t BPK_Req_Led_Red_Off;
+extern const bpk_request_t BPK_Req_Camera_View;
+extern const bpk_request_t BPK_Req_Get_Datetime;
+extern const bpk_request_t BPK_Req_Set_Datetime;
+extern const bpk_request_t BPK_Req_Get_Camera_Settings;
+extern const bpk_request_t BPK_Req_Set_Camera_Settings;
+extern const bpk_request_t BPK_Req_Get_Camera_Capture_Times;
+extern const bpk_request_t BPK_Req_Set_Camera_Capture_Times;
+extern const bpk_request_t BPK_Req_Stream_Images;
+extern const bpk_request_t BPK_Req_Turn_On;
+extern const bpk_request_t BPK_Req_Turn_Off;
 
 extern const bpk_error_code_t BPK_Err_Invalid_Sender;
 extern const bpk_error_code_t BPK_Err_Invalid_Receiver;
@@ -245,6 +248,7 @@ extern const bpk_error_code_t BPK_Err_Invalid_Interval_Time;
 extern const bpk_error_code_t BPK_Err_Invalid_Date;
 extern const bpk_error_code_t BPK_Err_Invalid_Year;
 extern const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size;
+extern const bpk_error_code_t BPK_Err_Invalid_Camera_Resolution;
 
 void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
 
@@ -278,7 +282,7 @@ void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxInde
 
 void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data);
 
-uint8_t bp_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string);
+uint8_t bpk_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string);
 
 /* Bpacket helper functions */
 void bpacket_bytes_is_start_byte(void);
@@ -286,14 +290,24 @@ void bpacket_bytes_is_start_byte(void);
 uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
                           bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend);
 
-uint8_t bpacket_confirm_values(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                               bpk_request_t Request, bpk_code_t Code, uint8_t numDataBytes, char* errMsg);
-
 uint8_t bpk_address_get_receiver(bpk_packet_t* Bpacket, uint8_t receiver);
 uint8_t bpk_address_get_sender(bpk_packet_t* Bpacket, uint8_t sender);
 uint8_t bpk_address_get_request(bpk_packet_t* Bpacket, uint8_t request);
 uint8_t bpk_address_get_code(bpk_packet_t* Bpacket, uint8_t code);
 
 void bpk_swap_address(bpk_packet_t* Bpacket);
+
+void bpk_set_sender_receiver(bpk_packet_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver);
+
+void bpk_reset(bpk_packet_t* Bpacket);
+
+void bpk_create_response(bpk_packet_t* Bpacket, bpk_code_t Code);
+
+uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver);
+uint8_t bpk_set_sender(bpk_packet_t* Bpacket, uint8_t sender);
+uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request);
+uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code);
+
+void bpk_utils_init_expected_byte_buffer(uint8_t byteBuffer[8]);
 
 #endif // BPACKET_H

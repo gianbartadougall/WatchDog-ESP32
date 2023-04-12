@@ -13,8 +13,10 @@ Src/gui.c \
 ../STM32/Core/Src/watchdog_defines.c \
 ../STM32/Library/Src/DataTypes/chars.c \
 ../STM32/Library/Src/Communications/bpacket.c \
+../STM32/Library/Src/Communications/bpacket_utils.c \
 ../STM32/Library/Src/Utils/datetime.c \
-../STM32/Library/Src/Utils/log.c
+../STM32/Library/Src/Utils/log.c \
+../STM32/Library/Src/Utils/cbuffer.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \

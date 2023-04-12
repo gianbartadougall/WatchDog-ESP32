@@ -126,7 +126,7 @@ void ds18b20_print_temperature(uint8_t id);
  *
  * @param id The id of the DS18B20 sensor to print the temperature of
  */
-uint8_t ds18b20_copy_temperature(uint8_t id, cdt_double16_t* temp);
+uint8_t ds18b20_copy_temperature(uint8_t id, cdt_dbl_16_t* temp);
 
 /**
  * @brief Prints the ROM of a given sensor to the console

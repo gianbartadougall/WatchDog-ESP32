@@ -23,6 +23,7 @@
 #include "bpacket.h"
 #include "watchdog_defines.h"
 #include "stm32_uart.h"
+#include "bpacket_utils.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"

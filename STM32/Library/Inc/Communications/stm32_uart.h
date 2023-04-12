@@ -11,7 +11,7 @@
 
 int uart_transmit_string(const char* msg, ...);
 
-void uart_transmit_data(uint8_t* data, uint8_t length);
+void uart_transmit_data(USART_TypeDef* Uart, uint8_t* data, uint8_t length);
 
 /**
  * @brief Recives a single character from a serial input. For example
@@ -24,6 +24,6 @@ void uart_transmit_data(uint8_t* data, uint8_t length);
  * @return The char that was written in serial if transmission was
  * succesful; Null terminator character if transmission failed.
  */
-char uart_getc(void);
+char uart_getc(USART_TypeDef* Uart);
 
 #endif // STM32_UART_H

@@ -45,7 +45,7 @@
 typedef struct ds18b20_t {
     uint8_t id;
     uint64_t rom;
-    cdt_double16_t Temperature;
+    cdt_dbl_16_t Temperature;
 } ds18b20_t;
 
 /* Private Variable Declarations */
@@ -86,7 +86,7 @@ void ds18b20_deinit(void) {
     DS18B20_TIMER->CR1 &= ~(TIM_CR1_CEN);
 }
 
-uint8_t ds18b20_copy_temperature(uint8_t id, cdt_double16_t* temp) {
+uint8_t ds18b20_copy_temperature(uint8_t id, cdt_dbl_16_t* temp) {
 
     if (ID_INVALID(id) == TRUE) {
         return FALSE;

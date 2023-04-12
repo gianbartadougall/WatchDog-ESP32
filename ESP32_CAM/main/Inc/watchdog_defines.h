@@ -13,11 +13,14 @@
 #define WATCHDOG_DEFINES_H
 
 /* C Library Includes */
-#include "bpacket.h"
+#include <stdio.h>
+
+/* Personal Includes */
 #include "utils.h"
 #include "datetime.h"
 #include "custom_data_types.h"
-#include <stdio.h>
+#include "bpacket.h"
+#include "bpacket_utils.h"
 
 #define MOUNT_POINT_PATH ("/sdcard")
 
@@ -110,15 +113,19 @@ typedef struct wd_settings_t {
     wd_camera_capture_time_settings_t captureTime;
 } wd_settings_t;
 
-#define WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, resolution)   \
-    do {                                                         \
-        if (wd_camera_resolution_is_valid(resolution) != TRUE) { \
-            Bpacket->ErrorCode = BPK_Err_Invalid_Receiver;       \
-            return FALSE;                                        \
-        }                                                        \
+#define WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, resolution)      \
+    do {                                                            \
+        if (wd_camera_resolution_is_valid(resolution) != TRUE) {    \
+            Bpacket->ErrorCode = BPK_Err_Invalid_Camera_Resolution; \
+            return FALSE;                                           \
+        }                                                           \
     } while (0)
 
 /* Function Prototypes */
+uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSettings);
+uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                  bpk_request_t Request, bpk_code_t Code, cdt_u8_t* CameraSettings);
+
 uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime);
 uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime);
@@ -138,23 +145,23 @@ uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_rece
                                             wd_camera_capture_time_settings_t* wdSettings);
 uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* wdSettings);
 
-uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_double16_t* temp1,
-                                 cdt_double16_t* temp2);
+uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
+                                 cdt_dbl_16_t* temp2);
 
 uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_double16_t* temp1,
-                                 cdt_double16_t* temp2);
+                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
+                                 cdt_dbl_16_t* temp2);
 
 void wd_get_error(uint8_t wdError, char* errorMsg);
 
 #ifdef WATCHDOG_FUNCTIONS
 
 uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_double16_t* temp1,
-                                 cdt_double16_t* temp2) {
+                                 bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
+                                 cdt_dbl_16_t* temp2) {
 
     // Confirm the bpacket has the correct request
-    if (Request.val != BPK_WD_Request_Take_Photo.val) {
+    if (Request.val != BPK_Req_Take_Photo.val) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
@@ -186,11 +193,11 @@ uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Recei
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_double16_t* temp1,
-                                 cdt_double16_t* temp2) {
+uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
+                                 cdt_dbl_16_t* temp2) {
 
     // Assert the request is valid
-    if (Bpacket->Request.val != BPK_WD_Request_Take_Photo.val) {
+    if (Bpacket->Request.val != BPK_Req_Take_Photo.val) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
@@ -257,8 +264,8 @@ uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_rece
 uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* captureTime) {
 
     // Assert valid bpacket request
-    if ((Bpacket->Request.val != BPK_WD_Request_Get_Capture_Time_Settings.val) &&
-        (Bpacket->Request.val != BPK_WD_Request_Set_Capture_Time_Settings.val)) {
+    if ((Bpacket->Request.val != BPK_Req_Get_Camera_Capture_Times.val) &&
+        (Bpacket->Request.val != BPK_Req_Set_Camera_Capture_Times.val)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
@@ -296,7 +303,7 @@ uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receive
                                bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime) {
 
     // Confirm the request is valid
-    if ((Request.val != BPK_WD_Request_Get_Datetime.val) && (Request.val != BPK_WD_Request_Set_Datetime.val)) {
+    if ((Request.val != BPK_Req_Get_Datetime.val) && (Request.val != BPK_Req_Set_Datetime.val)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
@@ -338,8 +345,7 @@ uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime) {
     }
 
     // Confirm the request is valid
-    if ((Bpacket->Request.val != BPK_WD_Request_Get_Datetime.val) &&
-        (Bpacket->Request.val != BPK_WD_Request_Set_Datetime.val)) {
+    if ((Bpacket->Request.val != BPK_Req_Get_Datetime.val) && (Bpacket->Request.val != BPK_Req_Set_Datetime.val)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
@@ -372,19 +378,65 @@ uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime) {
     return TRUE;
 }
 
+uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+                                  bpk_request_t Request, bpk_code_t Code, cdt_u8_t* CameraSettings) {
+
+    // Confirm the request is
+    switch (Request.val) {
+        case BPK_REQ_GET_CAMERA_SETTINGS:
+        case BPK_REQ_SET_CAMERA_SETTINGS:
+            break;
+        default:
+            Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+            return FALSE;
+    }
+
+    // Confirm the resolution is valid
+    if (wd_camera_resolution_is_valid(CameraSettings->value) != TRUE) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Camera_Resolution;
+        return FALSE;
+    }
+
+    Bpacket->Receiver = Receiver;
+    Bpacket->Sender   = Sender;
+    Bpacket->Request  = Request;
+    Bpacket->Code     = Code;
+    bpk_utils_write_cdt_u8(Bpacket, CameraSettings);
+
+    return TRUE;
+}
+
+uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSettings) {
+
+    switch (Bpacket->Request.val) {
+        case BPK_REQ_GET_CAMERA_SETTINGS:
+        case BPK_REQ_SET_CAMERA_SETTINGS:
+            break;
+        default:
+            Bpacket->ErrorCode = BPK_Err_Invalid_Request;
+            return FALSE;
+    }
+
+    WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, Bpacket->Data.bytes[0]);
+
+    bpk_utils_read_cdt_u8(Bpacket, CameraSettings);
+
+    return TRUE;
+}
+
 uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                       bpk_request_t Request, bpk_code_t Code, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((Request.val != BPK_WD_Request_Get_Camera_Settings.val) &&
-        (Request.val != BPK_WD_Request_Set_Camera_Settings.val)) {
+    if ((Request.val != BPK_Req_Get_Camera_Settings.val) && (Request.val != BPK_Req_Set_Camera_Settings.val)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }
 
     // Confirm the resolution is valid
     if (wd_camera_resolution_is_valid(cameraSettings->resolution) != TRUE) {
-        return WATCHDOG_INVALID_CAMERA_RESOLUTION;
+        Bpacket->ErrorCode = BPK_Err_Invalid_Camera_Resolution;
+        return FALSE;
     }
 
     Bpacket->Receiver      = Receiver;
@@ -400,8 +452,8 @@ uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t 
 uint8_t wd_bpacket_to_camera_settings(bpk_packet_t* Bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
-    if ((Bpacket->Request.val != BPK_WD_Request_Get_Camera_Settings.val) &&
-        (Bpacket->Request.val != BPK_WD_Request_Set_Camera_Settings.val)) {
+    if ((Bpacket->Request.val != BPK_Req_Get_Camera_Settings.val) &&
+        (Bpacket->Request.val != BPK_Req_Set_Camera_Settings.val)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Request;
         return FALSE;
     }

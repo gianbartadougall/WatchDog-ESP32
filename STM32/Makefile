@@ -79,11 +79,12 @@ Core/Src/watchdog_defines.c
 LIBRARY_SOURCES = \
 Library/Src/Sensors/ds18b20.c \
 Library/Src/Communications/bpacket.c \
-Library/Src/Communications/stm32_uart.c \
 Library/Src/Communications/bpacket_utils.c \
+Library/Src/Communications/stm32_uart.c \
 Library/Src/DataTypes/chars.c \
 Library/Src/Utils/datetime.c \
 Library/Src/Utils/log.c \
+Library/Src/Utils/cbuffer.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)

@@ -47,23 +47,23 @@ const bpk_request_t BPK_Request_Ping    = {.val = BPK_REQUEST_PING};
 const bpk_request_t BPK_Request_Status  = {.val = BPK_REQUEST_STATUS};
 const bpk_request_t BPK_Request_Message = {.val = BPK_REQUEST_MESSAGE};
 
-const bpk_request_t BPK_WD_Request_List_Dir                  = {.val = BPK_WD_REQUEST_LIST_DIR};
-const bpk_request_t BPK_WD_Request_Copy_File                 = {.val = BPK_WD_REQUEST_COPY_FILE};
-const bpk_request_t BPK_WD_Request_Take_Photo                = {.val = BPK_WD_REQUEST_TAKE_PHOTO};
-const bpk_request_t BPK_WD_Request_Write_To_File             = {.val = BPK_WD_REQUEST_WRITE_TO_FILE};
-const bpk_request_t BPK_WD_Request_Record_Data               = {.val = BPK_WD_REQUEST_RECORD_DATA};
-const bpk_request_t BPK_WD_Request_Led_Red_On                = {.val = BPK_WD_REQUEST_LED_RED_ON};
-const bpk_request_t BPK_WD_Request_Led_Red_Off               = {.val = BPK_WD_REQUEST_LED_RED_OFF};
-const bpk_request_t BPK_WD_Request_Camera_View               = {.val = BPK_WD_REQUEST_CAMERA_VIEW};
-const bpk_request_t BPK_WD_Request_Get_Datetime              = {.val = BPK_WD_REQUEST_GET_DATETIME};
-const bpk_request_t BPK_WD_Request_Set_Datetime              = {.val = BPK_WD_REQUEST_SET_DATETIME};
-const bpk_request_t BPK_WD_Request_Get_Camera_Settings       = {.val = BPK_WD_REQUEST_GET_CAMERA_SETTINGS};
-const bpk_request_t BPK_WD_Request_Set_Camera_Settings       = {.val = BPK_WD_REQUEST_SET_CAMERA_SETTINGS};
-const bpk_request_t BPK_WD_Request_Get_Capture_Time_Settings = {.val = BPK_WD_REQUEST_GET_CAPTURE_TIME_SETTINGS};
-const bpk_request_t BPK_WD_Request_Set_Capture_Time_Settings = {.val = BPK_WD_REQUEST_SET_CAPTURE_TIME_SETTINGS};
-const bpk_request_t BPK_WD_Request_Stream_Images             = {.val = BPK_WD_REQUEST_STREAM_IMAGE};
-const bpk_request_t BPK_WD_Request_Turn_On                   = {.val = BPK_WD_REQUEST_TURN_ON};
-const bpk_request_t BPK_WD_Request_Turn_Off                  = {.val = BPK_WD_REQUEST_TURN_OFF};
+const bpk_request_t BPK_Req_List_Dir                 = {.val = BPK_REQ_LIST_DIR};
+const bpk_request_t BPK_Req_Copy_File                = {.val = BPK_REQ_COPY_FILE};
+const bpk_request_t BPK_Req_Take_Photo               = {.val = BPK_REQ_TAKE_PHOTO};
+const bpk_request_t BPK_Req_Write_To_File            = {.val = BPK_REQ_WRITE_TO_FILE};
+const bpk_request_t BPK_Req_Record_Data              = {.val = BPK_REQ_RECORD_DATA};
+const bpk_request_t BPK_Req_Led_Red_On               = {.val = BPK_REQ_LED_RED_ON};
+const bpk_request_t BPK_Req_Led_Red_Off              = {.val = BPK_REQ_LED_RED_OFF};
+const bpk_request_t BPK_Req_Camera_View              = {.val = BPK_REQ_CAMERA_VIEW};
+const bpk_request_t BPK_Req_Get_Datetime             = {.val = BPK_REQ_GET_DATETIME};
+const bpk_request_t BPK_Req_Set_Datetime             = {.val = BPK_REQ_SET_DATETIME};
+const bpk_request_t BPK_Req_Get_Camera_Settings      = {.val = BPK_REQ_GET_CAMERA_SETTINGS};
+const bpk_request_t BPK_Req_Set_Camera_Settings      = {.val = BPK_REQ_SET_CAMERA_SETTINGS};
+const bpk_request_t BPK_Req_Get_Camera_Capture_Times = {.val = BPK_REQ_GET_CAMERA_CAPTURE_TIMES};
+const bpk_request_t BPK_Req_Set_Camera_Capture_Times = {.val = BPK_REQ_SET_CAMERA_CAPTURE_TIMES};
+const bpk_request_t BPK_Req_Stream_Images            = {.val = BPK_REQ_STREAM_IMAGE};
+const bpk_request_t BPK_Req_Turn_On                  = {.val = BPK_REQ_TURN_ON};
+const bpk_request_t BPK_Req_Turn_Off                 = {.val = BPK_REQ_TURN_OFF};
 
 const bpk_error_code_t BPK_Err_Invalid_Sender     = {.val = BPK_ERR_INVALID_SENDER};
 const bpk_error_code_t BPK_Err_Invalid_Receiver   = {.val = BPK_ERR_INVALID_RECEIVER};
@@ -72,12 +72,13 @@ const bpk_error_code_t BPK_Err_Invalid_Code       = {.val = BPK_ERR_INVALID_CODE
 const bpk_error_code_t BPK_Err_Invalid_Data       = {.val = BPK_ERR_INVALID_DATA};
 const bpk_error_code_t BPK_Err_Invalid_Start_Byte = {.val = BPK_ERR_INVALD_START_BYTE};
 
-const bpk_error_code_t BPK_Err_Invalid_Start_Time    = {.val = BPK_ERR_INVALID_START_TIME};
-const bpk_error_code_t BPK_Err_Invalid_End_Time      = {.val = BPK_ERR_INVALID_END_TIME};
-const bpk_error_code_t BPK_Err_Invalid_Interval_Time = {.val = BPK_ERR_INVALID_INTERVAL_TIME};
-const bpk_error_code_t BPK_Err_Invalid_Date          = {.val = BPK_ERR_INVALID_DATE};
-const bpk_error_code_t BPK_Err_Invalid_Year          = {.val = BPK_ERR_INVALID_YEAR};
-const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size  = {.val = BPK_ERR_INVALID_PACKET_SIZE};
+const bpk_error_code_t BPK_Err_Invalid_Start_Time        = {.val = BPK_ERR_INVALID_START_TIME};
+const bpk_error_code_t BPK_Err_Invalid_End_Time          = {.val = BPK_ERR_INVALID_END_TIME};
+const bpk_error_code_t BPK_Err_Invalid_Interval_Time     = {.val = BPK_ERR_INVALID_INTERVAL_TIME};
+const bpk_error_code_t BPK_Err_Invalid_Date              = {.val = BPK_ERR_INVALID_DATE};
+const bpk_error_code_t BPK_Err_Invalid_Year              = {.val = BPK_ERR_INVALID_YEAR};
+const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size      = {.val = BPK_ERR_INVALID_PACKET_SIZE};
+const bpk_error_code_t BPK_Err_Invalid_Camera_Resolution = {.val = BPK_ERR_INVALID_CAMERA_RESOLUTION};
 
 /* Function Prototypes */
 void bp_erase_all_data(bpk_packet_t* Bpacket);
@@ -218,9 +219,9 @@ void bpacket_to_buffer(bpk_packet_t* Bpacket, bpk_buffer_t* packetBuffer) {
         packetBuffer->buffer[i + 7] = Bpacket->Data.bytes[i];
     }
 
-    // Set the stop bytes at the end
-    packetBuffer->buffer[i + 7] = BPACKET_STOP_BYTE_UPPER;
-    packetBuffer->buffer[i + 8] = BPACKET_STOP_BYTE_LOWER;
+    // // Set the stop bytes at the end
+    // packetBuffer->buffer[i + 7] = BPACKET_STOP_BYTE_UPPER;
+    // packetBuffer->buffer[i + 8] = BPACKET_STOP_BYTE_LOWER;
 
     packetBuffer->numBytes = Bpacket->Data.numBytes + BPACKET_NUM_NON_DATA_BYTES;
 }
@@ -232,19 +233,19 @@ uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER
         return FALSE;
     }
 
-    if (bpk_address_get_receiver(Bpacket, data[2]) != TRUE) {
+    if (bpk_set_receiver(Bpacket, data[2]) != TRUE) {
         return FALSE;
     }
 
-    if (bpk_address_get_sender(Bpacket, data[3]) != TRUE) {
+    if (bpk_set_sender(Bpacket, data[3]) != TRUE) {
         return FALSE;
     }
 
-    if (bpk_address_get_request(Bpacket, data[4]) != TRUE) {
+    if (bpk_set_request(Bpacket, data[4]) != TRUE) {
         return FALSE;
     }
 
-    if (bpk_address_get_code(Bpacket, data[5]) != TRUE) {
+    if (bpk_set_code(Bpacket, data[5]) != TRUE) {
         return FALSE;
     }
 
@@ -258,7 +259,7 @@ uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER
     return TRUE;
 }
 
-uint8_t bpk_address_get_sender(bpk_packet_t* Bpacket, uint8_t sender) {
+uint8_t bpk_set_sender(bpk_packet_t* Bpacket, uint8_t sender) {
 
     switch (sender) {
         case BPK_ADDRESS_ESP32:
@@ -274,7 +275,7 @@ uint8_t bpk_address_get_sender(bpk_packet_t* Bpacket, uint8_t sender) {
     return FALSE;
 }
 
-uint8_t bpk_address_get_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
+uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
 
     switch (receiver) {
         case BPK_ADDRESS_ESP32:
@@ -290,7 +291,7 @@ uint8_t bpk_address_get_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
     return FALSE;
 }
 
-uint8_t bpk_address_get_code(bpk_packet_t* Bpacket, uint8_t code) {
+uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code) {
 
     switch (code) {
         case BPK_ADDRESS_ESP32:
@@ -306,30 +307,30 @@ uint8_t bpk_address_get_code(bpk_packet_t* Bpacket, uint8_t code) {
     return FALSE;
 }
 
-uint8_t bpk_address_get_request(bpk_packet_t* Bpacket, uint8_t request) {
+uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request) {
 
     switch (request) {
         case BPK_REQUEST_HELP:
         case BPK_REQUEST_PING:
         case BPK_REQUEST_STATUS:
         case BPK_REQUEST_MESSAGE:
-        case BPK_WD_REQUEST_LIST_DIR:
-        case BPK_WD_REQUEST_COPY_FILE:
-        case BPK_WD_REQUEST_TAKE_PHOTO:
-        case BPK_WD_REQUEST_WRITE_TO_FILE:
-        case BPK_WD_REQUEST_RECORD_DATA:
-        case BPK_WD_REQUEST_LED_RED_ON:
-        case BPK_WD_REQUEST_LED_RED_OFF:
-        case BPK_WD_REQUEST_CAMERA_VIEW:
-        case BPK_WD_REQUEST_GET_DATETIME:
-        case BPK_WD_REQUEST_SET_DATETIME:
-        case BPK_WD_REQUEST_GET_CAMERA_SETTINGS:
-        case BPK_WD_REQUEST_SET_CAMERA_SETTINGS:
-        case BPK_WD_REQUEST_GET_CAPTURE_TIME_SETTINGS:
-        case BPK_WD_REQUEST_SET_CAPTURE_TIME_SETTINGS:
-        case BPK_WD_REQUEST_STREAM_IMAGE:
-        case BPK_WD_REQUEST_TURN_ON:
-        case BPK_WD_REQUEST_TURN_OFF:
+        case BPK_REQ_LIST_DIR:
+        case BPK_REQ_COPY_FILE:
+        case BPK_REQ_TAKE_PHOTO:
+        case BPK_REQ_WRITE_TO_FILE:
+        case BPK_REQ_RECORD_DATA:
+        case BPK_REQ_LED_RED_ON:
+        case BPK_REQ_LED_RED_OFF:
+        case BPK_REQ_CAMERA_VIEW:
+        case BPK_REQ_GET_DATETIME:
+        case BPK_REQ_SET_DATETIME:
+        case BPK_REQ_GET_CAMERA_SETTINGS:
+        case BPK_REQ_SET_CAMERA_SETTINGS:
+        case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:
+        case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:
+        case BPK_REQ_STREAM_IMAGE:
+        case BPK_REQ_TURN_ON:
+        case BPK_REQ_TURN_OFF:
             Bpacket->Request.val = request;
             return TRUE;
 
@@ -410,37 +411,6 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
     return TRUE;
 }
 
-uint8_t bpacket_confirm_values(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                               bpk_request_t Request, bpk_code_t Code, uint8_t numBytes, char* errMsg) {
-
-    if (Bpacket->Receiver.val != Receiver.val) {
-        sprintf(errMsg, "Invalid receiver. Expected %i but got %i\r\n", Receiver.val, Bpacket->Receiver.val);
-        return FALSE;
-    }
-
-    if (Bpacket->Sender.val != Sender.val) {
-        sprintf(errMsg, "Invalid Sender. Expected %i but got %i\r\n", Sender.val, Bpacket->Sender.val);
-        return FALSE;
-    }
-
-    if (Bpacket->Request.val != Request.val) {
-        sprintf(errMsg, "Invalid Request. Expected %i but got %i\r\n", Request.val, Bpacket->Request.val);
-        return FALSE;
-    }
-
-    if (Bpacket->Code.val != Code.val) {
-        sprintf(errMsg, "Invalid Code. Expected %i but got %i\r\n", Code.val, Bpacket->Code.val);
-        return FALSE;
-    }
-
-    if (Bpacket->Data.numBytes != numBytes) {
-        sprintf(errMsg, "Invalid num bytes. Expected %i but got %i\r\n", numBytes, Bpacket->Data.numBytes);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data) {
 
     // Swap the addresses
@@ -462,22 +432,28 @@ void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numB
 }
 
 void bp_erase_all_data(bpk_packet_t* Bpacket) {
+    Bpacket->Data.numBytes = 0;
     for (int i = 0; i < Bpacket->Data.numBytes; i++) {
         Bpacket->Data.bytes[i] = BP_DEFAULT_DATA_VALUE;
     }
 }
 
-uint8_t bp_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string) {
+void bpk_create_response(bpk_packet_t* Bpacket, bpk_code_t Code) {
 
     // Swap the addresses
     uint8_t senderAddress = Bpacket->Sender.val;
     Bpacket->Sender.val   = Bpacket->Receiver.val;
     Bpacket->Receiver.val = senderAddress;
 
-    // Update the code
+    // Update the code if the user requests
     Bpacket->Code = Code;
 
     bp_erase_all_data(Bpacket);
+}
+
+uint8_t bpk_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string) {
+
+    bpk_create_response(Bpacket, Code);
 
     uint32_t numBytes = chars_get_num_bytes(string);
 
@@ -500,4 +476,17 @@ void bpk_swap_address(bpk_packet_t* Bpacket) {
     uint8_t senderAddress = Bpacket->Sender.val;
     Bpacket->Sender.val   = Bpacket->Receiver.val;
     Bpacket->Receiver.val = senderAddress;
+}
+
+void bpk_set_sender_receiver(bpk_packet_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver) {
+    Bpacket->Sender   = Sender;
+    Bpacket->Receiver = Receiver;
+}
+
+void bpk_reset(bpk_packet_t* Bpacket) {
+    Bpacket->Receiver.val = 0;
+    Bpacket->Sender.val   = 0;
+    Bpacket->Request.val  = 0;
+    Bpacket->Code.val     = 0;
+    bp_erase_all_data(Bpacket);
 }

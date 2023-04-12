@@ -139,8 +139,8 @@ bpacket_circular_buffer_t* guiReceiveBuffer;
 #define GUI_RECIEVE_BPACKET()  (guiReceiveBuffer->buffer[*guiReceiveBuffer->rIndex])
 #define GUI_TRANSMIT_BPACKET() (guiTransmitBuffer->buffer[*guiTransmitBuffer->wIndex])
 /*
- * Here all of the structs are made and populated with all of the current information of from the ESP32, start time,
- * end time, time interval, etc
+ * Here all of the structs are made and populated with all of the current information of from the
+ * ESP32, start time, end time, time interval, etc
  */
 
 dt_time_t startTime;
@@ -191,8 +191,8 @@ ALL THE LABEL INFORMATION IS HERE
 #define LABEL_START_INVALID     11
 #define LABEL_END_INVALID       12
 #define LABEL_INTERVAL_INVAILD  13
-HWND labelStatus, labelID, labelNumImages, labelSetUp, labelData, labelSettings, labelCameraResolution, labelStartTime,
-    labelEndTime, labelTimeInterval, labelTimeInfo;
+HWND labelStatus, labelID, labelNumImages, labelSetUp, labelData, labelSettings,
+    labelCameraResolution, labelStartTime, labelEndTime, labelTimeInterval, labelTimeInfo;
 char* labelTitleList[LONGEST_LABEL_TITLE] = {" Status",
                                              " ID",
                                              " Images Taken",
@@ -204,13 +204,22 @@ char* labelTitleList[LONGEST_LABEL_TITLE] = {" Status",
                                              " End Time              (hh:mm am)",
                                              " Time Interval        (hh:mm)",
                                              " THIS WILL TELL YOU WHEN THE PHOTOS ARE TAKEN"};
-int labelStartXList[NUMBER_OF_LABELS] = {COL_6, COL_6, COL_6, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1, COL_1};
-int labelStartYList[NUMBER_OF_LABELS] = {ROW_1, ROW_2, ROW_3,  ROW_1,  ROW_4, ROW_7,
+int labelStartXList[NUMBER_OF_LABELS]     = {COL_6, COL_6, COL_6, COL_1, COL_1, COL_1,
+                                         COL_1, COL_1, COL_1, COL_1, COL_1};
+int labelStartYList[NUMBER_OF_LABELS]     = {ROW_1, ROW_2, ROW_3,  ROW_1,  ROW_4, ROW_7,
                                          ROW_8, ROW_9, ROW_10, ROW_11, ROW_12};
-int labelWidthList[NUMBER_OF_LABELS]  = {
-    LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH_HEADING, LABEL_WIDTH_HEADING,    LABEL_WIDTH_HEADING,
-    LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH, LABEL_WIDTH,         LABEL_WIDTH_HEADING * 2};
-int labelHeightList[NUMBER_OF_LABELS] = {LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT,
+int labelWidthList[NUMBER_OF_LABELS]      = {LABEL_WIDTH,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH_HEADING,
+                                        LABEL_WIDTH_HEADING,
+                                        LABEL_WIDTH_HEADING,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH,
+                                        LABEL_WIDTH_HEADING * 2};
+int labelHeightList[NUMBER_OF_LABELS]     = {LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT,
                                          LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT,
                                          LABEL_HEIGHT, LABEL_HEIGHT, LABEL_HEIGHT};
 
@@ -225,9 +234,10 @@ typedef struct label_info_t {
 
 label_info_t labelList[NUMBER_OF_LABELS];
 
-HWND* labelHandleList[NUMBER_OF_LABELS] = {&labelStatus,  &labelID,           &labelNumImages,        &labelSetUp,
-                                           &labelData,    &labelSettings,     &labelCameraResolution, &labelStartTime,
-                                           &labelEndTime, &labelTimeInterval, &labelTimeInfo};
+HWND* labelHandleList[NUMBER_OF_LABELS] = {
+    &labelStatus,  &labelID,           &labelNumImages,        &labelSetUp,
+    &labelData,    &labelSettings,     &labelCameraResolution, &labelStartTime,
+    &labelEndTime, &labelTimeInterval, &labelTimeInfo};
 
 void initalise_label_structs(label_info_t* labelList) {
     for (int i = 0; i < NUMBER_OF_LABELS; i++) {
@@ -252,11 +262,13 @@ ALL THE BUTTON INFORMATION IS HERE
 #define BUTTON_EXPORT_DATA   3
 #define BUTTON_NORMAL_VIEW   4
 #define BUTTON_HELP          5
-HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView, buttonHelp;
-char* buttonTitleList[LONGEST_BUTTON_TITLE] = {
-    "View Data", "Live Camera View", "Test System", "Download data from SD card", "Exit Camera View", "Help"};
-int buttonStartXList[NUMBER_OF_BUTTONS] = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6};
-int buttonStartYList[NUMBER_OF_BUTTONS] = {
+HWND buttonOpenSDCard, buttonCameraView, buttonRunTest, buttonExportData, buttonNormalView,
+    buttonHelp;
+char* buttonTitleList[LONGEST_BUTTON_TITLE] = {"View Data",        "Live Camera View",
+                                               "Test System",      "Download data from SD card",
+                                               "Exit Camera View", "Help"};
+int buttonStartXList[NUMBER_OF_BUTTONS]     = {COL_2, COL_1, COL_2, COL_1, COL_1, COL_6};
+int buttonStartYList[NUMBER_OF_BUTTONS]     = {
     ROW_5, ROW_2, ROW_2, ROW_5, ROW_2, ROW_4,
 };
 int buttonWidthList[NUMBER_OF_BUTTONS]  = {BUTTON_WIDTH, BUTTON_WIDTH, BUTTON_WIDTH,
@@ -301,12 +313,14 @@ uint32_t textBoxFlags = 0;
 int startTimeHr, startTimeMin, endTimeHr, endTimeMin, timeIntervalHr, timeIntervalMin;
 HWND textBoxStartTime, textBoxEndTime, textBoxTimeInterval;
 HWND textBoxLabelStart, textBoxLabelEnd, textBoxLabelInterval;
-int textBoxStartXList[NUMBER_OF_TEXT_BOXES]       = {COL_2, COL_2, COL_2};
-int textBoxStartYList[NUMBER_OF_TEXT_BOXES]       = {ROW_9, ROW_10, ROW_11};
-int textBoxWidthList[NUMBER_OF_TEXT_BOXES]        = {TEXT_BOX_WIDTH, TEXT_BOX_WIDTH, TEXT_BOX_WIDTH};
-int textBoxHeightList[NUMBER_OF_TEXT_BOXES]       = {TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT};
-char* textBoxLabelTitleList[NUMBER_OF_TEXT_BOXES] = {"Invalid Input", "Invalid Input", "Invalid Input"};
-char* textBoxDefaultText[NUMBER_OF_TEXT_BOXES]; // Unfortunately this has to made in main by a function call
+int textBoxStartXList[NUMBER_OF_TEXT_BOXES] = {COL_2, COL_2, COL_2};
+int textBoxStartYList[NUMBER_OF_TEXT_BOXES] = {ROW_9, ROW_10, ROW_11};
+int textBoxWidthList[NUMBER_OF_TEXT_BOXES]  = {TEXT_BOX_WIDTH, TEXT_BOX_WIDTH, TEXT_BOX_WIDTH};
+int textBoxHeightList[NUMBER_OF_TEXT_BOXES] = {TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT, TEXT_BOX_HEIGHT};
+char* textBoxLabelTitleList[NUMBER_OF_TEXT_BOXES] = {"Invalid Input", "Invalid Input",
+                                                     "Invalid Input"};
+char* textBoxDefaultText[NUMBER_OF_TEXT_BOXES]; // Unfortunately this has to made in main by a
+                                                // function call
 
 typedef struct text_box_info_t {
     HWND handle;
@@ -319,8 +333,10 @@ typedef struct text_box_info_t {
 
 text_box_info_t textBoxList[NUMBER_OF_TEXT_BOXES];
 
-HWND* textBoxHandleList[NUMBER_OF_TEXT_BOXES]      = {&textBoxStartTime, &textBoxEndTime, &textBoxTimeInterval};
-HWND* textBoxLabelHandleList[NUMBER_OF_TEXT_BOXES] = {&textBoxLabelStart, &textBoxLabelEnd, &textBoxLabelInterval};
+HWND* textBoxHandleList[NUMBER_OF_TEXT_BOXES]      = {&textBoxStartTime, &textBoxEndTime,
+                                                 &textBoxTimeInterval};
+HWND* textBoxLabelHandleList[NUMBER_OF_TEXT_BOXES] = {&textBoxLabelStart, &textBoxLabelEnd,
+                                                      &textBoxLabelInterval};
 
 void initalise_text_box_structs(text_box_info_t* textBoxList) {
     for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
@@ -360,10 +376,11 @@ ALL THE DROPBOX INFORMATION IS HERE
 HWND dropDownCameraResolution;
 
 #define NUMBER_OF_CAM_RESOLUTIONS 7
-const char* cameraResolutionStrings[50]                  = {"320x240",  "352x288",   "640x480",  "800x600",
+const char* cameraResolutionStrings[50] = {"320x240",  "352x288",   "640x480",  "800x600",
                                            "1024x768", "1280x1024", "1600x1200"};
 framesize_t cameraResolutions[NUMBER_OF_CAM_RESOLUTIONS] = {
-    FRAMESIZE_QVGA, FRAMESIZE_CIF, FRAMESIZE_VGA, FRAMESIZE_SVGA, FRAMESIZE_XGA, FRAMESIZE_SXGA, FRAMESIZE_UXGA};
+    FRAMESIZE_QVGA, FRAMESIZE_CIF,  FRAMESIZE_VGA, FRAMESIZE_SVGA,
+    FRAMESIZE_XGA,  FRAMESIZE_SXGA, FRAMESIZE_UXGA};
 
 int cam_res_to_list_index(uint8_t camRes) {
     switch (camRes) {
@@ -382,7 +399,8 @@ int cam_res_to_list_index(uint8_t camRes) {
         case (WD_CAM_RES_1600x1200):
             return 6;
         default:
-            printf("error when converting the camera resolution into a list index, cam_res_to_list_index "
+            printf("error when converting the camera resolution into a list index, "
+                   "cam_res_to_list_index "
                    "function %i\n",
                    camRes);
             return 0;
@@ -393,21 +411,24 @@ int cam_res_to_list_index(uint8_t camRes) {
 FUNCTIONS TO CREATE BUTTONS, LABELS, DROPBOXES and TEXTBOXES
 */
 
-HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
-    return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd, handle, NULL,
-                        NULL);
+HWND create_button(char* title, int startX, int startY, int width, int height, HWND hwnd,
+                   HMENU handle) {
+    return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd,
+                        handle, NULL, NULL);
 }
 
-HWND create_label(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle) {
-    return CreateWindow("STATIC", title, WS_VISIBLE | WS_CHILD | SS_NOTIFY, startX, startY, width, height, hwnd, handle,
-                        NULL, NULL);
+HWND create_label(char* title, int startX, int startY, int width, int height, HWND hwnd,
+                  HMENU handle) {
+    return CreateWindow("STATIC", title, WS_VISIBLE | WS_CHILD | SS_NOTIFY, startX, startY, width,
+                        height, hwnd, handle, NULL, NULL);
 }
 
-HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
-                    int numberOfOptions, const char* nameOfOptions[40], int indexOfDisplayedOption) {
-    HWND dropBox =
-        CreateWindow("COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, startX,
-                     startY, width, height, hwnd, handle, NULL, NULL);
+HWND create_dropbox(char* title, int startX, int startY, int width, int height, HWND hwnd,
+                    HMENU handle, int numberOfOptions, const char* nameOfOptions[40],
+                    int indexOfDisplayedOption) {
+    HWND dropBox = CreateWindow(
+        "COMBOBOX", title, CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+        startX, startY, width, height, hwnd, handle, NULL, NULL);
     for (int i = 0; i < numberOfOptions; i++) {
         SendMessage(dropBox, CB_ADDSTRING, 0, (LPARAM)nameOfOptions[i]);
     }
@@ -415,10 +436,11 @@ HWND create_dropbox(char* title, int startX, int startY, int width, int height, 
     return dropBox;
 }
 
-HWND create_text_box(char* title, int startX, int startY, int width, int height, HWND hwnd, HMENU handle,
-                     char* defaultText) {
-    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", defaultText, WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY,
-                          width, height, hwnd, handle, GetModuleHandle(NULL), NULL);
+HWND create_text_box(char* title, int startX, int startY, int width, int height, HWND hwnd,
+                     HMENU handle, char* defaultText) {
+    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", defaultText,
+                          WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, startX, startY, width, height,
+                          hwnd, handle, GetModuleHandle(NULL), NULL);
 }
 
 /*
@@ -508,7 +530,8 @@ uint8_t click_off_interval_tb(HWND hwnd) {
     if (dt_time_format_is_valid(textBoxText)) {
         sscanf(textBoxText, "%d:%d", &timeIntervalHr, &timeIntervalMin);
         // Make sure that the time interval plus the start time isnt into the next day
-        if (((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) < (24 * 60)) &&
+        if (((startTimeHr * 60 + startTimeMin + timeIntervalHr * 60 + timeIntervalMin) <
+             (24 * 60)) &&
             ((timeIntervalHr * 60 + timeIntervalMin) > 0)) {
             ShowWindow(textBoxList[TEXT_BOX_TIME_INTERVAL].label.handle, SW_HIDE);
             success = TRUE;
@@ -529,8 +552,8 @@ uint8_t click_off_interval_tb(HWND hwnd) {
 
 int cameraViewOn = FALSE;
 
-// This function is for changing from normal -> camera view and back, takes CAMERA_VIEW and NORMAL_VIEW view macros,
-// these are just SW_HIDE and SW_SHOW respectively
+// This function is for changing from normal -> camera view and back, takes CAMERA_VIEW and
+// NORMAL_VIEW view macros, these are just SW_HIDE and SW_SHOW respectively
 void gui_change_view(int cameraViewMode, HWND hwnd) {
 
     // Text boxes
@@ -557,7 +580,8 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 
     } else if (cameraViewMode == NORMAL_VIEW) {
         ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
-        textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
+        textBoxFlags |=
+            (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
     }
 
     UpdateWindow(hwnd);
@@ -565,9 +589,9 @@ void gui_change_view(int cameraViewMode, HWND hwnd) {
 
 void gui_transmit_capture_time_settings(void) {
 
-    uint8_t result =
-        wd_capture_time_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                                            BPK_WD_Request_Set_Capture_Time_Settings, BPK_Code_Execute, &captureTime);
+    uint8_t result = wd_capture_time_settings_to_bpacket(
+        GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+        BPK_Req_Set_Camera_Capture_Times, BPK_Code_Execute, &captureTime);
     if (result != TRUE) {
         char msg[50];
         wd_get_error(result, msg);
@@ -579,9 +603,9 @@ void gui_transmit_capture_time_settings(void) {
 
 void gui_transmit_camera_resolution_settings(void) {
 
-    uint8_t result =
-        wd_camera_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                                      BPK_WD_Request_Set_Camera_Settings, BPK_Code_Execute, &cameraSettings);
+    uint8_t result = wd_camera_settings_to_bpacket(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                                   BPK_Addr_Send_Maple, BPK_Req_Set_Camera_Settings,
+                                                   BPK_Code_Execute, &cameraSettings);
     if (result != TRUE) {
         char msg[50];
         wd_get_error(result, msg);
@@ -599,33 +623,37 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // CREATE TEXT BOXES
             initalise_text_box_structs(&textBoxList[0]);
             for (int i = 0; i < NUMBER_OF_TEXT_BOXES; i++) {
-                textBoxList[i].handle =
-                    create_text_box("Text_Box", textBoxList[i].startX, textBoxList[i].startY, textBoxList[i].width,
-                                    textBoxList[i].height, hwnd, NULL, textBoxDefaultText[i]);
+                textBoxList[i].handle = create_text_box(
+                    "Text_Box", textBoxList[i].startX, textBoxList[i].startY, textBoxList[i].width,
+                    textBoxList[i].height, hwnd, NULL, textBoxDefaultText[i]);
                 textBoxList[i].label.handle =
-                    create_label(textBoxList[i].label.text, textBoxList[i].label.startX, textBoxList[i].label.startY,
-                                 textBoxList[i].label.width, textBoxList[i].label.height, hwnd, NULL);
+                    create_label(textBoxList[i].label.text, textBoxList[i].label.startX,
+                                 textBoxList[i].label.startY, textBoxList[i].label.width,
+                                 textBoxList[i].label.height, hwnd, NULL);
                 ShowWindow(textBoxList[i].label.handle, SW_HIDE);
             }
 
             // CREATE DROP BOXES
-            dropDownCameraResolution = create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd,
-                                                      NULL, NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings,
-                                                      cam_res_to_list_index(cameraSettings.resolution));
+            dropDownCameraResolution =
+                create_dropbox("Title", COL_2, ROW_8, DROP_BOX_WIDTH, DROP_BOX_HEIGHT, hwnd, NULL,
+                               NUMBER_OF_CAM_RESOLUTIONS, cameraResolutionStrings,
+                               cam_res_to_list_index(cameraSettings.resolution));
 
             // CREATE BUTTONS
             initalise_button_structs(&buttonList[0]);
             for (int i = 0; i < NUMBER_OF_BUTTONS; i++) {
-                buttonList[i].handle = create_button(buttonList[i].text, buttonList[i].startX, buttonList[i].startY,
-                                                     buttonList[i].width, buttonList[i].height, hwnd, NULL);
+                buttonList[i].handle =
+                    create_button(buttonList[i].text, buttonList[i].startX, buttonList[i].startY,
+                                  buttonList[i].width, buttonList[i].height, hwnd, NULL);
             }
             ShowWindow(buttonList[BUTTON_NORMAL_VIEW].handle, SW_HIDE);
 
             // create LABELS
             initalise_label_structs(&labelList[0]);
             for (int i = 0; i < NUMBER_OF_LABELS; i++) {
-                labelList[i].handle = create_label(labelList[i].text, labelList[i].startX, labelList[i].startY,
-                                                   labelList[i].width, labelList[i].height, hwnd, NULL);
+                labelList[i].handle =
+                    create_label(labelList[i].text, labelList[i].startX, labelList[i].startY,
+                                 labelList[i].width, labelList[i].height, hwnd, NULL);
             }
 
             break;
@@ -637,16 +665,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                                 BPK_WD_Request_Led_Red_On, BPK_Code_Execute, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                 BPK_Addr_Send_Maple, BPK_Req_Led_Red_On, BPK_Code_Execute, 0,
+                                 NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
                 // TODO: decide what is going to happen when this button is clicked
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                                 BPK_WD_Request_Led_Red_Off, BPK_Code_Execute, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                 BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off, BPK_Code_Execute, 0,
+                                 NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
                 // printf("Exporting SD card data\n");
             }
@@ -658,8 +688,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 printf("Starting livestream\n");
                 InvalidateRect(hwnd, NULL, TRUE);
 
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                                 BPK_WD_Request_Stream_Images, BPK_Code_Execute, 0, NULL);
+                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                 BPK_Addr_Send_Maple, BPK_Req_Stream_Images, BPK_Code_Execute, 0,
+                                 NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
 
                 // Set live stream flag and update live stream time
@@ -689,8 +720,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             // Handle drop down box
             if ((HWND)lParam == dropDownCameraResolution) {
-                // Sends multiple messages but we only want to check for when the message is the change box
-                // message
+                // Sends multiple messages but we only want to check for when the message is the
+                // change box message
                 if (HIWORD(wParam) == CBN_SELCHANGE) {
                     // handle drop-down menu selection
                     int itemIndex = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
@@ -718,7 +749,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 textBoxFlags |= TEXT_BOX_TIME_INTERVAL_FLAG;
             }
 
-            // This if statment will be evaluated as true when the user click off the start time textbox
+            // This if statment will be evaluated as true when the user click off the start time
+            // textbox
             if (((HWND)lParam != textBoxList[TEXT_BOX_START_TIME].handle) &&
                 (textBoxFlags & TEXT_BOX_START_TIME_FLAG) && (cameraViewOn == FALSE)) {
                 // Unset the flag
@@ -733,13 +765,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     gui_transmit_capture_time_settings();
                 }
 
-                // Set the flags so the other textboxes will be checked if this change made them invalid
+                // Set the flags so the other textboxes will be checked if this change made them
+                // invalid
                 textBoxFlags |= (TEXT_BOX_END_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
-            // This if statment will be evaluated as true when the user click off the end time textbox
-            if (((HWND)lParam != textBoxList[TEXT_BOX_END_TIME].handle) && (textBoxFlags & TEXT_BOX_END_TIME_FLAG) &&
-                (cameraViewOn == FALSE)) {
+            // This if statment will be evaluated as true when the user click off the end time
+            // textbox
+            if (((HWND)lParam != textBoxList[TEXT_BOX_END_TIME].handle) &&
+                (textBoxFlags & TEXT_BOX_END_TIME_FLAG) && (cameraViewOn == FALSE)) {
                 // Unset the flag
                 textBoxFlags &= ~TEXT_BOX_END_TIME_FLAG;
 
@@ -751,11 +785,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     gui_transmit_capture_time_settings();
                 }
 
-                // Set the flags so the other textboxes will be checked if this change made them invalid
+                // Set the flags so the other textboxes will be checked if this change made them
+                // invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_TIME_INTERVAL_FLAG);
             }
 
-            // This if statment will be evaluated as true when the user click off the time interval time textbox
+            // This if statment will be evaluated as true when the user click off the time interval
+            // time textbox
             if (((HWND)lParam != textBoxList[TEXT_BOX_TIME_INTERVAL].handle) &&
                 (textBoxFlags & TEXT_BOX_TIME_INTERVAL_FLAG) && (cameraViewOn == FALSE)) {
                 // Unset the flag
@@ -767,7 +803,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     printf("Valid time interval. Sending to STM32\n");
                     gui_transmit_capture_time_settings();
                 }
-                // Set the flags so the other textboxes will be checked if this change made them invalid
+                // Set the flags so the other textboxes will be checked if this change made them
+                // invalid
                 textBoxFlags |= (TEXT_BOX_START_TIME_FLAG | TEXT_BOX_END_TIME_FLAG);
             }
 
@@ -844,7 +881,7 @@ DWORD WINAPI gui(void* arg) {
     /* Need to retrieve ESP32 settings to display them on GUI */
     // Create Bpacket requests
     if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                         BPK_WD_Request_Get_Capture_Time_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+                         BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
         printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
                GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {
@@ -852,7 +889,7 @@ DWORD WINAPI gui(void* arg) {
     }
 
     if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                         BPK_WD_Request_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+                         BPK_Req_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
         printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
                GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {
@@ -876,18 +913,20 @@ DWORD WINAPI gui(void* arg) {
             receivedBpacket = GUI_RECIEVE_BPACKET();
             bpacket_increment_circular_buffer_index(guiReceiveBuffer->rIndex);
 
-            if (receivedBpacket->Request.val == BPK_WD_Request_Get_Capture_Time_Settings.val) {
+            if (receivedBpacket->Request.val == BPK_Req_Get_Camera_Capture_Times.val) {
                 if (wd_bpacket_to_capture_time_settings(receivedBpacket, &captureTime) != TRUE) {
-                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__, receivedBpacket->ErrorCode.val);
+                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__,
+                           receivedBpacket->ErrorCode.val);
                 }
                 numSettingsUpdated++;
                 text_box_default_text(captureTime);
                 continue;
             }
 
-            if (receivedBpacket->Request.val == BPK_WD_Request_Get_Camera_Settings.val) {
+            if (receivedBpacket->Request.val == BPK_Req_Get_Camera_Settings.val) {
                 if (wd_bpacket_to_camera_settings(receivedBpacket, &cameraSettings) != TRUE) {
-                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__, receivedBpacket->ErrorCode.val);
+                    printf("Error %s %i. Code %i\n", __FILE__, __LINE__,
+                           receivedBpacket->ErrorCode.val);
                 }
                 numSettingsUpdated++;
                 continue;
@@ -902,9 +941,10 @@ DWORD WINAPI gui(void* arg) {
     }
 
     // Create the window
-    // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT, CW_USEDEFAULT
-    hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "Watchdog", WS_OVERLAPPEDWINDOW, 0, 0, WINDOW_WIDTH,
-                          WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
+    // The 0, 0 is coodinates of the top left of the window, orginally it was CW_USEDEFAULT,
+    // CW_USEDEFAULT
+    hwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "myWindowClass", "Watchdog", WS_OVERLAPPEDWINDOW, 0, 0,
+                          WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, NULL, NULL);
 
     if (hwnd == NULL) {
         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -940,7 +980,7 @@ DWORD WINAPI gui(void* arg) {
                 log_error("Gui received erronous Bpacket with code: %s\n", msg);
             }
 
-            if (receivedBpacket->Request.val == BPK_WD_Request_Stream_Images.val) {
+            if (receivedBpacket->Request.val == BPK_Req_Stream_Images.val) {
 
                 if ((*flags & GUI_LIVE_STREAM) != 0) {
                     draw_rectangle(hwnd, &LiveStreamImageFrame, 255, 255, 255);
@@ -1007,8 +1047,8 @@ uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
         }
 
         // Resize the image using stb library
-        if (stbir_resize_uint8(imageData, width, height, 0, pixelData, position->width, position->height, 0, n) !=
-            TRUE) {
+        if (stbir_resize_uint8(imageData, width, height, 0, pixelData, position->width,
+                               position->height, 0, n) != TRUE) {
             printf("Error resizing image\n");
             stbi_image_free(imageData);
             free(pixelData);
@@ -1029,9 +1069,10 @@ uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
     // Convert pixel data to a bit map
     BITMAPINFO bmi;
     memset(&bmi, 0, sizeof(bmi));
-    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth       = position->width;
-    bmi.bmiHeader.biHeight      = -position->height; // Negative to ensure picture is drawn vertical correctly
+    bmi.bmiHeader.biSize  = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = position->width;
+    bmi.bmiHeader.biHeight =
+        -position->height; // Negative to ensure picture is drawn vertical correctly
     bmi.bmiHeader.biPlanes      = 1;
     bmi.bmiHeader.biBitCount    = 24;
     bmi.bmiHeader.biCompression = BI_RGB;
@@ -1041,8 +1082,9 @@ uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
     HDC hdc = BeginPaint(hwnd, &ps);
 
     // Render image onto window
-    if (StretchDIBits(hdc, position->startX, position->startY, position->width, position->height, 0, 0, position->width,
-                      position->height, pixelData, &bmi, DIB_RGB_COLORS, SRCCOPY) == FALSE) {
+    if (StretchDIBits(hdc, position->startX, position->startY, position->width, position->height, 0,
+                      0, position->width, position->height, pixelData, &bmi, DIB_RGB_COLORS,
+                      SRCCOPY) == FALSE) {
         printf("Failed to render image\n");
         return FALSE;
     }

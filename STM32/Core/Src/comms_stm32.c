@@ -15,6 +15,7 @@
 #include "log.h"
 #include "watchdog_defines.h"
 #include "chars.h"
+#include "stm32_uart.h"
 
 #define PACKET_BUFFER_SIZE 10
 
@@ -88,6 +89,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
 
             // Divert byte to intended receiver
             if (divertBytes[bufferId] == TRUE) {
+
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
                 continue;
             }
@@ -133,11 +135,11 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
         }
 
         if (expectedByteId[bufferId] == BPACKET_NUM_BYTES_BYTE_ID) {
-            // if (bufferId == BUFFER_1_ID) {
-            //     char y[20];
-            //     sprintf(y, " LEN BYTE[%i] ", byte);
-            //     uart_transmit_data(y, chars_get_num_bytes(y));
-            // }
+            if (bufferId == BUFFER_1_ID) {
+                char y[20];
+                sprintf(y, " LEN BYTE[%i] ", byte);
+                log_message(y, chars_get_num_bytes(y));
+            }
 
             if (divertBytes[bufferId] == TRUE) {
                 comms_send_byte(divertedBytesBufferId[bufferId], byte);
@@ -217,9 +219,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
             switch (byte) {
 
                 case BPK_ADDRESS_ESP32: // Required to divert bytes to ESP32
-                    // if (bufferId == BUFFER_1_ID) {
-                    //     uart_transmit_data(" REC ESP ", 9);
-                    // }
+
                     // uart_transmit_data(" DIV ESP ", 9);
                     // Set the flag to divert bytes
                     divertBytes[bufferId]           = TRUE;

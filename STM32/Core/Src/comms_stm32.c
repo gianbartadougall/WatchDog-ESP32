@@ -123,6 +123,8 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
                     comms_send_byte(bufId, Bpacket->Request.val);
                     comms_send_byte(bufId, Bpacket->Code.val);
                     comms_send_byte(bufId, Bpacket->Data.numBytes);
+                } else {
+                    divertBytes[bufferId] = FALSE;
                 }
 
                 // Skip reseting if there is data to be read
@@ -133,6 +135,11 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
                 // No data in Bpacket. Execute request and exit switch statement to reset
                 cbuffer_reset_read_index(&ByteBuffer[bufferId]);
                 bpacketByteIndex[bufferId] = 0;
+
+                if (divertBytes[bufferId] == TRUE) {
+                    return FALSE;
+                }
+
                 return TRUE;
 
             /* Expecting another bpacket byte that is not 'data' or 'length' */
@@ -147,7 +154,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
         }
 
         // Decoding failed, print error.
-        sprintf(errMsg, "Expected %i. Found %i", expectedByte, byte);
+        sprintf(errMsg, "Expected %i. Found %i (%c)", expectedByte, byte, byte);
         bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
                           BPK_Code_Error, errMsg);
 

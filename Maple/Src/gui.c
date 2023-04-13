@@ -839,6 +839,8 @@ int gui_folder_exists(const char* path) {
 // Main function for the Maple thread
 DWORD WINAPI gui(void* arg) {
 
+    while (1) {}
+
     // Confirm the watchdog folder has been created
     if (gui_folder_exists(GUI_WATCHDOG_FOLDER) == FALSE) {
         mkdir(GUI_WATCHDOG_FOLDER);

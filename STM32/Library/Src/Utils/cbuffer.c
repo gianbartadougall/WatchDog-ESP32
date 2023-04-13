@@ -52,11 +52,11 @@ void cbuffer_read_current_byte(cbuffer_t* Cbuffer, void* element) {
     }
 }
 
-void cbuffer_write_next_index(cbuffer_t* Cbuffer, void* element) {
+void cbuffer_write_element(cbuffer_t* Cbuffer, void* element) {
 
     // Cast the data pointer to the appropriate type
     uint8_t* ptr = (uint8_t*)Cbuffer->elements;
-    ptr += Cbuffer->rIndex * Cbuffer->elementSize;
+    ptr += Cbuffer->wIndex * Cbuffer->elementSize;
 
     // Copy the element from the buffer into the provided element pointer
     uint8_t* elementPtr = (uint8_t*)element;
@@ -73,4 +73,8 @@ void cbuffer_reset_read_index(cbuffer_t* Cbuffer) {
 
 void cbuffer_reset_write_index(cbuffer_t* Cbuffer) {
     Cbuffer->wIndex = 0;
+}
+
+uint8_t cbuffer_element_is_pending(cbuffer_t* Cbuffer) {
+    return Cbuffer->rIndex != Cbuffer->wIndex;
 }

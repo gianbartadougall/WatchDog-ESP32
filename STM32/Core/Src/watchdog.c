@@ -115,8 +115,8 @@ void watchdog_init(void) {
     log_clear();
 
     // Initialise all the peripherals
-    ds18b20_init(); // Temperature sensor
-    // comms_stm32_init(); // Bpacket communications between Maple and EPS32
+    ds18b20_init();     // Temperature sensor
+    comms_stm32_init(); // Bpacket communications between Maple and EPS32
 
     // Set the datetime to 12am 1 January 2023
     datetime.Date.year   = 23;
@@ -133,14 +133,6 @@ void watchdog_init(void) {
     // Get the capture time and resolution settings from the ESP32
     watchdog_message_maple("Reading watchdog settings\r\n", BPK_Code_Debug);
     watchdog_create_and_send_bpacket_to_esp32(BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL);
-
-    uint8_t data[255] = {0};
-    data[0]           = 21;
-    data[254]         = 43;
-    while (1) {
-        watchdog_create_and_send_bpacket_to_maple(BPK_Request_Message, BPK_Code_Success, 0, data);
-        HAL_Delay(3000);
-    }
 }
 
 void watchdog_rtc_alarm_triggered(void) {
@@ -243,11 +235,11 @@ void watchdog_enter_state_machine(void) {
                     // Process anything Maple sends to the STM32
                     bpk_packet_t bpacket1, bpacket2;
                     if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
-                        log_message("Bpacket: %i %i %i %i %i %i\r\n", bpacket1.Receiver.val, bpacket1.Sender.val,
-                                    bpacket1.Request.val, bpacket1.Code.val, bpacket1.Data.numBytes,
-                                    bpacket1.Data.bytes[0]);
+                        // log_message("Bpacket: %i %i %i %i %i %i\r\n", bpacket1.Receiver.val, bpacket1.Sender.val,
+                        //             bpacket1.Request.val, bpacket1.Code.val, bpacket1.Data.numBytes,
+                        //             bpacket1.Data.bytes[0]);
 
-                        watchdog_message_maple("Got request from maple\r\n", BPK_Code_Debug);
+                        // watchdog_message_maple("Got request from maple\r\n", BPK_Code_Debug);
                         if (stm32_match_maple_request(&bpacket1) != TRUE) {
                             process_watchdog_stm32_request(&bpacket1);
                         }

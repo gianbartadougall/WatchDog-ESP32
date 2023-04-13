@@ -294,9 +294,13 @@ uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
 uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code) {
 
     switch (code) {
-        case BPK_ADDRESS_ESP32:
-        case BPK_ADDRESS_STM32:
-        case BPK_ADDRESS_MAPLE:
+        case BPK_CODE_ERROR:
+        case BPK_CODE_SUCCESS:
+        case BPK_CODE_IN_PROGRESS:
+        case BPK_CODE_UNKNOWN:
+        case BPK_CODE_EXECUTE:
+        case BPK_CODE_TODO:
+        case BPK_CODE_DEBUG:
             Bpacket->Code.val = code;
             return TRUE;
 

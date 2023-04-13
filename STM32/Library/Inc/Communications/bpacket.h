@@ -22,9 +22,6 @@
 #define BPACKET_START_BYTE_UPPER 'B'
 #define BPACKET_START_BYTE_LOWER 'z'
 
-#define BPACKET_STOP_BYTE_UPPER 'j'
-#define BPACKET_STOP_BYTE_LOWER 'Y'
-
 /**
  * @brief BPacket codes. These gives context to the
  * request in a bpacket.

@@ -97,7 +97,14 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
                 // to reset
                 cbuffer_reset_read_index(&ByteBuffer[bufferId]);
                 bpacketByteIndex[bufferId] = 0;
-                return TRUE;
+
+                // If the bytes were diverted, nothing for the STM32 to do so return FALSE. If the
+                // bytes were not diverted then this was a message for the STM32 so return TRUE
+                if (divertBytes[bufferId] == TRUE) {
+                    return FALSE;
+                } else {
+                    return TRUE;
+                }
 
             /* Expecting bpacket 'length' byte */
             case BPK_BYTE_LENGTH:
@@ -112,8 +119,16 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
                     uint8_t bufId;
                     if (Bpacket->Receiver.val == BPK_ADDRESS_ESP32) {
                         bufId = BUFFER_1_ID;
+                        bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
+                                          BPK_Request_Message, BPK_Code_Debug, "Diverted to ESP32");
+                        bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
+                        uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
                     } else {
                         bufId = BUFFER_2_ID;
+                        bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
+                                          BPK_Request_Message, BPK_Code_Debug, "Diverted to Maple");
+                        bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
+                        uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
                     }
 
                     comms_send_byte(bufId, BPK_BYTE_START_BYTE_UPPER);
@@ -145,12 +160,20 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
             /* Expecting another bpacket byte that is not 'data' or 'length' */
             default:
 
+                // Updated the expected byte
                 cbuffer_increment_read_index(&ByteBuffer[bufferId]);
+
                 // If decoding the byte succeeded, move to the next expected byte by
                 // incrementing the circrular buffer holding the expected bytes
                 if (bpk_utils_decode_non_data_byte(Bpacket, expectedByte, byte) == TRUE) {
                     continue;
                 }
+
+                sprintf(errMsg, "Dec. Exp %i. Fnd %i (%c)", expectedByte, byte, byte);
+                bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                                  BPK_Code_Error, errMsg);
+                bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
+                uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
         }
 
         // Decoding failed, print error.
@@ -192,5 +215,27 @@ void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes) {
 
         // Send byte of usart
         uarts[bufferId]->TDR = data[i];
+    }
+}
+
+void comms_open_connection(uint8_t bufferId) {
+
+    if (bufferId == BUFFER_1_ID) {
+        BUFFER_1->CR1 |= (USART_CR1_RE | USART_CR1_TE);
+    }
+
+    if (bufferId == BUFFER_2_ID) {
+        BUFFER_2->CR1 |= (USART_CR1_RE | USART_CR1_TE);
+    }
+}
+
+void comms_close_connection(uint8_t bufferId) {
+
+    if (bufferId == BUFFER_1_ID) {
+        BUFFER_1->CR1 &= ~(USART_CR1_RE | USART_CR1_TE);
+    }
+
+    if (bufferId == BUFFER_2_ID) {
+        BUFFER_2->CR1 &= ~(USART_CR1_RE | USART_CR1_TE);
     }
 }

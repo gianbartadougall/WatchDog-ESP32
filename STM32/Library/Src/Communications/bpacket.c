@@ -130,8 +130,8 @@ uint8_t bpacket_create_p(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk
     return TRUE;
 }
 
-uint8_t bp_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t Receiver, const bpk_addr_send_t Sender,
-                         const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data) {
+uint8_t bpk_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t Receiver, const bpk_addr_send_t Sender,
+                          const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data) {
 
     bp_erase_all_data(Bpacket);
 

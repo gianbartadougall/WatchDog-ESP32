@@ -215,8 +215,8 @@ uint8_t software_config(bpk_packet_t* Bpacket) {
         return FALSE;
     }
 
-    bp_create_packet(Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings,
-                     BPK_Code_Execute, 0, NULL);
+    bpk_create_packet(Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings,
+                      BPK_Code_Execute, 0, NULL);
 
     if (sd_card_format_sd_card(Bpacket) != TRUE) {
         esp32_uart_send_bpacket(Bpacket);

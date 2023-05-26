@@ -28,8 +28,8 @@
 uint8_t com_ports_close_connection(void);
 uint8_t com_ports_configure_port(struct sp_port* port);
 enum sp_return com_ports_open_port(struct sp_port* port);
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], const bpk_addr_receive_t RAddress,
-                                      uint8_t pingResponse);
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
+                                      const bpk_addr_receive_t RAddress, uint8_t pingResponse);
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
 uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket);
@@ -116,8 +116,8 @@ enum sp_return com_ports_open_port(struct sp_port* port) {
     return SP_OK;
 }
 
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], const bpk_addr_receive_t RAddress,
-                                      uint8_t pingResponse) {
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
+                                      const bpk_addr_receive_t RAddress, uint8_t pingResponse) {
     portName[0] = '\0';
 
     // Create a struct to hold all the COM ports currently in use
@@ -143,7 +143,8 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], const 
         comms_port_clear_buffer(port);
 
         // Ping port
-        bp_create_packet(&Bpacket, RAddress, BPK_Addr_Send_Maple, BPK_Request_Ping, BPK_Code_Execute, 0, NULL);
+        bpk_create_packet(&Bpacket, RAddress, BPK_Addr_Send_Maple, BPK_Request_Ping,
+                          BPK_Code_Execute, 0, NULL);
         bpk_buffer_t packetBuffer;
         bpacket_to_buffer(&Bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
@@ -157,7 +158,8 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], const 
         }
 
         uint8_t responseSize;
-        if ((responseSize = sp_blocking_read(port, response, BPACKET_BUFFER_LENGTH_BYTES, 100)) < 0) {
+        if ((responseSize = sp_blocking_read(port, response, BPACKET_BUFFER_LENGTH_BYTES, 100)) <
+            0) {
             sp_close(port);
             printf("res < 0\n");
             continue;
@@ -171,8 +173,9 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], const 
             sp_close(port);
 
             // Print the entire message received
-            printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n", Bpacket.Sender.val, Bpacket.Receiver,
-                   Bpacket.Request, Bpacket.Code, Bpacket.Data.numBytes);
+            printf("Sender: %i Receiver: %i Request: %i Code: %i Num bytes: %i\n",
+                   Bpacket.Sender.val, Bpacket.Receiver, Bpacket.Request, Bpacket.Code,
+                   Bpacket.Data.numBytes);
             printf("Read %i bytes\n", responseSize);
             for (int i = 0; i < responseSize; i++) {
                 printf("%c", response[i]);
@@ -243,10 +246,13 @@ void comms_port_test(void) {
     // bpk_packet_t Bpacket;
     // bpk_buffer_t bp;
     // char m[256];
-    // sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and possiBilitiesY, so "
-    //            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a grAtefBzjYul heajYrt, and a "
-    //            "strong determinAtiojYn to mAke the most out of.akasdfasdfasdfa55454d");
-    // bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, WATCHDOG_BPK_R_WRITE_TO_FILE,
+    // sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and
+    // possiBilitiesY, so "
+    //            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a
+    //            grAtefBzjYul heajYrt, and a " "strong determinAtiojYn to mAke the most out
+    //            of.akasdfasdfasdfa55454d");
+    // bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32,
+    // WATCHDOG_BPK_R_WRITE_TO_FILE,
     //                   BPACKET_CODE_SUCCESS, m);
     // bpacket_to_buffer(&Bpacket, &bp);
 
@@ -280,8 +286,8 @@ void comms_port_test(void) {
         bpk_packet_t getRTCTime;
         bpk_buffer_t getPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, WATCHDOG_BPK_R_WRITE_TO_FILE,
-                         BPACKET_CODE_EXECUTE, 0, NULL);
+        bpacket_create_p(&getRTCTime, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                         WATCHDOG_BPK_R_WRITE_TO_FILE, BPACKET_CODE_EXECUTE, 0, NULL);
         bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
 
         printf("Starting: %i %i\n", getPacketBuffer.buffer[6], getPacketBuffer.numBytes);

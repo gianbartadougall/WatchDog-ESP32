@@ -309,7 +309,7 @@ void watchdog_enter_state_machine(void) {
 void watchdog_report_success(const bpk_request_t Request) {
 
     bpk_packet_t Bpacket;
-    bp_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, BPK_Code_Success, 0, NULL);
+    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, BPK_Code_Success, 0, NULL);
 
     bpk_buffer_t packetBuffer;
     bpacket_to_buffer(&Bpacket, &packetBuffer);
@@ -321,7 +321,7 @@ void watchdog_create_and_send_bpacket_to_maple(const bpk_request_t Request, cons
                                                uint8_t* data) {
     bpk_packet_t Bpacket;
     bpk_buffer_t packetBuffer;
-    bp_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
+    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
     bpacket_to_buffer(&Bpacket, &packetBuffer);
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
@@ -330,7 +330,7 @@ void watchdog_create_and_send_bpacket_to_esp32(const bpk_request_t Request, cons
                                                uint8_t* data) {
     bpk_packet_t Bpacket;
     bpk_buffer_t packetBuffer;
-    bp_create_packet(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
+    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
     bpacket_to_buffer(&Bpacket, &packetBuffer);
     comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
@@ -419,8 +419,8 @@ void process_watchdog_stm32_request(bpk_packet_t* Bpacket) {
         default:;
             char bpacketInfo[80];
             bpacket_get_info(Bpacket, bpacketInfo);
-            char errorMsg[100];
-            sprintf(errorMsg, "Unknown request: %s\r\n", bpacketInfo);
+            char errorMsg[120];
+            sprintf(errorMsg, "Error %s line %i. %s\r\n", __FILE__, __LINE__, bpacketInfo);
             watchdog_message_maple(errorMsg, BPK_Code_Error);
     }
 }
@@ -599,6 +599,7 @@ uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket) {
             stm32_rtc_read_datetime(&datetime);
             if (wd_datetime_to_bpacket(Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Bpacket->Request,
                                        BPK_Code_Success, &datetime) == TRUE) {
+
                 bpacket_to_buffer(Bpacket, &bpacketBuffer);
                 comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
             } else {
@@ -757,10 +758,17 @@ void watchdog_update(void) {
 }
 
 void watchdog_esp32_on(void) {
+    // Turn UART off for ESP32. This prevents STM32 from reading ESP32 UART which is in
+    // non bpacket form
+    comms_close_connection(ESP32_UART);
+
     ESP32_POWER_PORT->BSRR |= (0x01 << ESP32_POWER_PIN);
 
     // Delay for 1.5 seconds to let ESP32 startup
     HAL_Delay(1500);
+
+    // Reopen the ESP32 uart connection
+    comms_open_connection(ESP32_UART);
 
     // Ping the ESP32 to ensure it's communicating
     uint8_t pingCode = WATCHDOG_PING_CODE_ESP32;

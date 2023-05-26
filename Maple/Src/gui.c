@@ -665,18 +665,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 *flags |= GUI_TURN_RED_LED_ON;
                 // TODO: decide what is going to happen when this button is clicked
 
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
-                                 BPK_Addr_Send_Maple, BPK_Req_Led_Red_On, BPK_Code_Execute, 0,
-                                 NULL);
+                bpk_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                  BPK_Addr_Send_Maple, BPK_Req_Led_Red_On, BPK_Code_Execute, 0,
+                                  NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
             }
 
             if ((HWND)lParam == buttonList[BUTTON_EXPORT_DATA].handle) {
                 *flags |= GUI_TURN_RED_LED_OFF;
                 // TODO: decide what is going to happen when this button is clicked
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
-                                 BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off, BPK_Code_Execute, 0,
-                                 NULL);
+                bpk_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                  BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off, BPK_Code_Execute, 0,
+                                  NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
                 // printf("Exporting SD card data\n");
             }
@@ -688,9 +688,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 printf("Starting livestream\n");
                 InvalidateRect(hwnd, NULL, TRUE);
 
-                bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
-                                 BPK_Addr_Send_Maple, BPK_Req_Stream_Images, BPK_Code_Execute, 0,
-                                 NULL);
+                bpk_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32,
+                                  BPK_Addr_Send_Maple, BPK_Req_Stream_Images, BPK_Code_Execute, 0,
+                                  NULL);
                 bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
 
                 // Set live stream flag and update live stream time
@@ -882,16 +882,16 @@ DWORD WINAPI gui(void* arg) {
 
     /* Need to retrieve ESP32 settings to display them on GUI */
     // Create Bpacket requests
-    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                         BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                          BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
         printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
                GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {
         bpacket_increment_circular_buffer_index(guiTransmitBuffer->wIndex);
     }
 
-    if (bp_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                         BPK_Req_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create_packet(GUI_TRANSMIT_BPACKET(), BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                          BPK_Req_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
         printf("Bpacket creating failed. File %s on line %i with error %i\n", __FILE__, __LINE__,
                GUI_TRANSMIT_BPACKET()->ErrorCode.val);
     } else {

@@ -97,7 +97,7 @@ enum bpk_address_e {
     BPK_ADDRESS_MAPLE,
 };
 
-#define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 65535 as the max number that can fit into one byte is 255
+#define BPACKET_MAX_NUM_DATA_BYTES  255 // Chosen to be 255 as the max number that can fit into one byte is 255
 #define BPACKET_NUM_NON_DATA_BYTES  7
 #define BPACKET_BUFFER_LENGTH_BYTES (BPACKET_MAX_NUM_DATA_BYTES + BPACKET_NUM_NON_DATA_BYTES)
 
@@ -257,8 +257,8 @@ uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER
 uint8_t bpacket_create_p(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                          bpk_request_t Request, bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
 
-uint8_t bp_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t RAddress, const bpk_addr_send_t SAddress,
-                         const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
+uint8_t bpk_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t RAddress, const bpk_addr_send_t SAddress,
+                          const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
 
 uint8_t bp_create_string_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t RAddress,
                                 const bpk_addr_send_t SAddress, const bpk_request_t Request, const bpk_code_t Code,
@@ -287,11 +287,6 @@ void bpacket_bytes_is_start_byte(void);
 uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
                           bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend);
 
-uint8_t bpk_address_get_receiver(bpk_packet_t* Bpacket, uint8_t receiver);
-uint8_t bpk_address_get_sender(bpk_packet_t* Bpacket, uint8_t sender);
-uint8_t bpk_address_get_request(bpk_packet_t* Bpacket, uint8_t request);
-uint8_t bpk_address_get_code(bpk_packet_t* Bpacket, uint8_t code);
-
 void bpk_swap_address(bpk_packet_t* Bpacket);
 
 void bpk_set_sender_receiver(bpk_packet_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver);
@@ -306,5 +301,7 @@ uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request);
 uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code);
 
 void bpk_utils_init_expected_byte_buffer(uint8_t byteBuffer[8]);
+
+void bpk_packet_is_valid(bpk_packet_t* Bpacket);
 
 #endif // BPACKET_H

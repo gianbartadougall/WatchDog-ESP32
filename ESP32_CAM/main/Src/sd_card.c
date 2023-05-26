@@ -884,8 +884,8 @@ uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings) {
 
     // Create a Bpacket with the correct information to read camera settings
     bpk_packet_t Bpacket;
-    bp_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Req_Get_Camera_Settings,
-                     BPK_Code_Execute, 0, NULL);
+    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Req_Get_Camera_Settings,
+                      BPK_Code_Execute, 0, NULL);
 
     if (sd_card_read_settings(&Bpacket) != TRUE) {
         bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Error,

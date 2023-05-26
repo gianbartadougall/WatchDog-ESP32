@@ -39,6 +39,8 @@
 
 #define ASCII_CLEAR_SCREEN "\033[2J\033[H"
 
+#define LOG_ERROR() (log_error("Err %s line %i\n", __FILE__, __LINE__))
+
 /**
  * @brief Stores the handle to the function that does
  * the actual transmitting of the message to the console.

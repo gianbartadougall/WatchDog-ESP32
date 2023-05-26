@@ -27,36 +27,56 @@ uint8_t bp_utils_store_data(bpk_packet_t* Bpacket, cdt_dbl_16_t* data, uint8_t l
     return TRUE;
 }
 
-uint8_t bp_utils_store_datetimes(bpk_packet_t* Bpacket, dt_datetime_t* DateTime) {
+uint8_t bpk_utils_write_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes, uint8_t numDatetimes) {
 
-    // Store the time
-    Bpacket->Data.bytes[0] = DateTime->Time.second;
-    Bpacket->Data.bytes[1] = DateTime->Time.minute;
-    Bpacket->Data.bytes[2] = DateTime->Time.hour;
+    if ((numDatetimes * 7) > BPACKET_MAX_NUM_DATA_BYTES) {
+        return 0;
+    }
 
-    // Store the date
-    Bpacket->Data.bytes[3] = DateTime->Date.day;
-    Bpacket->Data.bytes[4] = DateTime->Date.month;
-    Bpacket->Data.bytes[5] = DateTime->Date.year >> 8;
-    Bpacket->Data.bytes[6] = DateTime->Date.year & 0xFF;
+    for (uint8_t i = 0; i < numDatetimes; i++) {
+        uint8_t index = i * 7;
+        // Store the time
+        Bpacket->Data.bytes[index + 0] = DateTimes[i]->Time.second;
+        Bpacket->Data.bytes[index + 1] = DateTimes[i]->Time.minute;
+        Bpacket->Data.bytes[index + 2] = DateTimes[i]->Time.hour;
 
-    Bpacket->Data.numBytes = 7;
+        // Store the date
+        Bpacket->Data.bytes[index + 3] = DateTimes[i]->Date.day;
+        Bpacket->Data.bytes[index + 4] = DateTimes[i]->Date.month;
+        Bpacket->Data.bytes[index + 5] = DateTimes[i]->Date.year >> 8;
+        Bpacket->Data.bytes[index + 6] = DateTimes[i]->Date.year & 0xFF;
+    }
 
-    return TRUE;
+    Bpacket->Data.numBytes = 7 * numDatetimes;
+
+    return numDatetimes;
 }
 
-uint8_t bp_utils_get_datetimes(bpk_packet_t* Bpacket, dt_datetime_t* DateTime) {
-    // Get the time
-    DateTime->Time.second = Bpacket->Data.bytes[0];
-    DateTime->Time.minute = Bpacket->Data.bytes[1];
-    DateTime->Time.hour   = Bpacket->Data.bytes[2];
+uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes) {
 
-    // Get the date
-    DateTime->Date.day   = Bpacket->Data.bytes[3];
-    DateTime->Date.month = Bpacket->Data.bytes[4];
-    DateTime->Date.year  = (Bpacket->Data.bytes[5] << 8) | (Bpacket->Data.bytes[6]);
+    // Confirm the data in the bpacket is a multiple of datetime
+    if ((Bpacket->Data.numBytes % 7) != 0) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Data;
+        return 0;
+    }
 
-    return TRUE;
+    uint8_t numDatetimes = Bpacket->Data.numBytes / 7;
+
+    for (uint8_t i = 0; i < numDatetimes; i++) {
+        uint8_t index = i * 7;
+
+        // Get the time
+        DateTimes[i]->Time.second = Bpacket->Data.bytes[index + 0];
+        DateTimes[i]->Time.minute = Bpacket->Data.bytes[index + 1];
+        DateTimes[i]->Time.hour   = Bpacket->Data.bytes[index + 2];
+
+        // Get the date
+        DateTimes[i]->Date.day   = Bpacket->Data.bytes[index + 3];
+        DateTimes[i]->Date.month = Bpacket->Data.bytes[index + 4];
+        DateTimes[i]->Date.year  = (Bpacket->Data.bytes[index + 5] << 8) | (Bpacket->Data.bytes[index + 6]);
+    }
+
+    return numDatetimes;
 }
 
 uint8_t bpk_utils_confirm_params(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
@@ -85,7 +105,23 @@ uint8_t bpk_utils_confirm_params(bpk_packet_t* Bpacket, bpk_addr_receive_t Recei
     return TRUE;
 }
 
-void bpk_utils_write_cdt_4_data_u8(bpk_packet_t* Bpacket, cdt_4_data_u8_t* Data) {
+void bpk_utils_write_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data, uint8_t numData) {
+
+    for (uint8_t i = 0; i < numData; i++) {
+        Bpacket->Data.bytes[i] = Data->value;
+    }
+
+    Bpacket->Data.numBytes = numData;
+}
+
+void bpk_utils_read_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data, uint8_t numDataToRead) {
+
+    for (uint8_t i = 0; i < numDataToRead; i++) {
+        Data[i].value = Bpacket->Data.bytes[0];
+    }
+}
+
+void bpk_utils_write_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Data) {
 
     Bpacket->Data.bytes[0] = Data->bytes[0];
     Bpacket->Data.bytes[1] = Data->bytes[1];
@@ -95,21 +131,12 @@ void bpk_utils_write_cdt_4_data_u8(bpk_packet_t* Bpacket, cdt_4_data_u8_t* Data)
     Bpacket->Data.numBytes = 4;
 }
 
-void bpk_utils_read_cdt_4_data_u8(bpk_packet_t* Bpacket, cdt_4_data_u8_t* Data) {
+void bpk_utils_read_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Data) {
 
     Data->bytes[0] = Bpacket->Data.bytes[0];
     Data->bytes[1] = Bpacket->Data.bytes[1];
     Data->bytes[2] = Bpacket->Data.bytes[2];
     Data->bytes[3] = Bpacket->Data.bytes[3];
-}
-
-void bpk_utils_write_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data) {
-    Bpacket->Data.bytes[0] = Data->value;
-    Bpacket->Data.numBytes = 1;
-}
-
-void bpk_utils_read_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data) {
-    Data->value = Bpacket->Data.bytes[0];
 }
 
 void bpk_utils_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, const char* format, ...) {

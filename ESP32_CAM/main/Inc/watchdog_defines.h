@@ -401,7 +401,7 @@ uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Rece
     Bpacket->Sender   = Sender;
     Bpacket->Request  = Request;
     Bpacket->Code     = Code;
-    bpk_utils_write_cdt_u8(Bpacket, CameraSettings);
+    bpk_utils_write_cdt_u8(Bpacket, CameraSettings, 1);
 
     return TRUE;
 }
@@ -419,7 +419,7 @@ uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSetting
 
     WD_ASSERT_VALID_CAMERA_RESOLUTION(Bpacket, Bpacket->Data.bytes[0]);
 
-    bpk_utils_read_cdt_u8(Bpacket, CameraSettings);
+    bpk_utils_read_cdt_u8(Bpacket, CameraSettings, 1);
 
     return TRUE;
 }

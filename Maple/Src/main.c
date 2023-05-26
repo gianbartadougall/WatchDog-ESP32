@@ -81,8 +81,8 @@ uint8_t maple_send_bpacket(bpk_packet_t* Bpacket) {
 void maple_create_and_send_bpacket(const bpk_request_t Request, const bpk_addr_receive_t Receiver,
                                    uint8_t numDataBytes, uint8_t* data) {
     bpk_packet_t Bpacket;
-    if (bp_create_packet(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute,
-                         numDataBytes, data) != TRUE) {
+    if (bpk_create_packet(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute,
+                          numDataBytes, data) != TRUE) {
         log_error("Error %s %i. Code %i", __FILE__, __LINE__, Bpacket.ErrorCode.val);
         return;
     }
@@ -263,8 +263,8 @@ uint8_t maple_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
         // Send a ping
         bpk_packet_t Bpacket;
         bpk_buffer_t bpacketBuffer;
-        bp_create_packet(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping,
-                         BPK_Code_Execute, 0, NULL);
+        bpk_create_packet(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping,
+                          BPK_Code_Execute, 0, NULL);
         bpacket_to_buffer(&Bpacket, &bpacketBuffer);
 
         if (sp_blocking_write(gbl_activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) <
@@ -507,111 +507,6 @@ void maple_test(void) {
     bpk_packet_t Bpacket;
     uint8_t failed = FALSE;
     char msg[100];
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (FALSE) {
-        /****** START CODE BLOCK ******/
-        // Description: Testing turning on and off the red LED
-
-        /* Turn the red LED on */
-        maple_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Stm32, 0, NULL);
-        if (maple_response_is_valid(BPK_Req_Led_Red_On, 2000) == FALSE) {
-            LOG_ERROR_MSG("Failed to turn red LED on");
-            failed = TRUE;
-        }
-
-        /* Turn the red LED off */
-        maple_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Stm32, 0, NULL);
-        if (maple_response_is_valid(BPK_Req_Led_Red_Off, 2000) == FALSE) {
-            LOG_ERROR_MSG("Failed to turn red LED off");
-            failed = TRUE;
-        }
-
-        /* Turn the red LED on directly */
-        maple_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Esp32, 0, NULL);
-        if (maple_response_is_valid(BPK_Req_Led_Red_On, 2000) == FALSE) {
-            LOG_ERROR_MSG("Failed to turn red LED on");
-            failed = TRUE;
-        }
-
-        /* Turn the red LED off directly */
-        maple_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Esp32, 0, NULL);
-        if (maple_response_is_valid(BPK_Req_Led_Red_Off, 2000) == FALSE) {
-            LOG_ERROR_MSG("Failed to turn red LED off");
-            failed = TRUE;
-        }
-
-        if (failed == FALSE) {
-            log_success("LED tests passed\n");
-        }
-        /****** END CODE BLOCK ******/
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (FALSE) {
-        /****** START CODE BLOCK ******/
-        // Description:
-
-        /* Set the datetime on the STM32 */
-        dt_datetime_t NewDatetime;
-        dt_time_init(&NewDatetime.Time, 30, 15, 8);
-        dt_date_init(&NewDatetime.Date, 1, 2, 2023);
-        wd_datetime_to_bpacket(&Bpacket, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                               BPK_Req_Set_Datetime, BPK_Code_Execute, &NewDatetime);
-        maple_send_bpacket(&Bpacket);
-
-        bpk_packet_t DateTimeBpacket;
-        if (maple_get_response(&DateTimeBpacket, BPK_Req_Set_Datetime, 1000) != TRUE) {
-            LOG_ERROR_MSG("Setting the datetime from the STM32 failed\n");
-            failed = TRUE;
-        }
-
-        if (bpk_utils_confirm_params(&DateTimeBpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
-                                     BPK_Req_Set_Datetime, BPK_Code_Success, 0) != TRUE) {
-            LOG_ERROR_MSG("Setting the datetime on the STM failed");
-            failed = TRUE;
-        }
-
-        /* Get the datetime from the STM32 */
-        maple_create_and_send_bpacket(BPK_Req_Get_Datetime, BPK_Addr_Receive_Stm32, 0, NULL);
-        if (maple_get_response(&DateTimeBpacket, BPK_Req_Get_Datetime, 1000) != TRUE) {
-            LOG_ERROR_MSG("Getting the datetime from the STM32 failed\n");
-            failed = TRUE;
-        }
-
-        if (bpk_utils_confirm_params(&DateTimeBpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
-                                     BPK_Req_Get_Datetime, BPK_Code_Success, 7) != TRUE) {
-            LOG_ERROR_MSG("Getting the datetime from the STM32 failed\n");
-            failed = TRUE;
-        } else {
-
-            dt_datetime_t Datetime;
-            if (wd_bpacket_to_datetime(&DateTimeBpacket, &Datetime) != TRUE) {
-                LOG_ERROR_CODE(DateTimeBpacket.ErrorCode.val);
-                failed = TRUE;
-            } else {
-                uint8_t result = 0;
-                result |= (Datetime.Time.hour != NewDatetime.Time.hour);
-                result |= (Datetime.Date.day != NewDatetime.Date.day);
-                result |= (Datetime.Date.month != NewDatetime.Date.month);
-                result |= (Datetime.Date.year != NewDatetime.Date.year);
-
-                if (result != 0) {
-                    LOG_ERROR_MSG("Incorrect datetime retrieved\n");
-                    failed = TRUE;
-                }
-            }
-        }
-
-        if (failed == FALSE) {
-            log_success("Setting and getting datetime passed\n");
-        }
-
-        /****** END CODE BLOCK ******/
-    }
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /* Test Setting the Camera Settings */
 

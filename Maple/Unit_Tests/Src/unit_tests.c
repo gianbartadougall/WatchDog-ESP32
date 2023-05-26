@@ -21,6 +21,11 @@
 #include "cbuffer.h"
 #include "utils.h"
 
+/* Private Macros */
+#define LOG_BPACKET(Bpkacket)                                                                   \
+    (log_error("Receiver: %i\tSender: %i\tRequest: %i\tResponse %i\r\n", Bpkacket.Receiver.val, \
+               Bpkacket.Sender.val, Bpkacket.Request.val, Bpkacket.Code.val))
+
 // Setting up Rx and Tx buffers
 #define MAPLE_BUFFER_NUM_ELEMENTS 10
 #define MAPLE_BUFFER_NUM_BYTES    (sizeof(bpk_packet_t) * MAPLE_BUFFER_NUM_ELEMENTS)
@@ -64,33 +69,38 @@ int main(void) {
     }
 
     log_success("Connected to port %s\n", sp_get_port_name(gbl_activePort));
-    // while (1) {}
+
     ut_run();
+
+    while (1) {}
 }
 
-uint8_t ut_response_is_valid(bpk_request_t ExpectedRequest, uint16_t timeout) {
+uint8_t ut_response_is_valid(bpk_packet_t* Bpacket, bpk_request_t ExpectedRequest,
+                             uint16_t timeout) {
 
     // Print response
     clock_t startTime = clock();
-    bpk_packet_t Bpacket;
     while ((clock() - startTime) < timeout) {
 
         // Wait for next response
-        while (cbuffer_read_next_element(&RxCbuffer, (void*)&Bpacket) != TRUE) {}
+        while (cbuffer_read_next_element(&RxCbuffer, (void*)Bpacket) != TRUE) {}
 
         // Skip if the Bpacket is just a message
-        if (Bpacket.Request.val == BPK_Request_Message.val) {
+        if (Bpacket->Request.val == BPK_Request_Message.val) {
             continue;
         }
 
         // Confirm the received Bpacket matches the correct request and code
-        if (Bpacket.Request.val != ExpectedRequest.val) {
-            log_error("Request was %i but expected %i\n", Bpacket.Request.val, ExpectedRequest.val);
+        if (Bpacket->Request.val != ExpectedRequest.val) {
+            log_error("Error %s %i. Request was %i but expected %i. Code %i\tData %i\n", __FILE__,
+                      __LINE__, Bpacket->Request.val, ExpectedRequest.val, Bpacket->Code.val,
+                      Bpacket->Data.numBytes);
             return FALSE;
         }
 
-        if (Bpacket.Code.val != BPK_Code_Success.val) {
-            printf("Expected code %i but got %i\n", BPK_Code_Success.val, Bpacket.Request.val);
+        if (Bpacket->Code.val != BPK_Code_Success.val) {
+            printf("Error %s %i. Expected code %i but got %i\n", __FILE__, __LINE__,
+                   BPK_Code_Success.val, Bpacket->Code.val);
             return FALSE;
         }
 
@@ -101,42 +111,199 @@ uint8_t ut_response_is_valid(bpk_request_t ExpectedRequest, uint16_t timeout) {
     return FALSE;
 }
 
-void ut_test_red_led(void) {
+/**
+ * @brief This function tests the LEDs on the ESP32. This is done by sending
+ * bpackets to the STM32 requesting the STM32 to send bpackets to the ESP32
+ * to turn on and off the LED.
+ */
+void ut_test_stm32_red_led(void) {
+
+    bpk_packet_t Bpacket;
 
     /* Turn the red LED on */
     ut_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Stm32, 0, NULL);
-    if (ut_response_is_valid(BPK_Req_Led_Red_On, 2000) == FALSE) {
+    if (ut_response_is_valid(&Bpacket, BPK_Req_Led_Red_On, 2000) == FALSE) {
         log_error("Failed to turn red LED on via STM32");
         return;
     }
 
     /* Turn the red LED off */
     ut_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Stm32, 0, NULL);
-    if (ut_response_is_valid(BPK_Req_Led_Red_Off, 2000) == FALSE) {
+    if (ut_response_is_valid(&Bpacket, BPK_Req_Led_Red_Off, 2000) == FALSE) {
         log_error("Failed to turn red LED off via STM32");
         return;
     }
 
+    log_success("STM32: Red LED tests passed\n");
+}
+
+/**
+ * @brief This function tests the LEDs on the ESP32. This is done by sending
+ * bpackets to the ESP32 to turn on and off the LED.
+ */
+void ut_test_esp32_red_led(void) {
+
+    bpk_packet_t Bpacket;
+
     /* Turn the red LED on directly */
     ut_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Esp32, 0, NULL);
-    if (ut_response_is_valid(BPK_Req_Led_Red_On, 2000) == FALSE) {
+    if (ut_response_is_valid(&Bpacket, BPK_Req_Led_Red_On, 2000) == FALSE) {
         log_error("Failed to turn red LED on via Maple");
         return;
     }
 
     /* Turn the red LED off directly */
     ut_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Esp32, 0, NULL);
-    if (ut_response_is_valid(BPK_Req_Led_Red_Off, 2000) == FALSE) {
-        log_error("Failed to turn red LED off Via Maple");
+    if (ut_response_is_valid(&Bpacket, BPK_Req_Led_Red_Off, 2000) == FALSE) {
+        log_error("Failed to turn red LED off via Maple");
         return;
     }
 
-    log_success("Red LED tests passed\n");
+    log_success("ESP32: Red LED tests passed\n");
+}
+
+void ut_test_esp32_camera_settings(void) {
+
+    bpk_packet_t Bpacket, BpkResponse;
+
+    // Create the bpacket
+    if (bpk_create_packet(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                          BPK_Req_Set_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Add the camera settings to the bpacket
+    cdt_u8_t NewCameraSettings = {.value = WD_CAM_RES_320x240};
+    bpk_utils_write_cdt_u8(&Bpacket, &NewCameraSettings, 1);
+
+    // Send bpacket to the ESP32
+    if (ut_send_bpacket(&Bpacket) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Confirm the message was received with code success
+    if (ut_response_is_valid(&BpkResponse, BPK_Req_Set_Camera_Settings, 1000)) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Read the camera settings from the ESP32
+    ut_create_and_send_bpacket(BPK_Req_Get_Camera_Settings, BPK_Addr_Receive_Esp32, 0, NULL);
+
+    // Get response from the ESP32
+    bpk_reset(&BpkResponse);
+    if (ut_response_is_valid(&BpkResponse, BPK_Req_Get_Camera_Settings, 1000)) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Confirm the response contains the correct camera settings
+    if (BpkResponse.Data.bytes[0] != NewCameraSettings.value) {
+        LOG_ERROR();
+        return;
+    }
+
+    log_success("ESP32: Updating camera settings tests passed");
+}
+
+/**
+ * @brief This function tests the datetime on the STM32. This is done by
+ * creating a datetime and sending this to the STM32 to set. The datetime
+ * is then read from the STM32. The read datetime is then compared to the
+ * sent datetime to ensure they match
+ */
+void ut_test_stm32_datetime(void) {
+
+    bpk_packet_t BpkResponse;
+
+    // Create a datetime for the STM32
+    dt_datetime_t NewDatetime;
+    dt_time_init(&NewDatetime.Time, 30, 15, 8);
+    dt_date_init(&NewDatetime.Date, 1, 2, 2023);
+
+    // Create Bpacket
+    bpk_packet_t Bpacket;
+    if (bpk_create_packet(&Bpacket, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                          BPK_Req_Set_Datetime, BPK_Code_Execute, 0, NULL) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Convert datetime to bpacket
+    dt_datetime_t* datetimes[1];
+    datetimes[0] = &NewDatetime;
+    if (bpk_utils_write_datetimes(&Bpacket, datetimes, 1) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    ut_send_bpacket(&Bpacket);
+
+    // Check for success code
+    if (ut_response_is_valid(&BpkResponse, BPK_Req_Set_Datetime, 1000) != TRUE) {
+        LOG_ERROR();
+        LOG_BPACKET(BpkResponse);
+        return;
+    }
+
+    // Get the datetime from the STM32
+    ut_create_and_send_bpacket(BPK_Req_Get_Datetime, BPK_Addr_Receive_Stm32, 0, NULL);
+    if (ut_response_is_valid(&BpkResponse, BPK_Req_Get_Datetime, 1000) != TRUE) {
+        LOG_ERROR();
+        LOG_BPACKET(BpkResponse);
+        return;
+    }
+
+    // Response was received. Confirm it contains expected values
+    dt_datetime_t DatetimeReceived;
+    dt_datetime_t* DatetimesReceived[1];
+    DatetimesReceived[0] = &DatetimeReceived;
+    if (bpk_utils_read_datetimes(&BpkResponse, DatetimesReceived) != 1) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Confirm the set datetime and the received datetime are the same. Note not checking whether
+    // the seconds are the same as this will lead to many false positives
+    if (NewDatetime.Time.minute != DatetimeReceived.Time.minute) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (NewDatetime.Time.hour != DatetimeReceived.Time.hour) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (NewDatetime.Date.day != DatetimeReceived.Date.day) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (NewDatetime.Date.month != DatetimeReceived.Date.month) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (NewDatetime.Date.year != DatetimeReceived.Date.year) {
+        LOG_ERROR();
+        return;
+    }
+
+    log_success("STM32 Datetime tests passed\n");
 }
 
 void ut_run(void) {
 
-    ut_test_red_led();
+    /* Test Communication with STM32 */
+    ut_test_stm32_red_led();
+    ut_test_stm32_datetime();
+
+    /* Test Communication with ESP32 */
+    ut_test_esp32_red_led();
+    ut_test_esp32_camera_settings();
 }
 
 uint8_t ut_send_bpacket(bpk_packet_t* Bpacket) {
@@ -154,8 +321,8 @@ uint8_t ut_send_bpacket(bpk_packet_t* Bpacket) {
 void ut_create_and_send_bpacket(const bpk_request_t Request, const bpk_addr_receive_t Receiver,
                                 uint8_t numDataBytes, uint8_t* data) {
     bpk_packet_t Bpacket;
-    if (bp_create_packet(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute,
-                         numDataBytes, data) != TRUE) {
+    if (bpk_create_packet(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute,
+                          numDataBytes, data) != TRUE) {
         log_error("Error %s %i. Code %i", __FILE__, __LINE__, Bpacket.ErrorCode.val);
         return;
     }
@@ -199,8 +366,8 @@ uint8_t ut_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
         // Send a ping
         bpk_packet_t Bpacket;
         bpk_buffer_t bpacketBuffer;
-        bp_create_packet(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping,
-                         BPK_Code_Execute, 0, NULL);
+        bpk_create_packet(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping,
+                          BPK_Code_Execute, 0, NULL);
         bpacket_to_buffer(&Bpacket, &bpacketBuffer);
 
         if (sp_blocking_write(gbl_activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) <

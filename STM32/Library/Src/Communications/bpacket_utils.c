@@ -27,10 +27,70 @@ uint8_t bp_utils_store_data(bpk_packet_t* Bpacket, cdt_dbl_16_t* data, uint8_t l
     return TRUE;
 }
 
+uint8_t bpk_utils_write_time(bpk_packet_t* Bpacket, dt_time_t* Time, uint8_t bpkIndex) {
+
+    // Confirm the index is valid
+    if ((bpkIndex * 3) > BPACKET_MAX_NUM_DATA_BYTES) {
+        return FALSE;
+    }
+
+    // Calcualte the position in the byte array corresponding to the given index
+    uint8_t index = bpkIndex * 3;
+
+    // Extract the data
+    Bpacket->Data.bytes[index + 0] = Time->second;
+    Bpacket->Data.bytes[index + 1] = Time->minute;
+    Bpacket->Data.bytes[index + 2] = Time->hour;
+
+    return TRUE;
+}
+
+uint8_t bpk_utils_write_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t numTimes) {
+
+    if ((numTimes * 3) > BPACKET_MAX_NUM_DATA_BYTES) {
+        return FALSE;
+    }
+
+    for (uint8_t i = 0; i < numTimes; i++) {
+        uint8_t index = i * 3;
+        // Store the time
+        Bpacket->Data.bytes[index + 0] = Times[i]->second;
+        Bpacket->Data.bytes[index + 1] = Times[i]->minute;
+        Bpacket->Data.bytes[index + 2] = Times[i]->hour;
+    }
+
+    Bpacket->Data.numBytes = 3 * numTimes;
+
+    return TRUE;
+}
+
+uint8_t bpk_utils_read_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t* numTimesRead) {
+
+    // Confirm the data in the bpacket is a multiple of datetime
+    if ((Bpacket->Data.numBytes % 3) != 0) {
+        Bpacket->ErrorCode = BPK_Err_Invalid_Data;
+        return FALSE;
+    }
+
+    *numTimesRead = Bpacket->Data.numBytes / 3;
+
+    for (uint8_t i = 0; i < *numTimesRead; i++) {
+        uint8_t index = i * 3;
+
+        // Get the time
+        Times[i]->second = Bpacket->Data.bytes[index + 0];
+        Times[i]->minute = Bpacket->Data.bytes[index + 1];
+        Times[i]->hour   = Bpacket->Data.bytes[index + 2];
+    }
+
+    return TRUE;
+}
+
 uint8_t bpk_utils_write_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes, uint8_t numDatetimes) {
 
+    // Confirm the number of datetimes to write can fit in the bpacket
     if ((numDatetimes * 7) > BPACKET_MAX_NUM_DATA_BYTES) {
-        return 0;
+        return FALSE;
     }
 
     for (uint8_t i = 0; i < numDatetimes; i++) {
@@ -49,20 +109,20 @@ uint8_t bpk_utils_write_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTim
 
     Bpacket->Data.numBytes = 7 * numDatetimes;
 
-    return numDatetimes;
+    return TRUE;
 }
 
-uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes) {
+uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes, uint8_t* numDatetimesRead) {
 
     // Confirm the data in the bpacket is a multiple of datetime
     if ((Bpacket->Data.numBytes % 7) != 0) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Data;
-        return 0;
+        return FALSE;
     }
 
-    uint8_t numDatetimes = Bpacket->Data.numBytes / 7;
+    *numDatetimesRead = Bpacket->Data.numBytes / 7;
 
-    for (uint8_t i = 0; i < numDatetimes; i++) {
+    for (uint8_t i = 0; i < *numDatetimesRead; i++) {
         uint8_t index = i * 7;
 
         // Get the time
@@ -76,7 +136,7 @@ uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTime
         DateTimes[i]->Date.year  = (Bpacket->Data.bytes[index + 5] << 8) | (Bpacket->Data.bytes[index + 6]);
     }
 
-    return numDatetimes;
+    return TRUE;
 }
 
 uint8_t bpk_utils_confirm_params(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,

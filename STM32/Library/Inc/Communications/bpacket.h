@@ -80,8 +80,8 @@ enum bpk_request_e {
     BPK_REQ_GET_CAMERA_CAPTURE_TIMES,
     BPK_REQ_SET_CAMERA_CAPTURE_TIMES,
     BPK_REQ_STREAM_IMAGE,
-    BPK_REQ_TURN_ON,
-    BPK_REQ_TURN_OFF,
+    BPK_REQ_ESP32_ON,
+    BPK_REQ_ESP32_OFF,
 
     /* User defined Maple Requeusts */
 };
@@ -229,8 +229,8 @@ extern const bpk_request_t BPK_Req_Set_Camera_Settings;
 extern const bpk_request_t BPK_Req_Get_Camera_Capture_Times;
 extern const bpk_request_t BPK_Req_Set_Camera_Capture_Times;
 extern const bpk_request_t BPK_Req_Stream_Images;
-extern const bpk_request_t BPK_Req_Turn_On;
-extern const bpk_request_t BPK_Req_Turn_Off;
+extern const bpk_request_t BPK_Req_Esp32_On;
+extern const bpk_request_t BPK_Req_Esp32_Off;
 
 extern const bpk_error_code_t BPK_Err_Invalid_Sender;
 extern const bpk_error_code_t BPK_Err_Invalid_Receiver;

@@ -491,6 +491,7 @@ uint8_t stm32_match_esp32_request(bpk_packet_t* Bpacket) {
 
             // Log success to Maple
             if (Bpacket->Code.val == BPK_Code_Success.val) {
+                watchdog_message_maple("Received capture time response from ESP32", BPK_Code_Debug);
                 watchdog_report_success(BPK_Req_Set_Camera_Capture_Times);
 
                 // Request read of capture time from ESP32 to update the settings on the STM32
@@ -682,14 +683,14 @@ uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket) {
 
             break;
 
-        case BPK_REQ_TURN_ON:
+        case BPK_REQ_ESP32_ON:
             watchdog_esp32_on();
-            watchdog_create_and_send_bpacket_to_maple(BPK_Req_Turn_On, BPK_Code_Success, 0, NULL);
+            watchdog_create_and_send_bpacket_to_maple(BPK_Req_Esp32_On, BPK_Code_Success, 0, NULL);
             break;
 
-        case BPK_REQ_TURN_OFF:
+        case BPK_REQ_ESP32_OFF:
             watchdog_esp32_off();
-            watchdog_create_and_send_bpacket_to_maple(BPK_Req_Turn_Off, BPK_Code_Success, 0, NULL);
+            watchdog_create_and_send_bpacket_to_maple(BPK_Req_Esp32_Off, BPK_Code_Success, 0, NULL);
             break;
 
         default:

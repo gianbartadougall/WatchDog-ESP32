@@ -482,8 +482,8 @@ uint8_t maple_restart_esp32(void) {
     // that when we get the capture time settings from the esp32 we can know whether the capture
     // time settings set above were saved to the SD card or not
     bpk_packet_t stateBpacket;
-    maple_create_and_send_bpacket(BPK_Req_Turn_Off, BPK_Addr_Receive_Stm32, 0, NULL);
-    if (maple_get_response(&stateBpacket, BPK_Req_Turn_Off, 1000) != TRUE) {
+    maple_create_and_send_bpacket(BPK_Req_Esp32_Off, BPK_Addr_Receive_Stm32, 0, NULL);
+    if (maple_get_response(&stateBpacket, BPK_Req_Esp32_Off, 1000) != TRUE) {
         printf("%sTurning the ESP32 off failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         return FALSE;
     }
@@ -493,8 +493,8 @@ uint8_t maple_restart_esp32(void) {
 
     // Delay of 1500ms because the STM32 will automatically delay for 1s when turning the esp32
     // so it has enough time to boot up
-    maple_create_and_send_bpacket(BPK_Req_Turn_On, BPK_Addr_Receive_Stm32, 0, NULL);
-    if (maple_get_response(&stateBpacket, BPK_Req_Turn_On, 2000) != TRUE) {
+    maple_create_and_send_bpacket(BPK_Req_Esp32_On, BPK_Addr_Receive_Stm32, 0, NULL);
+    if (maple_get_response(&stateBpacket, BPK_Req_Esp32_On, 2000) != TRUE) {
         printf("%sTurning the ESP32 on failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
         return FALSE;
     }
@@ -509,82 +509,6 @@ void maple_test(void) {
     char msg[100];
 
     /* Test Setting the Camera Settings */
-
-    if (TRUE) {
-        /****** START CODE BLOCK ******/
-        // Description: Testing reading and writing camera settings
-
-        cdt_u8_t NewCameraSettings = {.value = WD_CAM_RES_320x240};
-        if (wd_camera_settings_to_bpk(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                                      BPK_Req_Set_Camera_Settings, BPK_Code_Execute,
-                                      &NewCameraSettings) != TRUE) {
-            LOG_ERROR_CODE(Bpacket.ErrorCode.val);
-            failed = TRUE;
-        } else {
-            maple_send_bpacket(&Bpacket);
-        }
-
-        log_message("Camera settings %i\r\n", Bpacket.Data.bytes[0]);
-        // while (1) {}
-
-        bpk_packet_t Response;
-        if (maple_get_response(&Response, BPK_Req_Set_Camera_Settings, 1000) != TRUE) {
-            log_error("Updating camera settings failed");
-            failed = TRUE;
-        }
-
-        // Read the camera settings and confirm its the same as the one that was set
-        if (bpk_utils_confirm_params(&Response, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32,
-                                     BPK_Req_Set_Camera_Settings, BPK_Code_Success, 0) != TRUE) {
-            LOG_ERROR_CODE(Response.ErrorCode.val);
-            LOG_ERROR_MSG(Response.Data.bytes);
-            failed = TRUE;
-        }
-
-        // Restart the esp32. This will allow maple to determine whether the settings were properly
-        // saved onto the SD card or not
-        if (maple_restart_esp32() != TRUE) {
-            log_error("Maple failed to restart ESP32\n");
-            failed = TRUE;
-        }
-
-        bpk_reset(&Bpacket);
-
-        maple_create_and_send_bpacket(BPK_Req_Get_Camera_Settings, BPK_Addr_Receive_Esp32, 0, NULL);
-        if (maple_get_response(&Response, BPK_Req_Get_Camera_Settings, 1000) != TRUE) {
-            printf("%sGetting the camera settings failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-            failed = TRUE;
-        }
-
-        // Confirm the received Bpacket has the expected values
-        if (bpk_utils_confirm_params(&Response, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32,
-                                     BPK_Req_Get_Camera_Settings, BPK_Code_Success, 1) != TRUE) {
-            printf("%sUnexpected response when updating camera settings. %s%s\n", ASCII_COLOR_RED,
-                   msg, ASCII_COLOR_WHITE);
-            failed = TRUE;
-        }
-
-        // Convert Bpacket back to camera settings
-        cdt_u8_t CameraSettings;
-        if (wd_bpk_to_camera_settings(&Response, &CameraSettings) != TRUE) {
-            LOG_ERROR_MSG("Bpacket to camera settings failed");
-            failed = TRUE;
-        } else {
-
-            // Compare the received camera settings with the camera settings that were set
-            // previosuly
-            if (CameraSettings.value != NewCameraSettings.value) {
-                log_error("Incorrect camera settings. Found %i but expected %i\n",
-                          CameraSettings.value, NewCameraSettings.value);
-                failed = TRUE;
-            }
-        }
-
-        if (failed == FALSE) {
-            log_success("%sCamera settings tests passed\n%s", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
-        }
-        /****** END CODE BLOCK ******/
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

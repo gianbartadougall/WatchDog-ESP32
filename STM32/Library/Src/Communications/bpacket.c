@@ -62,8 +62,8 @@ const bpk_request_t BPK_Req_Set_Camera_Settings      = {.val = BPK_REQ_SET_CAMER
 const bpk_request_t BPK_Req_Get_Camera_Capture_Times = {.val = BPK_REQ_GET_CAMERA_CAPTURE_TIMES};
 const bpk_request_t BPK_Req_Set_Camera_Capture_Times = {.val = BPK_REQ_SET_CAMERA_CAPTURE_TIMES};
 const bpk_request_t BPK_Req_Stream_Images            = {.val = BPK_REQ_STREAM_IMAGE};
-const bpk_request_t BPK_Req_Turn_On                  = {.val = BPK_REQ_TURN_ON};
-const bpk_request_t BPK_Req_Turn_Off                 = {.val = BPK_REQ_TURN_OFF};
+const bpk_request_t BPK_Req_Esp32_On                 = {.val = BPK_REQ_ESP32_ON};
+const bpk_request_t BPK_Req_Esp32_Off                = {.val = BPK_REQ_ESP32_OFF};
 
 const bpk_error_code_t BPK_Err_Invalid_Sender     = {.val = BPK_ERR_INVALID_SENDER};
 const bpk_error_code_t BPK_Err_Invalid_Receiver   = {.val = BPK_ERR_INVALID_RECEIVER};
@@ -333,8 +333,8 @@ uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request) {
         case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:
         case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:
         case BPK_REQ_STREAM_IMAGE:
-        case BPK_REQ_TURN_ON:
-        case BPK_REQ_TURN_OFF:
+        case BPK_REQ_ESP32_ON:
+        case BPK_REQ_ESP32_OFF:
             Bpacket->Request.val = request;
             return TRUE;
 

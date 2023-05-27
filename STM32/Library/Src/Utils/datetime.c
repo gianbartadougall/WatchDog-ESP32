@@ -42,6 +42,20 @@ uint8_t dt_time_is_valid(dt_time_t* Time) {
     return dt_time_valid(Time->second, Time->minute, Time->hour);
 }
 
+uint8_t dt_datetime_init(dt_datetime_t* datetime, uint8_t second, uint8_t minute, uint8_t hour, uint8_t day,
+                         uint8_t month, uint16_t year) {
+
+    if (dt_time_init(&datetime->Time, second, minute, hour) != TRUE) {
+        return FALSE;
+    }
+
+    if (dt_date_init(&datetime->Date, day, month, year) != TRUE) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 uint8_t dt_time_init(dt_time_t* Time, uint8_t second, uint8_t minute, uint8_t hour) {
 
     if (dt_time_valid(second, minute, hour) != TRUE) {

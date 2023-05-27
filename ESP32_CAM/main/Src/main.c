@@ -56,7 +56,7 @@ uint8_t esp3_match_stm32_request(bpk_packet_t* Bpacket) {
 uint8_t esp3_match_maple_request(bpk_packet_t* Bpacket) {
 
     bpacket_char_array_t bpacketCharArray;
-    wd_camera_settings_t cameraSettings;
+    cdt_u8_t CameraSettings;
 
     switch (Bpacket->Request.val) {
 
@@ -76,41 +76,31 @@ uint8_t esp3_match_maple_request(bpk_packet_t* Bpacket) {
 
         case BPK_REQ_SET_CAMERA_SETTINGS:;
 
-            cdt_u8_t CameraSettings;
-            if (wd_bpk_to_camera_settings(Bpacket, &CameraSettings) != TRUE) {
-                bpk_utils_create_string_response(Bpacket, BPK_Code_Error, "Error %s %i. Codes %i %i %i\r\n\0", __FILE__,
-                                                 __LINE__, Bpacket->Request.val, Bpacket->ErrorCode.val,
-                                                 Bpacket->Data.bytes[0]);
-                esp32_uart_send_bpacket(Bpacket);
-                break;
-            }
+            // Read the camera settings from the bpacket
+            bpk_utils_read_cdt_u8(Bpacket, &CameraSettings, 1);
 
+            // Try to set the camera settings on the ESP32
             if (camera_set_resolution(CameraSettings.value) != TRUE) {
                 bpk_create_string_response(Bpacket, BPK_Code_Error, "Invalid resolution\0");
                 esp32_uart_send_bpacket(Bpacket);
                 break;
             }
 
+            // Currently the SD card will send a response back if it fails
             if (sd_card_write_settings(Bpacket) != TRUE) {
-                bpk_create_string_response(Bpacket, BPK_Code_Error, "Writing camera settings failed\0");
-                esp32_uart_send_bpacket(Bpacket);
                 break;
             }
 
             // Send response back to sender
             bpk_create_response(Bpacket, BPK_Code_Success);
+            esp32_uart_send_bpacket(Bpacket);
             break;
 
         case BPK_REQ_GET_CAMERA_SETTINGS:;
 
-            cameraSettings.resolution = camera_get_resolution();
-
-            bpk_swap_address(Bpacket);
-            if (wd_camera_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
-                                              BPK_Code_Success, &cameraSettings) != TRUE) {
-                esp32_uart_send_bpacket(Bpacket); // Send bpacket error
-            }
-
+            bpk_create_response(Bpacket, BPK_Code_Success);
+            CameraSettings.value = camera_get_resolution();
+            bpk_utils_write_cdt_u8(Bpacket, &CameraSettings, 1);
             esp32_uart_send_bpacket(Bpacket);
             break;
 
@@ -145,14 +135,9 @@ void watchdog_system_start(void) {
         uint8_t result = bpacket_buffer_decode(&Bpacket, bdata);
 
         if (result != TRUE) {
+            bpk_utils_create_string_response(&Bpacket, BPK_Code_Debug, "Failed to decode");
             esp32_uart_send_bpacket(&Bpacket);
             continue;
-        }
-
-        if (Bpacket.Request.val == BPK_Req_Set_Camera_Settings.val) {
-            bpk_utils_create_string_response(&Bpacket, BPK_Code_Debug, "Q58 bytes: %i Value: %i\r\n",
-                                             Bpacket.Data.numBytes, Bpacket.Data.bytes[0]);
-            esp32_uart_send_bpacket(&Bpacket);
         }
 
         if ((Bpacket.Sender.val == BPK_Addr_Send_Stm32.val) && (esp3_match_stm32_request(&Bpacket) == TRUE)) {
@@ -188,9 +173,16 @@ void watchdog_system_start(void) {
 
             case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:
 
-                if (sd_card_write_settings(&Bpacket) == TRUE) {
-                    esp32_uart_send_bpacket(&Bpacket); // Send response back
+                // SD Card write settings function currently sends messages back by itself
+                // if an error occurs
+                if (sd_card_write_settings(&Bpacket) != TRUE) {
+                    break;
                 }
+
+                // Send success response
+                bpk_create_response(&Bpacket, BPK_Code_Success);
+                esp32_uart_send_bpacket(&Bpacket); // Send response back
+
                 break;
 
             case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:
@@ -200,7 +192,10 @@ void watchdog_system_start(void) {
                 break;
 
             default:; // No request was able to be matched. Send response back to sender
-                bpk_create_string_response(&Bpacket, BPK_Code_Unknown, "Unknown Request\r\n\0");
+                char errMsg[100];
+                sprintf(errMsg, "Unknown Request: %i %i %i %i %i", Bpacket.Receiver.val, Bpacket.Sender.val,
+                        Bpacket.Code.val, Bpacket.Request.val, Bpacket.Data.numBytes);
+                bpk_create_string_response(&Bpacket, BPK_Code_Unknown, errMsg);
                 esp32_uart_send_bpacket(&Bpacket);
                 break;
         }

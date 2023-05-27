@@ -621,11 +621,6 @@ uint8_t sd_card_write_settings(bpk_packet_t* Bpacket) {
     fclose(file);
     sd_card_close();
 
-    // Update Bpacket to send as success response back
-    bpk_swap_address(Bpacket);
-    Bpacket->Data.numBytes = 0;
-    Bpacket->Code          = BPK_Code_Success;
-
     return TRUE;
 }
 

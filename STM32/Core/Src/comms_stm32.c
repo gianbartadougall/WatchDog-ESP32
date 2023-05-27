@@ -32,6 +32,7 @@ USART_TypeDef* uarts[NUM_BUFFERS] = {
 
 uint8_t bpacketByteIndex[NUM_BUFFERS];
 uint8_t divertBytes[NUM_BUFFERS];
+uint8_t divertedBytesAddress[NUM_BUFFERS];
 
 cbuffer_t rxBuffersNew[2];
 uint8_t rxBufNew[2][RX_BUFFER_SIZE] = {{0}, {0}};
@@ -80,7 +81,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
             case BPK_BYTE_DATA:
 
                 if (divertBytes[bufferId] == TRUE) {
-                    comms_send_byte(bufferId, byte);
+                    comms_send_byte(divertedBytesAddress[bufferId], byte);
                 } else {
                     Bpacket->Data.bytes[bpacketByteIndex[bufferId]] = byte;
                 }
@@ -116,28 +117,30 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket) {
                 if (Bpacket->Receiver.val != BPK_ADDRESS_STM32) {
 
                     divertBytes[bufferId] = TRUE;
-                    uint8_t bufId;
+                    //  uint8_t bufId;
                     if (Bpacket->Receiver.val == BPK_ADDRESS_ESP32) {
-                        bufId = BUFFER_1_ID;
+                        divertedBytesAddress[bufferId] = BUFFER_1_ID;
+                        sprintf(errMsg, "Diverted to ESP32: %i %i %i %i %i", Bpacket->Receiver.val, Bpacket->Sender.val,
+                                Bpacket->Code.val, Bpacket->Request.val, Bpacket->Data.numBytes);
                         bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
-                                          BPK_Request_Message, BPK_Code_Debug, "Diverted to ESP32");
+                                          BPK_Request_Message, BPK_Code_Debug, errMsg);
                         bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
                         uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
                     } else {
-                        bufId = BUFFER_2_ID;
-                        bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
-                                          BPK_Request_Message, BPK_Code_Debug, "Diverted to Maple");
-                        bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
-                        uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
+                        divertedBytesAddress[bufferId] = BUFFER_2_ID;
+                        // bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
+                        //                   BPK_Request_Message, BPK_Code_Debug, "Diverted to Maple");
+                        // bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
+                        // uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
                     }
 
-                    comms_send_byte(bufId, BPK_BYTE_START_BYTE_UPPER);
-                    comms_send_byte(bufId, BPK_BYTE_START_BYTE_LOWER);
-                    comms_send_byte(bufId, Bpacket->Receiver.val);
-                    comms_send_byte(bufId, Bpacket->Sender.val);
-                    comms_send_byte(bufId, Bpacket->Request.val);
-                    comms_send_byte(bufId, Bpacket->Code.val);
-                    comms_send_byte(bufId, Bpacket->Data.numBytes);
+                    comms_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_UPPER);
+                    comms_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_LOWER);
+                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Receiver.val);
+                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Sender.val);
+                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Request.val);
+                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Code.val);
+                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Data.numBytes);
                 } else {
                     divertBytes[bufferId] = FALSE;
                 }
@@ -207,6 +210,12 @@ void comms_send_byte(uint8_t bufferId, uint8_t byte) {
 }
 
 void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes) {
+    if (bufferId == BUFFER_1_ID) {
+        bpacket_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                          BPK_Code_Debug, "Transmitting to ESP32");
+        bpacket_to_buffer(&ErrorPacket, &ErrorBuffer);
+        uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
+    }
 
     for (int i = 0; i < numBytes; i++) {
 

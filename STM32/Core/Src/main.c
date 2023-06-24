@@ -24,6 +24,7 @@
 #include "watchdog_defines.h"
 #include "stm32_uart.h"
 #include "bpacket_utils.h"
+#include "stm32_flash.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
@@ -99,6 +100,32 @@ void log_p(char* msg) {
     }
 }
 
+void flash_test(void) {
+
+    log_init(uart_transmit_string, NULL);
+    log_clear();
+    uint32_t data = 0;
+
+    // Erase the entire flash
+    RCC->AHB1ENR |= RCC_AHB1ENR_FLASHEN;
+    // FLASH->ACR |= 0x01;
+
+    log_message("FLASH->SR: %x\r\n", FLASH->SR);
+
+    // log_message("Flash 1: %x\r\n", FLASH->SR);
+    if (stm32_flash_erase_page(0) != TRUE) {
+        log_message("Failed to erase flash\r\n");
+    } else {
+        log_message("Flash 2: %x\r\n", FLASH->SR);
+    }
+
+    if (stm32_flash_read(STM32_FLASH_ADDR_START, &data) != TRUE) {
+        log_message("Read failed\r\n");
+    } else {
+        log_message("Read flash\r\n");
+    }
+}
+
 /**
  * @brief  The application entry point.
  * @retval int
@@ -113,10 +140,10 @@ int main(void) {
     hardware_config_init();
     watchdog_init();
 
+    // SERVO_TIMER->CR1 |= 0x01; // Start the time
     watchdog_enter_state_machine();
 
     while (1) {
-
         // watchdog_update();
     }
 

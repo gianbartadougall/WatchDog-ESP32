@@ -31,7 +31,7 @@ void bpk_uart_init(bpk_addr_receive_t Address);
 uint8_t bpk_uart_register_uart(bpk_uart_id_t* Id, void (*transmit_byte_func)(uint8_t byte), cbuffer_t* Buffer,
                                bpk_addr_receive_t DivertAdress);
 
-uint8_t bpk_uart_read_packet(bpk_packet_t* Bpacket, const bpk_uart_id_t* Id);
+uint8_t bpk_uart_read_packet(bpk_t* Bpacket, const bpk_uart_id_t* Id);
 
 uint8_t bpk_uart_get_error_code(bpk_uart_id_t* Id);
 

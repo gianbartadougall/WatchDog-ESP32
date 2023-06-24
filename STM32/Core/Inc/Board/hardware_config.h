@@ -20,8 +20,10 @@
 /* Public #defines */
 
 /* Timer Macros */
-#define TIMER_FREQUENCY_1KHz 1000
-#define TIMER_FREQUENCY_1MHz 1000000
+#define TIMER_FREQUENCY_1KHz   1000
+#define TIMER_FREQUENCY_10KHz  10000
+#define TIMER_FREQUENCY_100KHz 100000
+#define TIMER_FREQUENCY_1MHz   1000000
 
 // TEMPORARY MARCO: TODO IS MAKE A WHOE CLOCK CONFIG FILE. This currently
 // just copies value from STM32 file
@@ -61,6 +63,19 @@
 #define DS18B20_TIMER_ISR_PRIORITY TIM15_ISR_PRIORITY
 
 /************************************************************************************/
+
+/********** Marcos for hardware related to the servo ***********/
+#define SERVO_PORT GPIOA
+#define SERVO_PIN  15
+
+#define SERVO_TIMER              TIM2
+#define SERVO_TIMER_CLK_ENABLE() __HAL_RCC_TIM2_CLK_ENABLE()
+#define SERVO_TIMER_FREQUENCY    TIMER_FREQUENCY_100KHz
+#define SERVO_TIMER_MAX_COUNT    500
+#define SERVO_TIMER_IRQn         TIM2_IRQn
+#define SERVO_TIMER_ISR_PRIORITY TIM2_ISR_PRIORITY
+
+/***************************************************************/
 
 /********** Marcos for UART Communication with ESP32 Cam ***********/
 

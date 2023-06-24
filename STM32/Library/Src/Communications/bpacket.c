@@ -81,10 +81,9 @@ const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size      = {.val = BPK_ERR_INVAL
 const bpk_error_code_t BPK_Err_Invalid_Camera_Resolution = {.val = BPK_ERR_INVALID_CAMERA_RESOLUTION};
 
 /* Function Prototypes */
-void bp_erase_all_data(bpk_packet_t* Bpacket);
+void bp_erase_all_data(bpk_t* Bpacket);
 
-void bpacket_create_circular_buffer(bpacket_circular_buffer_t* cBuffer, uint8_t* wIndex, uint8_t* rIndex,
-                                    bpk_packet_t* buffer) {
+void bpk_create_circular_buffer(bpacket_circular_buffer_t* cBuffer, uint8_t* wIndex, uint8_t* rIndex, bpk_t* buffer) {
     cBuffer->wIndex = wIndex;
     cBuffer->rIndex = rIndex;
 
@@ -93,7 +92,7 @@ void bpacket_create_circular_buffer(bpacket_circular_buffer_t* cBuffer, uint8_t*
     }
 }
 
-void bpacket_increment_circular_buffer_index(uint8_t* wIndex) {
+void bpk_increment_circular_buffer_index(uint8_t* wIndex) {
     (*wIndex)++;
 
     if (*wIndex >= BPACKET_CIRCULAR_BUFFER_SIZE) {
@@ -101,7 +100,7 @@ void bpacket_increment_circular_buffer_index(uint8_t* wIndex) {
     }
 }
 
-void bpacket_increment_circ_buff_index(uint32_t* index, uint32_t maxBufferIndex) {
+void bpk_increment_circ_buff_index(uint32_t* index, uint32_t maxBufferIndex) {
 
     if (*index == (maxBufferIndex - 1)) {
         *index = 0;
@@ -111,27 +110,8 @@ void bpacket_increment_circ_buff_index(uint32_t* index, uint32_t maxBufferIndex)
     *index += 1;
 }
 
-uint8_t bpacket_create_p(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                         bpk_request_t Request, bpk_code_t Code, uint8_t numDataBytes, uint8_t* data) {
-
-    Bpacket->Receiver      = Receiver;
-    Bpacket->Sender        = Sender;
-    Bpacket->Request       = Request;
-    Bpacket->Code          = Code;
-    Bpacket->Data.numBytes = numDataBytes;
-
-    // Copy data into Bpacket
-    if (data != NULL) {
-        for (int i = 0; i < numDataBytes; i++) {
-            Bpacket->Data.bytes[i] = data[i];
-        }
-    }
-
-    return TRUE;
-}
-
-uint8_t bpk_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t Receiver, const bpk_addr_send_t Sender,
-                          const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data) {
+uint8_t bpk_create(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                   bpk_code_t Code, uint8_t numDataBytes, uint8_t* data) {
 
     bp_erase_all_data(Bpacket);
 
@@ -151,7 +131,7 @@ uint8_t bpk_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t Receiv
     return TRUE;
 }
 
-uint8_t bp_create_string_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t Receiver, const bpk_addr_send_t Sender,
+uint8_t bp_create_string_packet(bpk_t* Bpacket, const bpk_addr_receive_t Receiver, const bpk_addr_send_t Sender,
                                 const bpk_request_t Request, const bpk_code_t Code, char* string) {
     Bpacket->Receiver = Receiver;
     Bpacket->Sender   = Sender;
@@ -175,8 +155,8 @@ uint8_t bp_create_string_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t 
     return TRUE;
 }
 
-uint8_t bpacket_create_sp(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                          bpk_request_t Request, bpk_code_t Code, char* string) {
+uint8_t bpk_create_sp(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                      bpk_code_t Code, char* string) {
 
     if (chars_get_num_bytes(string) > BPACKET_MAX_NUM_DATA_BYTES) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Data;
@@ -196,7 +176,7 @@ uint8_t bpacket_create_sp(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bp
     return TRUE;
 }
 
-void bpacket_to_buffer(bpk_packet_t* Bpacket, bpk_buffer_t* packetBuffer) {
+void bpk_to_buffer(bpk_t* Bpacket, bpk_buffer_t* packetBuffer) {
 
     // Set the first two bytes to start bytes
     packetBuffer->buffer[0] = BPACKET_START_BYTE_UPPER;
@@ -226,7 +206,7 @@ void bpacket_to_buffer(bpk_packet_t* Bpacket, bpk_buffer_t* packetBuffer) {
     packetBuffer->numBytes = Bpacket->Data.numBytes + BPACKET_NUM_NON_DATA_BYTES;
 }
 
-uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
+uint8_t bpk_buffer_decode(bpk_t* Bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]) {
 
     if ((data[0] != BPACKET_START_BYTE_UPPER) || (data[1] != BPACKET_START_BYTE_LOWER)) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Start_Byte;
@@ -259,7 +239,7 @@ uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER
     return TRUE;
 }
 
-uint8_t bpk_set_sender(bpk_packet_t* Bpacket, uint8_t sender) {
+uint8_t bpk_set_sender(bpk_t* Bpacket, uint8_t sender) {
 
     switch (sender) {
         case BPK_ADDRESS_ESP32:
@@ -275,7 +255,7 @@ uint8_t bpk_set_sender(bpk_packet_t* Bpacket, uint8_t sender) {
     return FALSE;
 }
 
-uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
+uint8_t bpk_set_receiver(bpk_t* Bpacket, uint8_t receiver) {
 
     switch (receiver) {
         case BPK_ADDRESS_ESP32:
@@ -291,7 +271,7 @@ uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver) {
     return FALSE;
 }
 
-uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code) {
+uint8_t bpk_set_code(bpk_t* Bpacket, uint8_t code) {
 
     switch (code) {
         case BPK_CODE_ERROR:
@@ -311,7 +291,7 @@ uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code) {
     return FALSE;
 }
 
-uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request) {
+uint8_t bpk_set_request(bpk_t* Bpacket, uint8_t request) {
 
     switch (request) {
         case BPK_REQUEST_HELP:
@@ -345,7 +325,7 @@ uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request) {
     return FALSE;
 }
 
-void bpacket_data_to_string(bpk_packet_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
+void bpk_data_to_string(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
 
     bpacketCharArray->numBytes = Bpacket->Data.numBytes;
 
@@ -363,18 +343,18 @@ void bpacket_data_to_string(bpk_packet_t* Bpacket, bpacket_char_array_t* bpacket
     bpacketCharArray->string[i] = '\0';
 }
 
-void bpacket_get_info(bpk_packet_t* Bpacket, char* string) {
+void bpk_get_info(bpk_t* Bpacket, char* string) {
     sprintf(string, "Receiver: %i Sender: %i Request: %i Code: %i num bytes: %i\r\n", Bpacket->Receiver.val,
             Bpacket->Sender.val, Bpacket->Request.val, Bpacket->Code.val, Bpacket->Data.numBytes);
 }
 
-uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
-                          bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend) {
+uint8_t bpk_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
+                      bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend) {
 
     // Create the Bpacket
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
 
-    if (bpacket_create_p(&Bpacket, Receiver, Sender, Request, BPK_Code_In_Progress, 0, NULL) != TRUE) {
+    if (bpk_create(&Bpacket, Receiver, Sender, Request, BPK_Code_In_Progress, 0, NULL) != TRUE) {
         return FALSE;
     }
 
@@ -393,7 +373,7 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
         }
 
         // Send the Bpacket
-        bpacket_to_buffer(&Bpacket, &bpacketBuffer);
+        bpk_to_buffer(&Bpacket, &bpacketBuffer);
         transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
         // Reset the index
@@ -408,14 +388,14 @@ uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t buffe
         Bpacket.Code          = BPK_Code_Success;
 
         // Send the Bpacket
-        bpacket_to_buffer(&Bpacket, &bpacketBuffer);
+        bpk_to_buffer(&Bpacket, &bpacketBuffer);
         transmit_bpacket(bpacketBuffer.buffer, bpacketBuffer.numBytes);
     }
 
     return TRUE;
 }
 
-void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data) {
+void bpk_convert_to_response(bpk_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data) {
 
     // Swap the addresses
     bpk_addr_send_t Sender = Bpacket->Sender;
@@ -435,14 +415,14 @@ void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numB
     }
 }
 
-void bp_erase_all_data(bpk_packet_t* Bpacket) {
+void bp_erase_all_data(bpk_t* Bpacket) {
     Bpacket->Data.numBytes = 0;
     for (int i = 0; i < Bpacket->Data.numBytes; i++) {
         Bpacket->Data.bytes[i] = BP_DEFAULT_DATA_VALUE;
     }
 }
 
-void bpk_create_response(bpk_packet_t* Bpacket, bpk_code_t Code) {
+void bpk_create_response(bpk_t* Bpacket, bpk_code_t Code) {
 
     // Swap the addresses
     uint8_t senderAddress = Bpacket->Sender.val;
@@ -455,7 +435,7 @@ void bpk_create_response(bpk_packet_t* Bpacket, bpk_code_t Code) {
     bp_erase_all_data(Bpacket);
 }
 
-uint8_t bpk_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string) {
+uint8_t bpk_create_string_response(bpk_t* Bpacket, bpk_code_t Code, char* string) {
 
     bpk_create_response(Bpacket, Code);
 
@@ -476,18 +456,18 @@ uint8_t bpk_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char*
     return TRUE;
 }
 
-void bpk_swap_address(bpk_packet_t* Bpacket) {
+void bpk_swap_address(bpk_t* Bpacket) {
     uint8_t senderAddress = Bpacket->Sender.val;
     Bpacket->Sender.val   = Bpacket->Receiver.val;
     Bpacket->Receiver.val = senderAddress;
 }
 
-void bpk_set_sender_receiver(bpk_packet_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver) {
+void bpk_set_sender_receiver(bpk_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver) {
     Bpacket->Sender   = Sender;
     Bpacket->Receiver = Receiver;
 }
 
-void bpk_reset(bpk_packet_t* Bpacket) {
+void bpk_reset(bpk_t* Bpacket) {
     Bpacket->Receiver.val = 0;
     Bpacket->Sender.val   = 0;
     Bpacket->Request.val  = 0;

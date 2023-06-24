@@ -159,7 +159,7 @@ typedef struct bpk_request_t {
     uint8_t val;
 } bpk_request_t;
 
-typedef struct bpk_packet_t {
+typedef struct bpk_t {
     bpk_addr_receive_t Receiver;
     bpk_addr_send_t Sender;
     bpk_request_t Request;
@@ -173,7 +173,7 @@ typedef struct bpk_packet_t {
     bpk_code_t Code;
     bpk_data_t Data;
     bpk_error_code_t ErrorCode; // Code from 0 - 255 which holds the current status of the bpacket
-} bpk_packet_t;
+} bpk_t;
 
 typedef struct bpk_buffer_t {
     uint16_t numBytes; // Bpacket size needs to be a uint16_t because bpacket buffer > 255 bytes when put into a
@@ -190,7 +190,7 @@ typedef struct bpacket_circular_buffer_t {
     uint8_t* rIndex; // The index that the writing end of the buffer would use to know where to put the bpacket
     uint8_t* wIndex; // The index that the reading end of the buffer would use to see if they are up to date
                      // with the reading
-    bpk_packet_t* buffer[BPACKET_CIRCULAR_BUFFER_SIZE];
+    bpk_t* buffer[BPACKET_CIRCULAR_BUFFER_SIZE];
 } bpacket_circular_buffer_t;
 
 extern const bpk_addr_send_t BPK_Addr_Send_Stm32;
@@ -247,61 +247,56 @@ extern const bpk_error_code_t BPK_Err_Invalid_Year;
 extern const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size;
 extern const bpk_error_code_t BPK_Err_Invalid_Camera_Resolution;
 
-void bpacket_increment_circular_buffer_index(uint8_t* writeIndex);
+void bpk_increment_circular_buffer_index(uint8_t* writeIndex);
 
-void bpacket_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
-                                    bpk_packet_t* buffer);
+void bpk_create_circular_buffer(bpacket_circular_buffer_t* bufferStruct, uint8_t* writeIndex, uint8_t* readIndex,
+                                bpk_t* buffer);
 
-uint8_t bpacket_buffer_decode(bpk_packet_t* Bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
+uint8_t bpk_buffer_decode(bpk_t* Bpacket, uint8_t data[BPACKET_BUFFER_LENGTH_BYTES]);
 
-uint8_t bpacket_create_p(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                         bpk_request_t Request, bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
+uint8_t bpk_create(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                   bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
 
-uint8_t bpk_create_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t RAddress, const bpk_addr_send_t SAddress,
-                          const bpk_request_t Request, const bpk_code_t Code, uint8_t numDataBytes, uint8_t* data);
+uint8_t bp_create_string_packet(bpk_t* Bpacket, const bpk_addr_receive_t RAddress, const bpk_addr_send_t SAddress,
+                                const bpk_request_t Request, const bpk_code_t Code, char* string);
 
-uint8_t bp_create_string_packet(bpk_packet_t* Bpacket, const bpk_addr_receive_t RAddress,
-                                const bpk_addr_send_t SAddress, const bpk_request_t Request, const bpk_code_t Code,
-                                char* string);
+uint8_t bpk_create_sp(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                      bpk_code_t Code, char* string);
 
-uint8_t bpacket_create_sp(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                          bpk_request_t Request, bpk_code_t Code, char* string);
+void bpk_to_buffer(bpk_t* Bpacket, bpk_buffer_t* packetBuffer);
 
-void bpacket_to_buffer(bpk_packet_t* Bpacket, bpk_buffer_t* packetBuffer);
+void bpk_data_to_string(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
 
-void bpacket_data_to_string(bpk_packet_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
+void bpk_print_bytes(bpk_t* Bpacket);
 
-void bpacket_print_bytes(bpk_packet_t* Bpacket);
+void bpk_get_info(bpk_t* Bpacket, char* string);
 
-void bpacket_get_info(bpk_packet_t* Bpacket, char* string);
+void bpk_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex);
 
-void bpacket_increment_circ_buff_index(uint32_t* cbIndex, uint32_t bufferMaxIndex);
+void bpk_convert_to_response(bpk_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data);
 
-void bp_convert_to_response(bpk_packet_t* Bpacket, bpk_code_t Code, uint8_t numBytes, uint8_t* data);
-
-uint8_t bpk_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, char* string);
+uint8_t bpk_create_string_response(bpk_t* Bpacket, bpk_code_t Code, char* string);
 
 /* Bpacket helper functions */
-void bpacket_bytes_is_start_byte(void);
 
-uint8_t bpacket_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
-                          bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend);
+uint8_t bpk_send_data(void (*transmit_bpacket)(uint8_t* data, uint16_t bufferNumBytes), bpk_addr_receive_t Receiver,
+                      bpk_addr_send_t Sender, bpk_request_t Request, uint8_t* data, uint32_t numBytesToSend);
 
-void bpk_swap_address(bpk_packet_t* Bpacket);
+void bpk_swap_address(bpk_t* Bpacket);
 
-void bpk_set_sender_receiver(bpk_packet_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver);
+void bpk_set_sender_receiver(bpk_t* Bpacket, bpk_addr_send_t Sender, bpk_addr_receive_t Receiver);
 
-void bpk_reset(bpk_packet_t* Bpacket);
+void bpk_reset(bpk_t* Bpacket);
 
-void bpk_create_response(bpk_packet_t* Bpacket, bpk_code_t Code);
+void bpk_create_response(bpk_t* Bpacket, bpk_code_t Code);
 
-uint8_t bpk_set_receiver(bpk_packet_t* Bpacket, uint8_t receiver);
-uint8_t bpk_set_sender(bpk_packet_t* Bpacket, uint8_t sender);
-uint8_t bpk_set_request(bpk_packet_t* Bpacket, uint8_t request);
-uint8_t bpk_set_code(bpk_packet_t* Bpacket, uint8_t code);
+uint8_t bpk_set_receiver(bpk_t* Bpacket, uint8_t receiver);
+uint8_t bpk_set_sender(bpk_t* Bpacket, uint8_t sender);
+uint8_t bpk_set_request(bpk_t* Bpacket, uint8_t request);
+uint8_t bpk_set_code(bpk_t* Bpacket, uint8_t code);
 
 void bpk_utils_init_expected_byte_buffer(uint8_t byteBuffer[8]);
 
-void bpk_packet_is_valid(bpk_packet_t* Bpacket);
+void bpk_packet_is_valid(bpk_t* Bpacket);
 
 #endif // BPACKET_H

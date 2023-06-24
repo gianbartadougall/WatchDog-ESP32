@@ -6,7 +6,7 @@
 #include "bpacket_utils.h"
 #include "utils.h"
 
-uint8_t bp_utils_store_data(bpk_packet_t* Bpacket, cdt_dbl_16_t* data, uint8_t length) {
+uint8_t bp_utils_store_data(bpk_t* Bpacket, cdt_dbl_16_t* data, uint8_t length) {
 
     // Check there is enough room for all the data
     if ((length * 4) > BPACKET_MAX_NUM_DATA_BYTES) {
@@ -27,7 +27,7 @@ uint8_t bp_utils_store_data(bpk_packet_t* Bpacket, cdt_dbl_16_t* data, uint8_t l
     return TRUE;
 }
 
-uint8_t bpk_utils_write_time(bpk_packet_t* Bpacket, dt_time_t* Time, uint8_t bpkIndex) {
+uint8_t bpk_utils_write_time(bpk_t* Bpacket, dt_time_t* Time, uint8_t bpkIndex) {
 
     // Confirm the index is valid
     if ((bpkIndex * 3) > BPACKET_MAX_NUM_DATA_BYTES) {
@@ -45,7 +45,7 @@ uint8_t bpk_utils_write_time(bpk_packet_t* Bpacket, dt_time_t* Time, uint8_t bpk
     return TRUE;
 }
 
-uint8_t bpk_utils_write_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t numTimes) {
+uint8_t bpk_utils_write_times(bpk_t* Bpacket, dt_time_t** Times, uint8_t numTimes) {
 
     if ((numTimes * 3) > BPACKET_MAX_NUM_DATA_BYTES) {
         return FALSE;
@@ -64,7 +64,7 @@ uint8_t bpk_utils_write_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t 
     return TRUE;
 }
 
-uint8_t bpk_utils_read_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t* numTimesRead) {
+uint8_t bpk_utils_read_times(bpk_t* Bpacket, dt_time_t** Times, uint8_t* numTimesRead) {
 
     // Confirm the data in the bpacket is a multiple of datetime
     if ((Bpacket->Data.numBytes % 3) != 0) {
@@ -86,7 +86,7 @@ uint8_t bpk_utils_read_times(bpk_packet_t* Bpacket, dt_time_t** Times, uint8_t* 
     return TRUE;
 }
 
-uint8_t bpk_utils_write_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes, uint8_t numDatetimes) {
+uint8_t bpk_utils_write_datetimes(bpk_t* Bpacket, dt_datetime_t** DateTimes, uint8_t numDatetimes) {
 
     // Confirm the number of datetimes to write can fit in the bpacket
     if ((numDatetimes * 7) > BPACKET_MAX_NUM_DATA_BYTES) {
@@ -112,7 +112,7 @@ uint8_t bpk_utils_write_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTim
     return TRUE;
 }
 
-uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTimes, uint8_t* numDatetimesRead) {
+uint8_t bpk_utils_read_datetimes(bpk_t* Bpacket, dt_datetime_t** DateTimes, uint8_t* numDatetimesRead) {
 
     // Confirm the data in the bpacket is a multiple of datetime
     if ((Bpacket->Data.numBytes % 7) != 0) {
@@ -139,7 +139,7 @@ uint8_t bpk_utils_read_datetimes(bpk_packet_t* Bpacket, dt_datetime_t** DateTime
     return TRUE;
 }
 
-uint8_t bpk_utils_confirm_params(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t bpk_utils_confirm_params(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                  bpk_request_t Request, bpk_code_t Code, uint8_t numBytes) {
 
     if (Bpacket->Receiver.val != Receiver.val) {
@@ -165,7 +165,7 @@ uint8_t bpk_utils_confirm_params(bpk_packet_t* Bpacket, bpk_addr_receive_t Recei
     return TRUE;
 }
 
-void bpk_utils_write_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data, uint8_t numData) {
+void bpk_utils_write_cdt_u8(bpk_t* Bpacket, cdt_u8_t* Data, uint8_t numData) {
 
     for (uint8_t i = 0; i < numData; i++) {
         Bpacket->Data.bytes[i] = Data->value;
@@ -174,14 +174,14 @@ void bpk_utils_write_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data, uint8_t numDa
     Bpacket->Data.numBytes = numData;
 }
 
-void bpk_utils_read_cdt_u8(bpk_packet_t* Bpacket, cdt_u8_t* Data, uint8_t numDataToRead) {
+void bpk_utils_read_cdt_u8(bpk_t* Bpacket, cdt_u8_t* Data, uint8_t numDataToRead) {
 
     for (uint8_t i = 0; i < numDataToRead; i++) {
         Data[i].value = Bpacket->Data.bytes[0];
     }
 }
 
-void bpk_utils_write_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Data) {
+void bpk_utils_write_cdt_u8_array_4(bpk_t* Bpacket, cdt_u8_array_4_t* Data) {
 
     Bpacket->Data.bytes[0] = Data->bytes[0];
     Bpacket->Data.bytes[1] = Data->bytes[1];
@@ -191,7 +191,7 @@ void bpk_utils_write_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Dat
     Bpacket->Data.numBytes = 4;
 }
 
-void bpk_utils_read_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Data) {
+void bpk_utils_read_cdt_u8_array_4(bpk_t* Bpacket, cdt_u8_array_4_t* Data) {
 
     Data->bytes[0] = Bpacket->Data.bytes[0];
     Data->bytes[1] = Bpacket->Data.bytes[1];
@@ -199,7 +199,7 @@ void bpk_utils_read_cdt_u8_array_4(bpk_packet_t* Bpacket, cdt_u8_array_4_t* Data
     Data->bytes[3] = Bpacket->Data.bytes[3];
 }
 
-void bpk_utils_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, const char* format, ...) {
+void bpk_utils_create_string_response(bpk_t* Bpacket, bpk_code_t Code, const char* format, ...) {
     char msg[120];
 
     va_list args;
@@ -210,7 +210,7 @@ void bpk_utils_create_string_response(bpk_packet_t* Bpacket, bpk_code_t Code, co
     bpk_create_string_response(Bpacket, Code, msg);
 }
 
-uint8_t bpk_utils_decode_non_data_byte(bpk_packet_t* Bpacket, uint8_t expectedByte, uint8_t byte) {
+uint8_t bpk_utils_decode_non_data_byte(bpk_t* Bpacket, uint8_t expectedByte, uint8_t byte) {
 
     if ((expectedByte == BPK_BYTE_START_BYTE_UPPER) || (expectedByte == BPK_BYTE_START_BYTE_LOWER)) {
         if (byte == expectedByte) {

@@ -140,17 +140,17 @@ void comms_usart2_add_to_buffer(char c) {
     }
 }
 
-// void comms_create_packet(bpk_packet_t* Bpacket, bpk_request_t Request, char* instruction, char* data) {
+// void comms_create_packet(bpk_t* Bpacket, bpk_request_t Request, char* instruction, char* data) {
 //     packet->request = request;
 //     sprintf(packet->instruction, "%s", instruction);
 //     sprintf(packet->data, "%s", data);
 // }
 
-// void comms_send_packet(bpk_packet_t* Bpacket) {
+// void comms_send_packet(bpk_t* Bpacket) {
 //     // char msg[400];
 //     // sprintf(msg, "%i,%s,%s", packet->request, packet->instruction, packet->data);
 //     bpk_buffer_t packetBuffer;
-//     bpacket_to_buffer(bpacket, &packetBuffer);
+//     bpk_to_buffer(bpacket, &packetBuffer);
 //     comms_send_bpacket();
 //     // comms_send_data(USART1, msg, TRUE);
 // }
@@ -221,7 +221,7 @@ void serial_comms_process_command(char* string) {
     log_error("Unknown command. Type 'help' to see the list of available commands\r\n");
 }
 
-void comms_send_bpacket(USART_TypeDef* uart, bpk_packet_t* Bpacket) {
+void comms_send_bpacket(USART_TypeDef* uart, bpk_t* Bpacket) {
     int i = 0;
 
     // Transmit until end of message reached

@@ -123,6 +123,16 @@ void hardware_config_gpio_init(void) {
     ESP32_POWER_PORT->MODER |= (0x01 << (ESP32_POWER_PIN * 2));
 
     /****** START CODE BLOCK ******/
+    // Description: Configure servo
+    SERVO_PORT->MODER &= ~(0x03 << (SERVO_PIN * 2));
+    SERVO_PORT->MODER |= (0x02 << (SERVO_PIN * 2));
+
+    SERVO_PORT->AFR[0] &= ~(0x03 << ((SERVO_PIN % 8) * 4));
+    SERVO_PORT->AFR[0] |= (0x01 << ((SERVO_PIN % 8) * 4));
+
+    /****** END CODE BLOCK ******/
+
+    /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
 
     // Set to be output
@@ -220,6 +230,23 @@ void hardware_config_timer_init(void) {
     DS18B20_TIMER->CNT = 0;                                               // Reset count to 0
     DS18B20_TIMER->DIER &= 0x00;                                          // Disable all interrupts by default
     DS18B20_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);           // Set CH1 capture compare to mode to frozen
+
+    /* Enable interrupt handler */
+    // HAL_NVIC_SetPriority(HC_TS_TIMER_IRQn, HC_TS_TIMER_ISR_PRIORITY, 0);
+    // HAL_NVIC_EnableIRQ(HC_TS_TIMER_IRQn);
+
+    /* Configure timer for DS18B20 Temperature Sensor*/
+#if ((SYSTEM_CLOCK_CORE / SERVO_TIMER_FREQUENCY) > SERVO_TIMER_MAX_COUNT)
+#    error System clock frequency is too high to generate the required timer frequnecy
+#endif
+
+    SERVO_TIMER_CLK_ENABLE();                                         // Enable the clock
+    SERVO_TIMER->CR1 &= ~(TIM_CR1_CEN);                               // Disable counter
+    SERVO_TIMER->PSC = (SystemCoreClock / SERVO_TIMER_FREQUENCY) - 1; // Set timer frequency
+    SERVO_TIMER->ARR = SERVO_TIMER_MAX_COUNT;                         // Set maximum count for timer
+    SERVO_TIMER->CNT = 0;                                             // Reset count to 0
+    SERVO_TIMER->DIER &= 0x00;                                        // Disable all interrupts by default
+    SERVO_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);         // Set CH1 capture compare to mode to frozen
 
     /* Enable interrupt handler */
     // HAL_NVIC_SetPriority(HC_TS_TIMER_IRQn, HC_TS_TIMER_ISR_PRIORITY, 0);

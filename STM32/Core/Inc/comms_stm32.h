@@ -28,13 +28,13 @@
 
 void comms_add_to_buffer(uint8_t bufferId, uint8_t byte);
 
-uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_packet_t* Bpacket);
+uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket);
 
 void comms_print_buffer(uint8_t bufferId);
 
 void comms_stm32_init(void);
 
-uint8_t comms_stm32_get_bpacket(bpk_packet_t* Bpacket);
+uint8_t comms_stm32_get_bpacket(bpk_t* Bpacket);
 
 void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes);
 

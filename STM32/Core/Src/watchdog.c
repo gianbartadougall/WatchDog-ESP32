@@ -76,20 +76,20 @@ uint8_t esp32Connected = FALSE;
 /* Function Prototypes */
 void watchdog_esp32_on(void);
 void watchdog_esp32_off(void);
-void watchdog_send_bpacket_to_esp32(bpk_packet_t* Bpacket);
+void watchdog_send_bpacket_to_esp32(bpk_t* Bpacket);
 void watchdog_create_and_send_bpacket_to_esp32(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
                                                uint8_t* data);
 void watchdog_create_and_send_bpacket_to_maple(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
                                                uint8_t* data);
-uint8_t stm32_match_esp32_request(bpk_packet_t* Bpacket);
-uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket);
-void process_watchdog_stm32_request(bpk_packet_t* Bpacket);
+uint8_t stm32_match_esp32_request(bpk_t* Bpacket);
+uint8_t stm32_match_maple_request(bpk_t* Bpacket);
+void process_watchdog_stm32_request(bpk_t* Bpacket);
 void watchdog_report_success(const bpk_request_t Request);
 void watchdog_message_maple(char* string, bpk_code_t Code);
 void watchdog_calculate_rtc_alarm_time(void);
 void watchdog_request_esp32_take_photo(void);
 
-void bpacket_print(bpk_packet_t* Bpacket) {
+void bpacket_print(bpk_t* Bpacket) {
     char msg[BPACKET_BUFFER_LENGTH_BYTES + 2];
     sprintf(msg, "Receiver: %i Sender: %i Request: %i Code: %i Num bytes: %i", Bpacket->Receiver.val,
             Bpacket->Sender.val, Bpacket->Request.val, Bpacket->Code.val, Bpacket->Data.numBytes);
@@ -233,7 +233,7 @@ void watchdog_enter_state_machine(void) {
                     processNextPacket = FALSE;
 
                     // Process anything Maple sends to the STM32
-                    bpk_packet_t bpacket1, bpacket2;
+                    bpk_t bpacket1, bpacket2;
                     if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
                         // log_message("Bpacket: %i %i %i %i %i %i\r\n", bpacket1.Receiver.val, bpacket1.Sender.val,
                         //             bpacket1.Request.val, bpacket1.Code.val, bpacket1.Data.numBytes,
@@ -308,36 +308,36 @@ void watchdog_enter_state_machine(void) {
 
 void watchdog_report_success(const bpk_request_t Request) {
 
-    bpk_packet_t Bpacket;
-    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, BPK_Code_Success, 0, NULL);
+    bpk_t Bpacket;
+    bpk_create(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, BPK_Code_Success, 0, NULL);
 
     bpk_buffer_t packetBuffer;
-    bpacket_to_buffer(&Bpacket, &packetBuffer);
+    bpk_to_buffer(&Bpacket, &packetBuffer);
 
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_create_and_send_bpacket_to_maple(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
                                                uint8_t* data) {
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     bpk_buffer_t packetBuffer;
-    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
-    bpacket_to_buffer(&Bpacket, &packetBuffer);
+    bpk_create(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
+    bpk_to_buffer(&Bpacket, &packetBuffer);
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_create_and_send_bpacket_to_esp32(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
                                                uint8_t* data) {
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     bpk_buffer_t packetBuffer;
-    bpk_create_packet(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
-    bpacket_to_buffer(&Bpacket, &packetBuffer);
+    bpk_create(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
+    bpk_to_buffer(&Bpacket, &packetBuffer);
     comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_message_maple(char* string, bpk_code_t Code) {
 
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     bpk_buffer_t packetBuffer;
 
     switch (Code.val) {
@@ -346,25 +346,25 @@ void watchdog_message_maple(char* string, bpk_code_t Code) {
         case BPK_CODE_SUCCESS:
         case BPK_CODE_DEBUG:
         case BPK_CODE_ERROR:
-            bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, Code, string);
+            bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, Code, string);
             break;
 
         default:
-            bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
-                              BPK_Code_Error, "Failed to create watchdog message!\r\n");
+            bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Error,
+                          "Failed to create watchdog message!\r\n");
     }
 
-    bpacket_to_buffer(&Bpacket, &packetBuffer);
+    bpk_to_buffer(&Bpacket, &packetBuffer);
     comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
-void watchdog_send_bpacket_to_esp32(bpk_packet_t* Bpacket) {
+void watchdog_send_bpacket_to_esp32(bpk_t* Bpacket) {
     bpk_buffer_t bpacketBuffer;
-    bpacket_to_buffer(Bpacket, &bpacketBuffer);
+    bpk_to_buffer(Bpacket, &bpacketBuffer);
     comms_transmit(ESP32_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 }
 
-void process_watchdog_stm32_request(bpk_packet_t* Bpacket) {
+void process_watchdog_stm32_request(bpk_t* Bpacket) {
 
     switch (Bpacket->Request.val) {
 
@@ -418,14 +418,14 @@ void process_watchdog_stm32_request(bpk_packet_t* Bpacket) {
 
         default:;
             char bpacketInfo[80];
-            bpacket_get_info(Bpacket, bpacketInfo);
+            bpk_get_info(Bpacket, bpacketInfo);
             char errorMsg[120];
             sprintf(errorMsg, "Error %s line %i. %s\r\n", __FILE__, __LINE__, bpacketInfo);
             watchdog_message_maple(errorMsg, BPK_Code_Error);
     }
 }
 
-uint8_t stm32_match_esp32_request(bpk_packet_t* Bpacket) {
+uint8_t stm32_match_esp32_request(bpk_t* Bpacket) {
 
     switch (Bpacket->Request.val) {
 
@@ -581,10 +581,9 @@ void watchdog_calculate_rtc_alarm_time(void) {
     }
 }
 
-uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket) {
+uint8_t stm32_match_maple_request(bpk_t* Bpacket) {
 
     bpk_buffer_t bpacketBuffer;
-    uint8_t result;
 
     switch (Bpacket->Request.val) {
 
@@ -601,7 +600,7 @@ uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket) {
             if (wd_datetime_to_bpacket(Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Bpacket->Request,
                                        BPK_Code_Success, &datetime) == TRUE) {
 
-                bpacket_to_buffer(Bpacket, &bpacketBuffer);
+                bpk_to_buffer(Bpacket, &bpacketBuffer);
                 comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
             } else {
                 watchdog_message_maple("Failed to convert datetime to Bpacket\0", BPK_Code_Error);
@@ -644,43 +643,78 @@ uint8_t stm32_match_maple_request(bpk_packet_t* Bpacket) {
             char message[110];
             sprintf(message, "Current Time: %s, RTC Alarm: %s\r\n", cdtString, atStr);
 
-            bpk_packet_t statusBpacket;
-            bpacket_create_sp(&statusBpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Status,
-                              BPK_Code_Success, message);
-            bpacket_to_buffer(&statusBpacket, &bpacketBuffer);
+            bpk_t statusBpacket;
+            bpk_create_sp(&statusBpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Status,
+                          BPK_Code_Success, message);
+            bpk_to_buffer(&statusBpacket, &bpacketBuffer);
             comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
             break;
 
         case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:;
 
-            // Send the watchdog settings back to maple
-            bpk_packet_t settingsPacket;
-            result =
-                wd_capture_time_settings_to_bpacket(&settingsPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
-                                                    BPK_Req_Get_Camera_Capture_Times, BPK_Code_Success, &captureTime);
+            // Convert capture times to a bpacket
+            bpk_data_t Data;
+            Data.bytes[0] = captureTime.startTime.second;
+            Data.bytes[1] = captureTime.startTime.minute;
+            Data.bytes[2] = captureTime.startTime.hour;
 
-            if (result != TRUE) {
-                watchdog_message_maple("Failed to convert settings to Bpacket\r\n", BPK_Code_Error);
+            Data.bytes[3] = captureTime.endTime.second;
+            Data.bytes[4] = captureTime.endTime.minute;
+            Data.bytes[5] = captureTime.endTime.hour;
+
+            Data.bytes[6] = captureTime.intervalTime.second;
+            Data.bytes[7] = captureTime.intervalTime.minute;
+            Data.bytes[8] = captureTime.intervalTime.hour;
+            Data.numBytes = 9;
+
+            bpk_t settingsPacket;
+            if (bpk_create(&settingsPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32,
+                           BPK_Req_Get_Camera_Capture_Times, BPK_Code_Success, Data.numBytes, Data.bytes) != TRUE) {
+                watchdog_message_maple("Failed to convert settings to packet", BPK_Code_Error);
                 break;
-            } else {
-                watchdog_message_maple("Converted settings to Bpacket. Sending to maple\r\n", BPK_Code_Debug);
             }
 
             // Send the Bpacket to maple
-            bpacket_to_buffer(&settingsPacket, &bpacketBuffer);
+            bpk_to_buffer(&settingsPacket, &bpacketBuffer);
             comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
             break;
 
         case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:;
 
-            // Update the Bpacket addresses to redirect the request to the ESP32
-            Bpacket->Receiver = BPK_Addr_Receive_Esp32;
-            Bpacket->Sender   = BPK_Addr_Send_Stm32;
+            // Validate the capture time received
+            dt_time_t Start, End, Interval;
+            if (dt_time_init(&Start, Bpacket->Data.bytes[0], Bpacket->Data.bytes[1], Bpacket->Data.bytes[2]) != TRUE) {
+                watchdog_message_maple("Invalid Start Time\r\n", BPK_Code_Error);
+                break;
+            }
 
-            watchdog_send_bpacket_to_esp32(Bpacket);
+            if (dt_time_init(&End, Bpacket->Data.bytes[3], Bpacket->Data.bytes[4], Bpacket->Data.bytes[5]) != TRUE) {
+                watchdog_message_maple("Invalid End Time\r\n", BPK_Code_Error);
+                break;
+            }
 
+            if (dt_time_init(&Interval, Bpacket->Data.bytes[6], Bpacket->Data.bytes[7], Bpacket->Data.bytes[8]) !=
+                TRUE) {
+                watchdog_message_maple("Invalid Interval Time\r\n", BPK_Code_Error);
+                break;
+            }
+
+            // Update the capture time
+            captureTime.startTime.second = Start.second;
+            captureTime.startTime.minute = Start.minute;
+            captureTime.startTime.hour   = Start.hour;
+
+            captureTime.endTime.second = End.second;
+            captureTime.endTime.minute = End.minute;
+            captureTime.endTime.hour   = End.hour;
+
+            captureTime.intervalTime.second = Interval.second;
+            captureTime.intervalTime.minute = Interval.minute;
+            captureTime.intervalTime.hour   = Interval.hour;
+
+            watchdog_report_success(Bpacket->Request);
             break;
 
         case BPK_REQ_ESP32_ON:
@@ -725,7 +759,7 @@ void watchdog_request_esp32_take_photo(void) {
     stm32_rtc_read_datetime(&datetime);
 
     // Get the real time clock time and date. Put it in a packet and send to the ESP32
-    bpk_packet_t photoRequest;
+    bpk_t photoRequest;
 
     uint8_t result = wd_photo_data_to_bpacket(&photoRequest, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32,
                                               BPK_Req_Take_Photo, BPK_Code_Execute, &datetime, &temp1, &temp2);
@@ -739,23 +773,6 @@ void watchdog_request_esp32_take_photo(void) {
         sprintf(msg, "Failed to convert photo data to Bpacket with error: %s\r\n", errMsg);
         watchdog_message_maple(msg, BPK_Code_Error);
     }
-}
-
-void watchdog_update(void) {
-
-    // // Process anything the ESP32 sends to the STM32
-    // if (comms_process_rxbuffer(BUFFER_1_ID, &esp32Bpacket) == TRUE) {
-    //     if (stm32_match_esp32_request(&esp32Bpacket) != TRUE) {
-    //         process_watchdog_stm32_request(&esp32Bpacket);
-    //     }
-    // }
-
-    // // Process anything Maple sends to the STM32
-    // if (comms_process_rxbuffer(BUFFER_2_ID, &mapleBpacket) == TRUE) {
-    //     if (stm32_match_maple_request(&mapleBpacket) != TRUE) {
-    //         process_watchdog_stm32_request(&mapleBpacket);
-    //     }
-    // }
 }
 
 void watchdog_esp32_on(void) {

@@ -84,7 +84,7 @@ uint8_t bpk_uart_register_uart(bpk_uart_id_t* Id, void (*transmit_byte_func)(uin
     return TRUE;
 }
 
-// uint8_t bpk_uart_read_packet(bpk_packet_t* Bpacket, const bpk_uart_id_t* Id) {
+// uint8_t bpk_uart_read_packet(bpk_t* Bpacket, const bpk_uart_id_t* Id) {
 
 //     if (Id.val > (numParams - 1)) {
 //         Params[Id->val].ErrorCode = BPK_Uart_Err_Not_Initialised;
@@ -194,7 +194,7 @@ uint8_t bpk_uart_get_error_code(bpk_uart_id_t* Id) {
     return Params[Id->val].ErrorCode.val;
 }
 
-uint8_t bpk_uart_read_packet(bpk_packet_t* Bpacket, const bpk_uart_id_t* Id) {
+uint8_t bpk_uart_read_packet(bpk_t* Bpacket, const bpk_uart_id_t* Id) {
 
     if (Id->val > (numParams - 1)) {
         Params[Id->val].ErrorCode = BPK_Uart_Err_Not_Initialised;

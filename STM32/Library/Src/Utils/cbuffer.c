@@ -75,6 +75,6 @@ void cbuffer_reset_write_index(cbuffer_t* Cbuffer) {
     Cbuffer->wIndex = 0;
 }
 
-uint8_t cbuffer_element_is_pending(cbuffer_t* Cbuffer) {
+uint8_t cbuffer_is empty(cbuffer_t* Cbuffer) {
     return Cbuffer->rIndex != Cbuffer->wIndex;
 }

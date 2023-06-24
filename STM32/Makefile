@@ -84,7 +84,8 @@ Library/Src/Communications/stm32_uart.c \
 Library/Src/DataTypes/chars.c \
 Library/Src/Utils/datetime.c \
 Library/Src/Utils/log.c \
-Library/Src/Utils/cbuffer.c
+Library/Src/Utils/cbuffer.c \
+Library/Src/Peripherals/stm32_flash.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)
@@ -152,6 +153,7 @@ C_INCLUDES =  \
 -ICore/Inc/Interrupts \
 -ICore/Inc/Utilities \
 -ILibrary/Inc/Communications \
+-ILibrary/Inc/Peripherals \
 -ILibrary/Inc/DataTypes \
 -ILibrary/Inc/Sensors \
 -ILibrary/Inc/Utils \

@@ -33,6 +33,6 @@ void cbuffer_reset_read_index(cbuffer_t* Cbuffer);
 
 void cbuffer_reset_write_index(cbuffer_t* Cbuffer);
 
-uint8_t cbuffer_element_is_pending(cbuffer_t* Cbuffer);
+uint8_t cbuffer_is empty(cbuffer_t* Cbuffer);
 
 #endif // CBUFFER_H

@@ -25,9 +25,13 @@
 #include "stm32_uart.h"
 #include "bpacket_utils.h"
 #include "stm32_flash.h"
+#include "gpio.h"
+#include "stm32_uart.h"
 
 /* STM32 Includes */
 #include "stm32l4xx_hal.h"
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
 
 /* Variable Declarations */
 
@@ -126,6 +130,18 @@ void flash_test(void) {
     }
 }
 
+char list[100];
+
+void usb_rx_handler(uint8_t* buffer, uint32_t length) {
+    sprintf(list, "Bug rec: %li\r\n", length);
+    uint8_t listLen = 0;
+    for (int i = 0; list[i] != '\0'; i++) {
+        listLen++;
+    }
+
+    CDC_Transmit_FS((uint8_t*)list, listLen);
+}
+
 /**
  * @brief  The application entry point.
  * @retval int
@@ -136,29 +152,65 @@ int main(void) {
     HAL_Init();
     SystemClock_Config();
 
-    // Initialise hardware
-    hardware_config_init();
-    watchdog_init();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    // SERVO_TIMER->CR1 |= 0x01; // Start the time
-    watchdog_enter_state_machine();
+    hardware_config_init();
+
+    // Initialise hardware
+    // watchdog_init();
+    log_init(uart_transmit_string, NULL);
+    log_clear();
+    // watchdog_enter_state_machine();
+
+    // Sleep mode testing
 
     while (1) {
-        // watchdog_update();
+
+        // Led on
+        GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
+        HAL_Delay(1000);
+        GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
+        HAL_Delay(1000);
+        log_message("Entering sleep mode\r\n");
+
+        // Disable HAL tick
+        HAL_SuspendTick();
+        HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFE);
+
+        // Device now in sleep mode. Wakes up by interrupt from PA8
+
+        HAL_ResumeTick();
+        log_message("Exiting sleep mode\r\n");
+
+        // GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
+        // HAL_Delay(1000);
+        // GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
+        // HAL_Delay(1000);
+
+        // // Enter Stop Mode 2
+        // HAL_SuspendTick();
+        // HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFE);
+
+        // HAL_ResumeTick();
+        // // Reinit everything
+        // hardware_config_init();
+        // log_message("Exiting stop mode 1\r\n");
     }
 
     return 0;
 }
 
-/**
- * @brief System Clock Configuration
- * @retval None
- */
 void SystemClock_Config(void) {
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-    RCC_OscInitTypeDef RCC_OscInitStruct   = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct   = {0};
-    RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+    /** Configure the main internal regulator output voltage
+     */
+    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK) {
+        error_handler();
+    }
 
     /** Configure LSE Drive Capability
      */
@@ -176,11 +228,10 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_MSI;
     RCC_OscInitStruct.PLL.PLLM            = 1;
-    RCC_OscInitStruct.PLL.PLLN            = 16; // Sets SYSCLK to run at 32MHz
+    RCC_OscInitStruct.PLL.PLLN            = 16; // to Get 32Mhz clock
     RCC_OscInitStruct.PLL.PLLP            = RCC_PLLP_DIV7;
     RCC_OscInitStruct.PLL.PLLQ            = RCC_PLLQ_DIV2;
     RCC_OscInitStruct.PLL.PLLR            = RCC_PLLR_DIV2;
-
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         error_handler();
     }
@@ -193,20 +244,7 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
-        error_handler();
-    }
-
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
-    PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
-
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-        error_handler();
-    }
-
-    /** Configure the main internal regulator output voltage
-     */
-    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK) {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
         error_handler();
     }
 
@@ -225,7 +263,7 @@ void error_handler(void) {
     while (1) {
 
         for (int i = 0; i < 5; i++) {
-            HAL_GPIO_TogglePin(LD3_PORT, LD3_PIN);
+            HAL_GPIO_TogglePin(LED_GREEN_PORT, LED_GREEN_PIN);
             HAL_Delay(100);
         }
 

@@ -26,20 +26,20 @@
 #define BUFFER_2 UART_LOG
 // #define BUFFER_3
 
-void comms_add_to_buffer(uint8_t bufferId, uint8_t byte);
+void uart_append_to_buffer(uint8_t bufferId, uint8_t byte);
 
-uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket);
+uint8_t uart_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket);
 
 void comms_print_buffer(uint8_t bufferId);
 
-void comms_stm32_init(void);
+void uart_init(void);
 
 uint8_t comms_stm32_get_bpacket(bpk_t* Bpacket);
 
-void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes);
+void uart_write(uint8_t bufferId, uint8_t* data, uint16_t numBytes);
 
-uint8_t comms_stm32_request_pending(uint8_t bufferId);
+uint8_t uart_buffer_not_empty(uint8_t bufferId);
 
-void comms_open_connection(uint8_t bufferId);
+void uart_open_connection(uint8_t bufferId);
 
 void comms_close_connection(uint8_t bufferId);

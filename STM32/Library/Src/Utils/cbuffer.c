@@ -52,7 +52,7 @@ void cbuffer_read_current_byte(cbuffer_t* Cbuffer, void* element) {
     }
 }
 
-void cbuffer_write_element(cbuffer_t* Cbuffer, void* element) {
+void cbuffer_append_element(cbuffer_t* Cbuffer, void* element) {
 
     // Cast the data pointer to the appropriate type
     uint8_t* ptr = (uint8_t*)Cbuffer->elements;
@@ -75,6 +75,6 @@ void cbuffer_reset_write_index(cbuffer_t* Cbuffer) {
     Cbuffer->wIndex = 0;
 }
 
-uint8_t cbuffer_is empty(cbuffer_t* Cbuffer) {
+uint8_t cbuffer_is_empty(cbuffer_t* Cbuffer) {
     return Cbuffer->rIndex != Cbuffer->wIndex;
 }

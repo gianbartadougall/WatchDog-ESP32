@@ -32,7 +32,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
                                       const bpk_addr_receive_t RAddress, uint8_t pingResponse);
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
-uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket);
+uint8_t com_ports_send_bpacket(bpk_t* Bpacket);
 void comms_port_test(void);
 
 /* Private Variables */
@@ -130,7 +130,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     for (int i = 0; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
@@ -143,10 +143,10 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
         comms_port_clear_buffer(port);
 
         // Ping port
-        bpk_create_packet(&Bpacket, RAddress, BPK_Addr_Send_Maple, BPK_Request_Ping,
-                          BPK_Code_Execute, 0, NULL);
+        bpk_create(&Bpacket, RAddress, BPK_Addr_Send_Maple, BPK_Request_Ping, BPK_Code_Execute, 0,
+                   NULL);
         bpk_buffer_t packetBuffer;
-        bpacket_to_buffer(&Bpacket, &packetBuffer);
+        bpk_to_buffer(&Bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
             printf("Unable to write\n");
             continue;
@@ -165,7 +165,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES],
             continue;
         }
 
-        if (bpacket_buffer_decode(&Bpacket, response) != TRUE) {
+        if (bpk_buffer_decode(&Bpacket, response) != TRUE) {
             printf("Error %s %i. Code %i\r\n", __FILE__, __LINE__, Bpacket.ErrorCode.val);
         }
 
@@ -226,9 +226,9 @@ int com_ports_check(enum sp_return result) {
     }
 }
 
-uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket) {
+uint8_t com_ports_send_bpacket(bpk_t* Bpacket) {
     bpk_buffer_t packetBuffer;
-    bpacket_to_buffer(Bpacket, &packetBuffer);
+    bpk_to_buffer(Bpacket, &packetBuffer);
 
     if (sp_blocking_write(activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
         return FALSE;
@@ -243,7 +243,7 @@ int com_ports_read(void* buf, size_t count, unsigned int timeout_ms) {
 
 void comms_port_test(void) {
 
-    // bpk_packet_t Bpacket;
+    // bpk_t Bpacket;
     // bpk_buffer_t bp;
     // char m[256];
     // sprintf(m, "Hello The sun the, Bzringing it a new dayz full of opportunities and
@@ -251,10 +251,10 @@ void comms_port_test(void) {
     //            "it's important to zBstart jeach morning witBh A Yjpojsitive mindset, a
     //            grAtefBzjYul heajYrt, and a " "strong determinAtiojYn to mAke the most out
     //            of.akasdfasdfasdfa55454d");
-    // bpacket_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32,
+    // bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32,
     // WATCHDOG_BPK_R_WRITE_TO_FILE,
     //                   BPACKET_CODE_SUCCESS, m);
-    // bpacket_to_buffer(&Bpacket, &bp);
+    // bpk_to_buffer(&Bpacket, &bp);
 
     // printf("Size: %i\n", Bpacket.Data.numBytes);
 
@@ -283,12 +283,12 @@ void comms_port_test(void) {
             printf("Opened port %s\n", sp_get_port_name(port));
         }
 
-        bpk_packet_t getRTCTime;
+        bpk_t getRTCTime;
         bpk_buffer_t getPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                         WATCHDOG_BPK_R_WRITE_TO_FILE, BPACKET_CODE_EXECUTE, 0, NULL);
-        bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
+        bpk_create(&getRTCTime, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                   WATCHDOG_BPK_R_WRITE_TO_FILE, BPACKET_CODE_EXECUTE, 0, NULL);
+        bpk_to_buffer(&getRTCTime, &getPacketBuffer);
 
         printf("Starting: %i %i\n", getPacketBuffer.buffer[6], getPacketBuffer.numBytes);
 

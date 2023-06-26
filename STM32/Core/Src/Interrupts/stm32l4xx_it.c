@@ -1,6 +1,23 @@
+/**
+ * @file stm32l4xx_it.c
+ * @author Gian Barta-Dougall ()
+ * @brief
+ * @version 0.1
+ * @date 2023-06-24
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
+/* STM32 Includes */
+#include "stm32l4xx_hal.h"
 #include "stm32l4xx_it.h"
+
+/* Personal Includes */
 #include "log.h"
 #include "main.h"
+
+extern PCD_HandleTypeDef hpcd_USB_FS;
 
 /**
  * @brief This function handles Non maskable interrupt.
@@ -75,4 +92,17 @@ void PendSV_Handler(void) {
 void SysTick_Handler(void) {
     // Incrememnt sys tick timer
     HAL_IncTick();
+}
+
+/**
+ * @brief This function handles USB event interrupt through EXTI line 17.
+ */
+void USB_IRQHandler(void) {
+    /* USER CODE BEGIN USB_IRQn 0 */
+
+    /* USER CODE END USB_IRQn 0 */
+    HAL_PCD_IRQHandler(&hpcd_USB_FS);
+    /* USER CODE BEGIN USB_IRQn 1 */
+
+    /* USER CODE END USB_IRQn 1 */
 }

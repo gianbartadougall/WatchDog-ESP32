@@ -8,17 +8,22 @@
  * @copyright Copyright (c)
  *
  */
-/* Public Includes */
+/* C Library Includes Includes */
+
+/* Personal Includes */
 #include "hardware_config.h"
 #include "board.h"
 #include "log.h"
-
-// #include "stm32l4xx_hal_msp.h"
-
-/* Private Includes */
+#include "gpio.h"
 
 /* Private STM Includes */
 #include "stm32l4xx_hal.h"
+
+#include "usb_device.h"
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_cdc.h"
+#include "usbd_cdc_if.h"
 
 /* Private Macros */
 
@@ -35,6 +40,7 @@ void hardware_error_handler(void);
 void hardware_config_gpio_reset(void);
 void hardware_config_uart_init(void);
 void hardware_config_stm32_peripherals(void);
+void hardware_config_usb(void);
 
 /* Public Functions */
 
@@ -50,11 +56,15 @@ void hardware_config_init(void) {
     hardware_config_gpio_init();
 
     // Initialise all timers
-    hardware_config_timer_init();
+    // hardware_config_timer_init();
 
     // Initialise stm32 peripherals such as
     // internal rtc and comparators
-    hardware_config_stm32_peripherals();
+    // hardware_config_stm32_peripherals();
+
+    // It is important that this is done after __HAL_RCC_SYSCFG_CLK_ENABLE and
+    // __HAL_RCC_PWR_CLK_ENABLE otherwise the USB will not work
+    MX_USB_DEVICE_Init();
 }
 
 /* Private Functions */
@@ -115,40 +125,49 @@ void hardware_config_gpio_init(void) {
     RCC->AHB2ENR |= 0x03;
 
     /* Setup GPIO for LED */
-    LED_GREEN_PORT->MODER &= ~(0x3 << (LED_GREEN_PIN * 2));
-    LED_GREEN_PORT->MODER |= (0x01 << (LED_GREEN_PIN * 2));
+    GPIO_SET_MODE_OUTPUT(LED_GREEN_PORT, LED_GREEN_PIN);
 
     /* Setup GPIO for ESP32 Power */
-    ESP32_POWER_PORT->MODER &= ~(0x3 << (ESP32_POWER_PIN * 2));
-    ESP32_POWER_PORT->MODER |= (0x01 << (ESP32_POWER_PIN * 2));
+    GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
     /****** START CODE BLOCK ******/
     // Description: Configure servo
-    SERVO_PORT->MODER &= ~(0x03 << (SERVO_PIN * 2));
-    SERVO_PORT->MODER |= (0x02 << (SERVO_PIN * 2));
-
-    SERVO_PORT->AFR[0] &= ~(0x03 << ((SERVO_PIN % 8) * 4));
-    SERVO_PORT->AFR[0] |= (0x01 << ((SERVO_PIN % 8) * 4));
+    GPIO_SET_MODE_ALTERNATE_FUNCTION(SERVO_PORT, SERVO_PIN, AF1);
+    // SERVO_PORT->AFR[0] &= ~(0x03 << ((SERVO_PIN % 8) * 4));
+    // SERVO_PORT->AFR[0] |= (0x01 << ((SERVO_PIN % 8) * 4));
 
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
+    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
+    /****** END CODE BLOCK ******/
 
-    // Set to be output
-    DS18B20_PORT->MODER &= ~(0x3 << (DS18B20_PIN * 2));
-    DS18B20_PORT->MODER |= (0x01 << (DS18B20_PIN * 2));
-
-    DS18B20_PORT->OTYPER &= ~(0x01 << DS18B20_PIN); // Push pull
-
-    DS18B20_PORT->OSPEEDR |= (0x03 << (DS18B20_PIN * 2)); // High speed
-
-    DS18B20_PORT->PUPDR &= ~(0x03 << (DS18B20_PIN * 2)); // No pull up/pull down
-
+    /****** START CODE BLOCK ******/
+    // Description: Configure the USB C Connection GPIO pin
+    GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
+    SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
+    EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN);
+    EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN);
+    EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);
+    HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
     // Description: Setup GPIO pins for communicating with ESP32 Cam
+    // GPIO_SET_MODE_ALTERNATE_FUNCTION(UART_ESP32_RX_PORT, UART_ESP32_RX_PIN, AF15);
+    // GPIO_SET_TYPE_PUSH_PULL(UART_ESP32_RX_PORT, UART_ESP32_RX_PIN);
+    // GPIO_SET_SPEED_HIGH(UART_ESP32_RX_PORT, UART_ESP32_RX_PIN);
+    // GPIO_SET_PULL_AS_NONE(UART_ESP32_RX_PORT, UART_ESP32_RX_PIN);
+
+    // GPIO_SET_MODE_ALTERNATE_FUNCTION(UART_ESP32_TX_PORT, UART_ESP32_TX_PIN, AF7);
+    // GPIO_SET_TYPE_PUSH_PULL(UART_ESP32_TX_PORT, UART_ESP32_TX_PIN);
+    // GPIO_SET_SPEED_HIGH(UART_ESP32_TX_PORT, UART_ESP32_TX_PIN);
+    // GPIO_SET_PULL_AS_NONE(UART_ESP32_TX_PORT, UART_ESP32_TX_PIN);
 
     UART_ESP32_RX_PORT->MODER &= ~(0x03 << (UART_ESP32_RX_PIN * 2));
     UART_ESP32_TX_PORT->MODER &= ~(0x03 << (UART_ESP32_TX_PIN * 2));

@@ -45,9 +45,9 @@ bpk_buffer_t ErrorBuffer;
 char errMsg[50];
 
 /* Function Prototyes */
-void comms_send_byte(uint8_t bufferId, uint8_t byte);
+void uart_send_byte(uint8_t bufferId, uint8_t byte);
 
-void comms_stm32_init(void) {
+void uart_init(void) {
 
     // Initialise both circular buffers for expected bytes
     bpk_utils_init_expected_byte_buffer(byteBuffer);
@@ -61,11 +61,11 @@ void comms_stm32_init(void) {
     }
 }
 
-void comms_add_to_buffer(uint8_t bufferId, uint8_t byte) {
-    cbuffer_write_element(&rxBuffersNew[bufferId], (void*)(&byte));
+void uart_append_to_buffer(uint8_t bufferId, uint8_t byte) {
+    cbuffer_append_element(&rxBuffersNew[bufferId], (void*)(&byte));
 }
 
-uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
+uint8_t uart_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
 
     uint8_t byte, expectedByte;
 
@@ -81,7 +81,7 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
             case BPK_BYTE_DATA:
 
                 if (divertBytes[bufferId] == TRUE) {
-                    comms_send_byte(divertedBytesAddress[bufferId], byte);
+                    uart_send_byte(divertedBytesAddress[bufferId], byte);
                 } else {
                     Bpacket->Data.bytes[bpacketByteIndex[bufferId]] = byte;
                 }
@@ -135,13 +135,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
                         // uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
                     }
 
-                    comms_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_UPPER);
-                    comms_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_LOWER);
-                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Receiver.val);
-                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Sender.val);
-                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Request.val);
-                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Code.val);
-                    comms_send_byte(divertedBytesAddress[bufferId], Bpacket->Data.numBytes);
+                    uart_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_UPPER);
+                    uart_send_byte(divertedBytesAddress[bufferId], BPK_BYTE_START_BYTE_LOWER);
+                    uart_send_byte(divertedBytesAddress[bufferId], Bpacket->Receiver.val);
+                    uart_send_byte(divertedBytesAddress[bufferId], Bpacket->Sender.val);
+                    uart_send_byte(divertedBytesAddress[bufferId], Bpacket->Request.val);
+                    uart_send_byte(divertedBytesAddress[bufferId], Bpacket->Code.val);
+                    uart_send_byte(divertedBytesAddress[bufferId], Bpacket->Data.numBytes);
                 } else {
                     divertBytes[bufferId] = FALSE;
                 }
@@ -196,13 +196,13 @@ uint8_t comms_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
     return FALSE;
 }
 
-uint8_t comms_stm32_request_pending(uint8_t bufferId) {
-    return cbuffer_is empty(&rxBuffersNew[bufferId]);
+uint8_t uart_buffer_not_empty(uint8_t bufferId) {
+    return cbuffer_is_empty(&rxBuffersNew[bufferId]);
 }
 
 /* Generic USART Commuincation Functions */
 
-void comms_send_byte(uint8_t bufferId, uint8_t byte) {
+void uart_send_byte(uint8_t bufferId, uint8_t byte) {
     // Wait for USART to be ready to send a byte
     while ((uarts[bufferId]->ISR & USART_ISR_TXE) == 0) {};
 
@@ -210,7 +210,7 @@ void comms_send_byte(uint8_t bufferId, uint8_t byte) {
     uarts[bufferId]->TDR = byte;
 }
 
-void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes) {
+void uart_write(uint8_t bufferId, uint8_t* data, uint16_t numBytes) {
 
     for (int i = 0; i < numBytes; i++) {
 
@@ -222,7 +222,7 @@ void comms_transmit(uint8_t bufferId, uint8_t* data, uint16_t numBytes) {
     }
 }
 
-void comms_open_connection(uint8_t bufferId) {
+void uart_open_connection(uint8_t bufferId) {
 
     if (bufferId == BUFFER_1_ID) {
         BUFFER_1->CR1 |= (USART_CR1_RE | USART_CR1_TE);

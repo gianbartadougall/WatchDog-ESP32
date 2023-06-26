@@ -122,33 +122,32 @@ typedef struct wd_settings_t {
     } while (0)
 
 /* Function Prototypes */
-uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSettings);
-uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_bpk_to_camera_settings(bpk_t* Bpacket, cdt_u8_t* CameraSettings);
+uint8_t wd_camera_settings_to_bpk(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                   bpk_request_t Request, bpk_code_t Code, cdt_u8_t* CameraSettings);
 
-uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_datetime_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime);
-uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime);
+uint8_t wd_bpacket_to_datetime(bpk_t* Bpacket, dt_datetime_t* datetime);
 // uint8_t dt_time_is_valid(dt_time_t* time);
 
-uint8_t wd_bpacket_to_camera_settings(bpk_packet_t* Bpacket, wd_camera_settings_t* cameraSettings);
-uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_bpacket_to_camera_settings(bpk_t* Bpacket, wd_camera_settings_t* cameraSettings);
+uint8_t wd_camera_settings_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                       bpk_request_t Request, bpk_code_t Code, wd_camera_settings_t* cameraSettings);
 uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution);
 
-uint8_t wd_status_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                             bpk_request_t Request, bpk_code_t Code, wd_status_t* status);
-uint8_t wd_bpacket_to_status(bpk_packet_t* Bpacket, wd_status_t* status);
+uint8_t wd_status_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                             bpk_code_t Code, wd_status_t* status);
+uint8_t wd_bpacket_to_status(bpk_t* Bpacket, wd_status_t* status);
 
-uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_capture_time_settings_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                             bpk_request_t Request, bpk_code_t Code,
                                             wd_camera_capture_time_settings_t* wdSettings);
-uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* wdSettings);
+uint8_t wd_bpacket_to_capture_time_settings(bpk_t* Bpacket, wd_camera_capture_time_settings_t* wdSettings);
 
-uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
-                                 cdt_dbl_16_t* temp2);
+uint8_t wd_bpacket_to_photo_data(bpk_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1, cdt_dbl_16_t* temp2);
 
-uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_photo_data_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                  bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
                                  cdt_dbl_16_t* temp2);
 
@@ -156,7 +155,7 @@ void wd_get_error(uint8_t wdError, char* errorMsg);
 
 #ifdef WATCHDOG_FUNCTIONS
 
-uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_photo_data_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                  bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
                                  cdt_dbl_16_t* temp2) {
 
@@ -193,8 +192,7 @@ uint8_t wd_photo_data_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Recei
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1,
-                                 cdt_dbl_16_t* temp2) {
+uint8_t wd_bpacket_to_photo_data(bpk_t* Bpacket, dt_datetime_t* datetime, cdt_dbl_16_t* temp1, cdt_dbl_16_t* temp2) {
 
     // Assert the request is valid
     if (Bpacket->Request.val != BPK_Req_Take_Photo.val) {
@@ -236,7 +234,7 @@ uint8_t wd_bpacket_to_photo_data(bpk_packet_t* Bpacket, dt_datetime_t* datetime,
     return TRUE;
 }
 
-uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_capture_time_settings_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                             bpk_request_t Request, bpk_code_t Code,
                                             wd_camera_capture_time_settings_t* captureTime) {
 
@@ -261,7 +259,7 @@ uint8_t wd_capture_time_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_rece
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_capture_time_settings_t* captureTime) {
+uint8_t wd_bpacket_to_capture_time_settings(bpk_t* Bpacket, wd_camera_capture_time_settings_t* captureTime) {
 
     // Assert valid bpacket request
     if ((Bpacket->Request.val != BPK_Req_Get_Camera_Capture_Times.val) &&
@@ -299,7 +297,7 @@ uint8_t wd_bpacket_to_capture_time_settings(bpk_packet_t* Bpacket, wd_camera_cap
     return TRUE;
 }
 
-uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_datetime_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                bpk_request_t Request, bpk_code_t Code, dt_datetime_t* datetime) {
 
     // Confirm the request is valid
@@ -336,7 +334,7 @@ uint8_t wd_datetime_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receive
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime) {
+uint8_t wd_bpacket_to_datetime(bpk_t* Bpacket, dt_datetime_t* datetime) {
 
     // confirm bpacket has the right number of bytes
     if (Bpacket->Data.numBytes != 7) {
@@ -378,7 +376,7 @@ uint8_t wd_bpacket_to_datetime(bpk_packet_t* Bpacket, dt_datetime_t* datetime) {
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_camera_settings_to_bpk(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                   bpk_request_t Request, bpk_code_t Code, cdt_u8_t* CameraSettings) {
 
     // Confirm the request is
@@ -406,7 +404,7 @@ uint8_t wd_camera_settings_to_bpk(bpk_packet_t* Bpacket, bpk_addr_receive_t Rece
     return TRUE;
 }
 
-uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSettings) {
+uint8_t wd_bpk_to_camera_settings(bpk_t* Bpacket, cdt_u8_t* CameraSettings) {
 
     switch (Bpacket->Request.val) {
         case BPK_REQ_GET_CAMERA_SETTINGS:
@@ -424,7 +422,7 @@ uint8_t wd_bpk_to_camera_settings(bpk_packet_t* Bpacket, cdt_u8_t* CameraSetting
     return TRUE;
 }
 
-uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
+uint8_t wd_camera_settings_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
                                       bpk_request_t Request, bpk_code_t Code, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
@@ -449,7 +447,7 @@ uint8_t wd_camera_settings_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t 
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_camera_settings(bpk_packet_t* Bpacket, wd_camera_settings_t* cameraSettings) {
+uint8_t wd_bpacket_to_camera_settings(bpk_t* Bpacket, wd_camera_settings_t* cameraSettings) {
 
     // Confirm the request is valid
     if ((Bpacket->Request.val != BPK_Req_Get_Camera_Settings.val) &&
@@ -481,8 +479,8 @@ uint8_t wd_camera_resolution_is_valid(uint8_t cameraResolution) {
     }
 }
 
-uint8_t wd_status_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender,
-                             bpk_request_t Request, bpk_code_t Code, wd_status_t* status) {
+uint8_t wd_status_to_bpacket(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send_t Sender, bpk_request_t Request,
+                             bpk_code_t Code, wd_status_t* status) {
 
     // Confirm the status is valid
     if (status->status != BPK_REQUEST_STATUS) {
@@ -503,7 +501,7 @@ uint8_t wd_status_to_bpacket(bpk_packet_t* Bpacket, bpk_addr_receive_t Receiver,
     return TRUE;
 }
 
-uint8_t wd_bpacket_to_status(bpk_packet_t* Bpacket, wd_status_t* status) {
+uint8_t wd_bpacket_to_status(bpk_t* Bpacket, wd_status_t* status) {
 
     // Confirm the request is valid
     if ((Bpacket->Request.val != BPK_REQUEST_STATUS) && (Bpacket->Request.val != BPK_Code_Success.val)) {

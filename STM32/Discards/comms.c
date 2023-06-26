@@ -80,7 +80,7 @@ int comms_skip_char(char c) {
     return TRUE;
 }
 
-void comms_add_to_buffer(USART_TypeDef* usart, char c) {
+void uart_append_to_buffer(USART_TypeDef* usart, char c) {
 
     if (usart == USART1) {
         comms_usart1_add_to_buffer(c);

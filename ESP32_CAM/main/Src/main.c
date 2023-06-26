@@ -35,7 +35,7 @@
 
 /* Private Function Declarations */
 
-uint8_t esp3_match_stm32_request(bpk_packet_t* Bpacket) {
+uint8_t esp3_match_stm32_request(bpk_t* Bpacket) {
 
     switch (Bpacket->Request.val) {
 
@@ -53,7 +53,7 @@ uint8_t esp3_match_stm32_request(bpk_packet_t* Bpacket) {
     return TRUE;
 }
 
-uint8_t esp3_match_maple_request(bpk_packet_t* Bpacket) {
+uint8_t esp3_match_maple_request(bpk_t* Bpacket) {
 
     bpacket_char_array_t bpacketCharArray;
     cdt_u8_t CameraSettings;
@@ -61,12 +61,12 @@ uint8_t esp3_match_maple_request(bpk_packet_t* Bpacket) {
     switch (Bpacket->Request.val) {
 
         case BPK_REQ_LIST_DIR:
-            bpacket_data_to_string(Bpacket, &bpacketCharArray);
+            bpk_data_to_string(Bpacket, &bpacketCharArray);
             sd_card_list_directory(Bpacket, &bpacketCharArray);
             break;
 
         case BPK_REQ_COPY_FILE:;
-            bpacket_data_to_string(Bpacket, &bpacketCharArray);
+            bpk_data_to_string(Bpacket, &bpacketCharArray);
             sd_card_copy_file(Bpacket, &bpacketCharArray);
             break;
 
@@ -117,10 +117,27 @@ void watchdog_system_start(void) {
     led_off(COB_LED);
     led_off(RED_LED);
 
+    // Take a photo in a loop
+    bpk_t Pack;
+    // Add dummy data
+    dt_datetime_t Datetime;
+    dt_datetime_init(&Datetime, 0, 0, 7, 1, 6, 2023);
+    cdt_dbl_16_t Temp1, Temp2;
+    Temp1.decimal = 15;
+    Temp1.integer = 18;
+    Temp2.decimal = 23;
+    Temp2.integer = 32;
+    wd_photo_data_to_bpacket(&Pack, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Take_Photo, BPK_Code_Execute,
+                             &Datetime, &Temp1, &Temp2);
+    while (1) {
+        camera_capture_and_save_image(&Pack);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
     uint8_t ping = WATCHDOG_PING_CODE_ESP32;
 
     uint8_t bdata[BPACKET_BUFFER_LENGTH_BYTES];
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
 
     while (1) {
 
@@ -132,7 +149,7 @@ void watchdog_system_start(void) {
             continue;
         }
 
-        uint8_t result = bpacket_buffer_decode(&Bpacket, bdata);
+        uint8_t result = bpk_buffer_decode(&Bpacket, bdata);
 
         if (result != TRUE) {
             bpk_utils_create_string_response(&Bpacket, BPK_Code_Debug, "Failed to decode");
@@ -151,19 +168,19 @@ void watchdog_system_start(void) {
         switch (Bpacket.Request.val) {
 
             case BPK_REQUEST_PING:
-                bp_convert_to_response(&Bpacket, BPK_Code_Success, 1, &ping);
+                bpk_convert_to_response(&Bpacket, BPK_Code_Success, 1, &ping);
                 esp32_uart_send_bpacket(&Bpacket);
                 break;
 
             case BPK_REQ_LED_RED_ON:
                 led_on(RED_LED);
-                bp_convert_to_response(&Bpacket, BPK_Code_Success, 0, NULL);
+                bpk_convert_to_response(&Bpacket, BPK_Code_Success, 0, NULL);
                 esp32_uart_send_bpacket(&Bpacket);
                 break;
 
             case BPK_REQ_LED_RED_OFF:
                 led_off(RED_LED);
-                bp_convert_to_response(&Bpacket, BPK_Code_Success, 0, NULL);
+                bpk_convert_to_response(&Bpacket, BPK_Code_Success, 0, NULL);
                 esp32_uart_send_bpacket(&Bpacket);
                 break;
 
@@ -202,16 +219,16 @@ void watchdog_system_start(void) {
     }
 }
 
-uint8_t software_config(bpk_packet_t* Bpacket) {
+uint8_t software_config(bpk_t* Bpacket) {
 
-    bpk_packet_t b1;
+    bpk_t b1;
 
     if (sd_card_init(Bpacket) != TRUE) {
         return FALSE;
     }
 
-    bpk_create_packet(Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings,
-                      BPK_Code_Execute, 0, NULL);
+    bpk_create(Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings, BPK_Code_Execute, 0,
+               NULL);
 
     if (sd_card_format_sd_card(Bpacket) != TRUE) {
         esp32_uart_send_bpacket(Bpacket);
@@ -223,7 +240,7 @@ uint8_t software_config(bpk_packet_t* Bpacket) {
     if (sd_card_get_camera_settings(&cameraSettings) == TRUE) {
         char o[40];
         sprintf(o, "Setting camera resolution to: %i\r\n", cameraSettings.resolution);
-        bpacket_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success, o);
+        bpk_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success, o);
         esp32_uart_send_bpacket(&b1);
         camera_set_resolution(cameraSettings.resolution);
     }
@@ -234,8 +251,8 @@ uint8_t software_config(bpk_packet_t* Bpacket) {
         return FALSE;
     }
 
-    bpacket_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success,
-                      "All software initialised");
+    bpk_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success,
+                  "All software initialised");
     esp32_uart_send_bpacket(&b1);
 
     return TRUE;
@@ -243,7 +260,7 @@ uint8_t software_config(bpk_packet_t* Bpacket) {
 
 void app_main(void) {
 
-    bpk_packet_t status;
+    bpk_t status;
 
     /* Initialise all the hardware used */
     if (hardware_config(&status) == TRUE && software_config(&status) == TRUE) {

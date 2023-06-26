@@ -28,10 +28,11 @@
 uint8_t com_ports_close_connection(void);
 uint8_t com_ports_configure_port(struct sp_port* port);
 enum sp_return com_ports_open_port(struct sp_port* port);
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address, uint8_t pingResponse);
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address,
+                                      uint8_t pingResponse);
 int com_ports_check(enum sp_return result);
 int com_ports_check(enum sp_return result);
-uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket);
+uint8_t com_ports_send_bpacket(bpk_t* Bpacket);
 void comms_port_test(void);
 
 /* Private Variables */
@@ -110,7 +111,8 @@ enum sp_return com_ports_open_port(struct sp_port* port) {
     return SP_OK;
 }
 
-enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address, uint8_t pingResponse) {
+enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_t address,
+                                      uint8_t pingResponse) {
     portName[0] = '\0';
 
     // Create a struct to hold all the COM ports currently in use
@@ -123,7 +125,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
 
     // Iterate through every port. Ping the port and check if
     // the response matches the given target
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     for (int i = 0; port_list[i] != NULL; i++) {
 
         struct sp_port* port = port_list[i];
@@ -134,9 +136,10 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
         }
 
         // Ping port
-        bpacket_create_p(&Bpacket, address, BPK_Addr_Send_Maple, BPK_REQUEST_PING, BPACKET_CODE_EXECUTE, 0, NULL);
+        bpk_create(&Bpacket, address, BPK_Addr_Send_Maple, BPK_REQUEST_PING, BPACKET_CODE_EXECUTE,
+                   0, NULL);
         bpk_buffer_t packetBuffer;
-        bpacket_to_buffer(&Bpacket, &packetBuffer);
+        bpk_to_buffer(&Bpacket, &packetBuffer);
         if (sp_blocking_write(port, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
             printf("Unable to write\n");
             continue;
@@ -159,7 +162,7 @@ enum sp_return com_ports_search_ports(char portName[PORT_NAME_MAX_BYTES], uint8_
             continue;
         }
 
-        bpacket_buffer_decode(&Bpacket, response);
+        bpk_buffer_decode(&Bpacket, response);
 
         if ((Bpacket.Request != BPACKET_CODE_SUCCESS) && (Bpacket.Data.bytes[0] != pingResponse)) {
             sp_close(port);
@@ -202,9 +205,9 @@ int com_ports_check(enum sp_return result) {
     }
 }
 
-uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket) {
+uint8_t com_ports_send_bpacket(bpk_t* Bpacket) {
     bpk_buffer_t packetBuffer;
-    bpacket_to_buffer(Bpacket, &packetBuffer);
+    bpk_to_buffer(Bpacket, &packetBuffer);
 
     if (sp_blocking_write(activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
         return FALSE;
@@ -237,15 +240,15 @@ void comms_port_test(void) {
             continue;
         }
 
-        bpk_packet_t getRTCTime, setRTCTime;
+        bpk_t getRTCTime, setRTCTime;
         bpk_buffer_t getPacketBuffer, setPacketBuffer;
 
-        bpacket_create_p(&getRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple, WATCHDOG_BPK_R_GET_DATETIME,
-                         BPACKET_CODE_EXECUTE, 0, NULL);
-        bpacket_to_buffer(&getRTCTime, &getPacketBuffer);
+        bpk_create(&getRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple,
+                   WATCHDOG_BPK_R_GET_DATETIME, BPACKET_CODE_EXECUTE, 0, NULL);
+        bpk_to_buffer(&getRTCTime, &getPacketBuffer);
 
-        // printf("packet buffer length: %i %i %i\n", getPacketBuffer.numBytes, getPacketBuffer.request,
-        // getRTCTime.code);
+        // printf("packet buffer length: %i %i %i\n", getPacketBuffer.numBytes,
+        // getPacketBuffer.request, getRTCTime.code);
 
         // uint8_t length = 6;
         // uint8_t data[length];
@@ -258,7 +261,8 @@ void comms_port_test(void) {
         printf("Starting\n");
         while (1) {
 
-            if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) < 0) {
+            if (sp_blocking_write(port, getPacketBuffer.buffer, getPacketBuffer.numBytes, 1000) <
+                0) {
                 printf("Unable to write\n");
                 continue;
             }
@@ -269,7 +273,7 @@ void comms_port_test(void) {
                 return;
             }
 
-            uint8_t result = bpacket_buffer_decode(&getRTCTime, response);
+            uint8_t result = bpk_buffer_decode(&getRTCTime, response);
 
             // if (result != TRUE) {
             //     char errMsg[50];
@@ -292,8 +296,9 @@ void comms_port_test(void) {
                     datetime.time.second = 0;
                     datetime.time.minute = 0;
 
-                    result = wd_datetime_to_bpacket(&setRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple,
-                                                    WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &datetime);
+                    result = wd_datetime_to_bpacket(
+                        &setRTCTime, BPK_Addr_Send_Stm32, BPK_Addr_Send_Maple,
+                        WATCHDOG_BPK_R_SET_DATETIME, BPACKET_CODE_EXECUTE, &datetime);
                     // if (result != TRUE) {
                     //     char errMsg[50];
                     //     bpacket_get_error(result, errMsg);
@@ -301,9 +306,10 @@ void comms_port_test(void) {
                     //     continue;
                     // }
 
-                    bpacket_to_buffer(&setRTCTime, &setPacketBuffer);
+                    bpk_to_buffer(&setRTCTime, &setPacketBuffer);
 
-                    if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes, 1000) < 0) {
+                    if (sp_blocking_write(port, setPacketBuffer.buffer, setPacketBuffer.numBytes,
+                                          1000) < 0) {
                         printf("Unable to set the date\n");
                         continue;
                     }
@@ -313,7 +319,7 @@ void comms_port_test(void) {
                         return;
                     }
 
-                    result = bpacket_buffer_decode(&getRTCTime, response);
+                    result = bpk_buffer_decode(&getRTCTime, response);
 
                     // if (result != TRUE) {
                     //     char errMsg[50];

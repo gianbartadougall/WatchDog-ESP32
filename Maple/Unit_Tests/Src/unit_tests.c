@@ -28,7 +28,7 @@
 
 // Setting up Rx and Tx buffers
 #define MAPLE_BUFFER_NUM_ELEMENTS 10
-#define MAPLE_BUFFER_NUM_BYTES    (sizeof(bpk_packet_t) * MAPLE_BUFFER_NUM_ELEMENTS)
+#define MAPLE_BUFFER_NUM_BYTES    (sizeof(bpk_t) * MAPLE_BUFFER_NUM_ELEMENTS)
 cbuffer_t RxCbuffer;
 cbuffer_t TxCbuffer;
 uint8_t rxCbufferBytes[MAPLE_BUFFER_NUM_BYTES];
@@ -37,7 +37,7 @@ uint8_t txCbufferBytes[MAPLE_BUFFER_NUM_BYTES];
 struct sp_port* gbl_activePort = NULL;
 
 /* Private Variables */
-bpk_packet_t v_Bpk; // v_ stands for volatile
+bpk_t v_Bpk; // v_ stands for volatile
 bpk_data_t v_Data;
 cdt_u8_t v_u8;
 
@@ -46,7 +46,7 @@ DWORD WINAPI ut_listen_rx(void* arg);
 uint8_t ut_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode);
 void ut_print_data(uint8_t* data, uint8_t length);
 void ut_run(void);
-uint8_t ut_send_bpacket(bpk_packet_t* Bpacket);
+uint8_t ut_send_bpacket(bpk_t* Bpacket);
 void ut_create_and_send_bpacket(const bpk_request_t Request, const bpk_addr_receive_t Receiver,
                                 uint8_t numDataBytes, uint8_t* data);
 
@@ -56,8 +56,8 @@ int main(void) {
     log_init(printf, ut_print_data);
 
     // Initialise rx and tx buffers
-    cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_packet_t), MAPLE_BUFFER_NUM_ELEMENTS);
-    cbuffer_init(&TxCbuffer, txCbufferBytes, sizeof(bpk_packet_t), MAPLE_BUFFER_NUM_ELEMENTS);
+    cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
+    cbuffer_init(&TxCbuffer, txCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
 
     HANDLE thread = CreateThread(NULL, 0, ut_listen_rx, NULL, 0, NULL);
 
@@ -77,11 +77,11 @@ int main(void) {
 
     ut_run();
 
-    log_message("Finished tests\r\n");
+    // log_message("Finished tests\r\n");
     while (1) {}
 }
 
-uint8_t ut_run_test(bpk_packet_t* Bpacket, bpk_code_t ExpectedCode, bpk_data_t* Data,
+uint8_t ut_run_test(bpk_t* Bpacket, bpk_code_t ExpectedCode, bpk_data_t* Data, bpk_data_t* DataCopy,
                     uint32_t timeout) {
 
     // Send bpacket
@@ -91,7 +91,7 @@ uint8_t ut_run_test(bpk_packet_t* Bpacket, bpk_code_t ExpectedCode, bpk_data_t* 
     }
 
     // Check the response
-    bpk_packet_t BpkResponse;
+    bpk_t BpkResponse;
     clock_t startTime = clock();
     while ((clock() - startTime) < timeout) {
 
@@ -130,7 +130,7 @@ uint8_t ut_run_test(bpk_packet_t* Bpacket, bpk_code_t ExpectedCode, bpk_data_t* 
     if (Data != NULL) {
 
         if (BpkResponse.Data.numBytes != Data->numBytes) {
-            log_error("Data error. Expected %i num bytes but got %i\r\n", Data->numBytes,
+            log_error("Data error. Expected %i bytes but got %i\r\n", Data->numBytes,
                       BpkResponse.Data.numBytes);
             return FALSE;
         }
@@ -145,11 +145,18 @@ uint8_t ut_run_test(bpk_packet_t* Bpacket, bpk_code_t ExpectedCode, bpk_data_t* 
         }
     }
 
+    // Copy data if requested
+    if (DataCopy != NULL) {
+        DataCopy->numBytes = BpkResponse.Data.numBytes;
+        for (uint8_t i = 0; i < BpkResponse.Data.numBytes; i++) {
+            DataCopy->bytes[i] = BpkResponse.Data.bytes[i];
+        }
+    }
+
     return TRUE;
 }
 
-uint8_t ut_response_is_valid(bpk_packet_t* Bpacket, bpk_request_t ExpectedRequest,
-                             uint16_t timeout) {
+uint8_t ut_response_is_valid(bpk_t* Bpacket, bpk_request_t ExpectedRequest, uint16_t timeout) {
 
     // Print response
     clock_t startTime = clock();
@@ -197,24 +204,24 @@ uint8_t ut_response_is_valid(bpk_packet_t* Bpacket, bpk_request_t ExpectedReques
  */
 void ut_test_stm32_red_led(void) {
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_On,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_On,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         log_error("Failed to turn red LED on via STM32");
         return;
     }
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         log_error("Failed to turn red LED off via STM32");
         return;
     }
@@ -229,24 +236,24 @@ void ut_test_stm32_red_led(void) {
 void ut_test_esp32_red_led(void) {
 
     /* Turn the red LED on directly */
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_On,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_On,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         log_error("Failed to turn red LED on via ESP32");
         return;
     }
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Led_Red_Off,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         log_error("Failed to turn red LED off via ESP32");
         return;
     }
@@ -265,8 +272,8 @@ void ut_test_esp32_camera_settings(void) {
 
     /****** START CODE BLOCK ******/
     // Description: Test updating the camera settings on the ESP32
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                          BPK_Req_Set_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Set_Camera_Settings,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -275,7 +282,7 @@ void ut_test_esp32_camera_settings(void) {
     cdt_u8_t NewCameraSettings = {.value = WD_CAM_RES_320x240};
     bpk_utils_write_cdt_u8(&v_Bpk, &NewCameraSettings, 1);
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -286,13 +293,13 @@ void ut_test_esp32_camera_settings(void) {
 
     // Restart the ESP32 to ensure that the camera settings being read are the ones
     // saved on the ESP32
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Esp32_Off,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Esp32_Off,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -300,13 +307,13 @@ void ut_test_esp32_camera_settings(void) {
     // Delay for 1000ms
     Sleep(1000);
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Esp32_On,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Esp32_On,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 2000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 2000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -314,15 +321,15 @@ void ut_test_esp32_camera_settings(void) {
     // Wait for 1 second to ensure ESP32 has started up
     Sleep(1000);
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                          BPK_Req_Get_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
 
     v_Data.numBytes = 1;
     v_Data.bytes[0] = NewCameraSettings.value;
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -331,8 +338,8 @@ void ut_test_esp32_camera_settings(void) {
     /****** START CODE BLOCK ******/
     // Description: Test setting invalid camera settings on the ESP32 returns
     // an error
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
-                          BPK_Req_Set_Camera_Settings, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Set_Camera_Settings,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -342,7 +349,7 @@ void ut_test_esp32_camera_settings(void) {
     bpk_utils_write_cdt_u8(&v_Bpk, &v_u8, 1);
 
     // Expecting an error from the ESP32
-    if (ut_run_test(&v_Bpk, BPK_Code_Error, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Error, NULL, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -361,8 +368,8 @@ void ut_test_stm32_datetime(void) {
 
     /****** START CODE BLOCK ******/
     // Description: Test setting the datetime on the ESP32
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Set_Datetime,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Set_Datetime,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -381,7 +388,7 @@ void ut_test_stm32_datetime(void) {
         return;
     }
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -390,8 +397,8 @@ void ut_test_stm32_datetime(void) {
 
     /****** START CODE BLOCK ******/
     // Description: Test reading the datetime from the STM32
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Get_Datetime,
-                          BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Get_Datetime,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -407,7 +414,7 @@ void ut_test_stm32_datetime(void) {
     v_Data.bytes[6] = NewDatetime.Date.year & 0xFF;
     v_Data.numBytes = 7;
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -422,8 +429,8 @@ void ut_test_stm32_capture_time_settings(void) {
     /****** START CODE BLOCK ******/
     // Description: Write new capture time settings to the STM32
 
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                          BPK_Req_Set_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                   BPK_Req_Set_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -443,7 +450,7 @@ void ut_test_stm32_capture_time_settings(void) {
         return;
     };
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, 3000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 3000) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -452,8 +459,8 @@ void ut_test_stm32_capture_time_settings(void) {
     /****** START CODE BLOCK ******/
     // Description: Reads the capture time settings from he STM32 to ensure
     // they were written correctly
-    if (bpk_create_packet(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                          BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                   BPK_Req_Get_Camera_Capture_Times, BPK_Code_Execute, 0, NULL) != TRUE) {
         LOG_ERROR();
         return;
     }
@@ -470,10 +477,115 @@ void ut_test_stm32_capture_time_settings(void) {
     v_Data.bytes[8] = Interval.hour;
     v_Data.numBytes = 9;
 
-    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, 1000) != TRUE) {
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, &v_Data, NULL, 1000) != TRUE) {
         LOG_ERROR();
         return;
     }
+
+    /****** END CODE BLOCK ******/
+
+    log_success("STM32: Update Capture time settings passed\r\n");
+}
+
+void ut_test_stm32_take_photo(void) {
+
+    /****** START CODE BLOCK ******/
+    // Description: Tests taking a photo on the ESP32
+
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Take_Photo,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Run test
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 3000) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    /****** END CODE BLOCK ******/
+
+    log_success("STM32: Taking photo tests passed\r\n");
+}
+
+void ut_test_esp32_list_directory(void) {
+
+    /****** START CODE BLOCK ******/
+    // Description: Print out the current directory on the ESP32
+
+    if (bp_create_string_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                BPK_Req_List_Dir, BPK_Code_Execute, "/watchdog/data") != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, &v_Data, 3000) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Print out the data
+    ut_print_data(v_Data.bytes, v_Data.numBytes);
+
+    /****** END CODE BLOCK ******/
+
+    log_success("ESP32: Listing directory tests passed\r\n");
+}
+
+void ut_test_esp32_download_photo(void) {
+
+    /****** START CODE BLOCK ******/
+    // Description: Take a photo to ensure that at least one photo
+    // has been taken on the ESP32. List the directory. Search for
+    // the name of a valid image. Execute the request to copy that
+    // image from the ESP32 to Maple
+    if (bpk_create(&v_Bpk, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Take_Photo,
+                   BPK_Code_Execute, 0, NULL) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    // Run test
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, NULL, 5000) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (bp_create_string_packet(&v_Bpk, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple,
+                                BPK_Req_List_Dir, BPK_Code_Execute, "/watchdog/data") != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    if (ut_run_test(&v_Bpk, BPK_Code_Success, NULL, &v_Data, 3000) != TRUE) {
+        LOG_ERROR();
+        return;
+    }
+
+    ut_print_data(v_Data.bytes, v_Data.numBytes);
+
+    // Loop through directory and search for a valid image to download
+    char imageName[100];
+    uint8_t imageIndex = 0;
+    for (uint8_t i = 0; i < v_Data.numBytes; i++) {
+
+        imageName[imageIndex++] = v_Data.bytes[i];
+
+        // Search for start of an image name
+        if ((imageName[imageIndex - 3] == '.') && (imageName[imageIndex - 2] == 'j') &&
+            (v_Data.bytes[i - 1] == 'p') && (v_Data.bytes[i] == 'g')) {
+            imageName[imageIndex] = '\0';
+            break;
+        }
+
+        if ((v_Data.bytes[i] == '\r') || (v_Data.bytes[i] == '\n')) {
+            imageIndex = 0;
+        }
+    }
+
+    log_success("Found image name: [%s]", imageName);
+
     /****** END CODE BLOCK ******/
 }
 
@@ -486,16 +598,19 @@ void ut_run(void) {
     ut_test_stm32_red_led();
     ut_test_stm32_datetime();
     ut_test_stm32_capture_time_settings();
+    ut_test_stm32_take_photo();
 
     /* Test Communication with ESP32 */
     ut_test_esp32_red_led();
     ut_test_esp32_camera_settings();
+    ut_test_esp32_list_directory();
+    // ut_test_esp32_download_photo();
 }
 
-uint8_t ut_send_bpacket(bpk_packet_t* Bpacket) {
+uint8_t ut_send_bpacket(bpk_t* Bpacket) {
 
     bpk_buffer_t packetBuffer;
-    bpacket_to_buffer(Bpacket, &packetBuffer);
+    bpk_to_buffer(Bpacket, &packetBuffer);
 
     if (sp_blocking_write(gbl_activePort, packetBuffer.buffer, packetBuffer.numBytes, 100) < 0) {
         return FALSE;
@@ -506,9 +621,9 @@ uint8_t ut_send_bpacket(bpk_packet_t* Bpacket) {
 
 void ut_create_and_send_bpacket(const bpk_request_t Request, const bpk_addr_receive_t Receiver,
                                 uint8_t numDataBytes, uint8_t* data) {
-    bpk_packet_t Bpacket;
-    if (bpk_create_packet(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute,
-                          numDataBytes, data) != TRUE) {
+    bpk_t Bpacket;
+    if (bpk_create(&Bpacket, Receiver, BPK_Addr_Send_Maple, Request, BPK_Code_Execute, numDataBytes,
+                   data) != TRUE) {
         log_error("Error %s %i. Code %i", __FILE__, __LINE__, Bpacket.ErrorCode.val);
         return;
     }
@@ -550,11 +665,11 @@ uint8_t ut_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
         sp_set_flowcontrol(gbl_activePort, SP_FLOWCONTROL_NONE);
 
         // Send a ping
-        bpk_packet_t Bpacket;
+        bpk_t Bpacket;
         bpk_buffer_t bpacketBuffer;
-        bpk_create_packet(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping,
-                          BPK_Code_Execute, 0, NULL);
-        bpacket_to_buffer(&Bpacket, &bpacketBuffer);
+        bpk_create(&Bpacket, receiver, BPK_Addr_Send_Maple, BPK_Request_Ping, BPK_Code_Execute, 0,
+                   NULL);
+        bpk_to_buffer(&Bpacket, &bpacketBuffer);
 
         if (sp_blocking_write(gbl_activePort, bpacketBuffer.buffer, bpacketBuffer.numBytes, 100) <
             0) {
@@ -566,7 +681,7 @@ uint8_t ut_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
         // Create a timeout of 2 seconds and look for response from ping
 
         clock_t startTime = clock();
-        bpk_packet_t PingBpacket;
+        bpk_t PingBpacket;
         while ((clock() - startTime) < 200) {
 
             // Wait for Bpacket to be received
@@ -609,8 +724,8 @@ DWORD WINAPI ut_listen_rx(void* arg) {
     uint8_t byteBuffer[8];
     bpk_utils_init_expected_byte_buffer(byteBuffer);
     cbuffer_init(&ByteBuffer, (void*)byteBuffer, sizeof(uint8_t), 8);
-    bpk_packet_t Bpacket = {0};
-    uint8_t bi           = 0;
+    bpk_t Bpacket = {0};
+    uint8_t bi    = 0;
 
     while (gbl_activePort == NULL) {}
 
@@ -657,11 +772,11 @@ DWORD WINAPI ut_listen_rx(void* arg) {
                 } else {
 
                     // Write bpacket to circular buffer
-                    cbuffer_write_element(&RxCbuffer, (void*)&Bpacket);
+                    cbuffer_append_element(&RxCbuffer, (void*)&Bpacket);
 
-                    log_success("Bpacket data received: %i %i %i %i %i\n", Bpacket.Receiver.val,
-                                Bpacket.Sender.val, Bpacket.Request.val, Bpacket.Code.val,
-                                Bpacket.Data.numBytes);
+                    // log_success("Bpacket data received: %i %i %i %i %i\n", Bpacket.Receiver.val,
+                    //             Bpacket.Sender.val, Bpacket.Request.val, Bpacket.Code.val,
+                    //             Bpacket.Data.numBytes);
                 }
 
                 break;
@@ -679,7 +794,7 @@ DWORD WINAPI ut_listen_rx(void* arg) {
                 }
 
                 // Write bpacket to circular buffer
-                cbuffer_write_element(&RxCbuffer, (void*)&Bpacket);
+                cbuffer_append_element(&RxCbuffer, (void*)&Bpacket);
 
                 // log_success("Bpacket no data received: %i %i %i %i %i\n", Bpacket.Receiver.val,
                 //             Bpacket.Sender.val, Bpacket.Request.val, Bpacket.Code.val,

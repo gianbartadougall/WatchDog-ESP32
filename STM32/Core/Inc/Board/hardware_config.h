@@ -66,7 +66,7 @@
 
 /********** Marcos for hardware related to the servo ***********/
 #define SERVO_PORT GPIOA
-#define SERVO_PIN  15
+#define SERVO_PIN  5
 
 #define SERVO_TIMER              TIM2
 #define SERVO_TIMER_CLK_ENABLE() __HAL_RCC_TIM2_CLK_ENABLE()
@@ -75,6 +75,12 @@
 #define SERVO_TIMER_IRQn         TIM2_IRQn
 #define SERVO_TIMER_ISR_PRIORITY TIM2_ISR_PRIORITY
 
+/***************************************************************/
+
+/********** Marcos for hardware related to USB C ***********/
+#define USBC_CONN_PORT GPIOA
+#define USBC_CONN_PIN  8
+#define USBC_CONN_IRQn EXTI9_5_IRQn
 /***************************************************************/
 
 /********** Marcos for UART Communication with ESP32 Cam ***********/

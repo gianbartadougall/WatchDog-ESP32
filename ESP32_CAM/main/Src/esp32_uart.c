@@ -24,10 +24,10 @@
     #define portTICK_RATE_MS portTICK_PERIOD_MS
 #endif
 
-void esp32_uart_send_bpacket(bpk_packet_t* Bpacket) {
+void esp32_uart_send_bpacket(bpk_t* Bpacket) {
 
     bpk_buffer_t bpacketBuffer;
-    bpacket_to_buffer(Bpacket, &bpacketBuffer);
+    bpk_to_buffer(Bpacket, &bpacketBuffer);
     uart_write_bytes(UART_NUM, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 }
 
@@ -37,7 +37,7 @@ void esp32_uart_send_data(uint8_t* data, uint16_t numBytes) {
 
 void esp32_uart_send_string(char* string) {
 
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
     Bpacket.Request       = BPK_Request_Message;
     Bpacket.Code          = BPK_Code_In_Progress;
     Bpacket.Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;

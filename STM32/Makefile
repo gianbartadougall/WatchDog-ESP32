@@ -46,14 +46,18 @@ Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.c \
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.c \
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ramfunc.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_exti.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma_ex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c \
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd_ex.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usb.c
+
+# Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.c \
+# Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.c \
 
 # Include Board files
 BOARD_SOURCES = \
@@ -62,7 +66,8 @@ Core/Src/Board/hardware_config.c
 # Include Interrupt files
 INTERRUPT_SOURCES = \
 Core/Src/Interrupts/stm32l4xx_it.c \
-Core/Src/Interrupts/interrupts.c 
+Core/Src/Interrupts/interrupts.c \
+Core/Src/Interrupts/exti_interrupts.c 
 
 # Include Utility files
 UTILITIY_SOURCES = \
@@ -75,6 +80,16 @@ Core/Src/board.c \
 Core/Src/watchdog.c \
 Core/Src/comms_stm32.c \
 Core/Src/watchdog_defines.c
+
+USB_SOURCES = \
+Drivers/USB/Src/usb_device.c \
+Drivers/USB/Src/usbd_cdc_if.c \
+Drivers/USB/Src/usbd_cdc.c \
+Drivers/USB/Src/usbd_conf.c \
+Drivers/USB/Src/usbd_core.c \
+Drivers/USB/Src/usbd_ctlreq.c \
+Drivers/USB/Src/usbd_desc.c \
+Drivers/USB/Src/usbd_ioreq.c
 
 LIBRARY_SOURCES = \
 Library/Src/Sensors/ds18b20.c \
@@ -93,6 +108,7 @@ C_SOURCES += $(INTERRUPT_SOURCES)
 C_SOURCES += $(UTILITIY_SOURCES)
 C_SOURCES += $(RANDOM_SOURCES)
 C_SOURCES += $(LIBRARY_SOURCES)
+C_SOURCES += $(USB_SOURCES)
 
 # ASM sources
 ASM_SOURCES = startup_stm32l432xx.s
@@ -162,7 +178,8 @@ C_INCLUDES =  \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include \
+-IDrivers/USB/Inc
 
 
 # compile gcc flags

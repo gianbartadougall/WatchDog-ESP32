@@ -147,7 +147,7 @@ uint8_t camera_set_resolution(uint8_t camRes) {
     return TRUE;
 }
 
-void camera_stream_image(bpk_packet_t* Bpacket) {
+void camera_stream_image(bpk_t* Bpacket) {
 
     camera_fb_t* image = NULL;
 
@@ -160,7 +160,7 @@ void camera_stream_image(bpk_packet_t* Bpacket) {
     // Image was able to be taken. Send image back to sender
     bpk_addr_receive_t Receiver = {.val = Bpacket->Sender.val};
     bpk_addr_send_t Sender      = {.val = Bpacket->Receiver.val};
-    if (bpacket_send_data(esp32_uart_send_data, Receiver, Sender, Bpacket->Request, image->buf, image->len) != TRUE) {
+    if (bpk_send_data(esp32_uart_send_data, Receiver, Sender, Bpacket->Request, image->buf, image->len) != TRUE) {
         bpk_create_string_response(Bpacket, BPK_Code_Error, "Failed to send image\r\n\0");
         esp32_uart_send_bpacket(Bpacket);
     }
@@ -169,7 +169,7 @@ void camera_stream_image(bpk_packet_t* Bpacket) {
     esp_camera_fb_return(image);
 }
 
-void camera_capture_and_save_image(bpk_packet_t* Bpacket) {
+void camera_capture_and_save_image(bpk_t* Bpacket) {
 
     // Confirm camera has been initialised
     if (cameraInitalised != TRUE) {
@@ -210,7 +210,7 @@ void camera_capture_and_save_image(bpk_packet_t* Bpacket) {
 }
 
 uint8_t camera_capture_image(camera_fb_t** image) {
-    bpk_packet_t Bpacket;
+    bpk_t Bpacket;
 
     // Initialise the camera
     if (camera_init() != TRUE) {

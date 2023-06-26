@@ -21,7 +21,7 @@ uint8_t com_ports_open_connection(const bpk_addr_receive_t RAddress, uint8_t pin
 
 uint8_t com_ports_close_connection(void);
 
-uint8_t com_ports_send_bpacket(bpk_packet_t* Bpacket);
+uint8_t com_ports_send_bpacket(bpk_t* Bpacket);
 
 int com_ports_read(void* buf, size_t count, unsigned int timeout_ms);
 

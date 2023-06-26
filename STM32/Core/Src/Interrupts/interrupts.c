@@ -27,7 +27,7 @@ void USART1_IRQHandler(void) {
         // log_send_data(&c, 1);
         // log_message("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
-        comms_add_to_buffer(BUFFER_1_ID, (uint8_t)c);
+        uart_append_to_buffer(BUFFER_1_ID, (uint8_t)c);
     }
 
     if ((USART1->ISR & USART_ISR_PE) != 0) {
@@ -47,8 +47,8 @@ void USART2_IRQHandler(void) {
         char c = USART2->RDR;
 
         // Copy bit into buffer. Reading RDR automatically clears flag
-        // comms_add_to_buffer(USART2, c);
-        comms_add_to_buffer(BUFFER_2_ID, (uint8_t)c);
+        // uart_append_to_buffer(USART2, c);
+        uart_append_to_buffer(BUFFER_2_ID, (uint8_t)c);
         return;
     }
 
@@ -75,10 +75,6 @@ void USART2_IRQHandler(void) {
         log_error("USART 2 Idle error\r\n");
         return;
     }
-
-    char msg[50];
-    sprintf(msg, "%lx\r\n", USART2->ISR);
-    log_message(msg);
 }
 
 void RTC_Alarm_IRQHandler(void) {
@@ -105,8 +101,20 @@ void RTC_Alarm_IRQHandler(void) {
         log_message("Alarm B triggered\r\n");
         return;
     }
-
-    char m[30];
-    sprintf(m, "%li\r\n", STM32_RTC->ISR);
-    log_message(m);
 }
+
+/* USB CODE THAT I DO NOT FULLY UNDERSTAND */
+
+// extern PCD_HandleTypeDef hpcd_USB_FS;
+// /**
+//  * @brief This function handles USB event interrupt through EXTI line 17.
+//  */
+// void USB_IRQHandler(void) {
+//     /* USER CODE BEGIN USB_IRQn 0 */
+
+//     /* USER CODE END USB_IRQn 0 */
+//     HAL_PCD_IRQHandler(&hpcd_USB_FS);
+//     /* USER CODE BEGIN USB_IRQn 1 */
+
+//     /* USER CODE END USB_IRQn 1 */
+// }

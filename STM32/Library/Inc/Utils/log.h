@@ -81,7 +81,7 @@ void log_warning(const char* format, ...);
  */
 void log_message(const char* format, ...);
 
-void log_data(uint8_t* data, uint8_t length);
+void log_bytes(uint8_t* data, uint8_t length);
 
 /**
  * @brief Clears the console

@@ -51,7 +51,7 @@
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_create_path(char* folderPath, bpk_packet_t* Bpacket);
+uint8_t sd_card_create_path(char* folderPath, bpk_t* Bpacket);
 
 /**
  * @brief Lists all folders and files in a given directory
@@ -64,7 +64,7 @@ uint8_t sd_card_create_path(char* folderPath, bpk_packet_t* Bpacket);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_list_directory(bpk_packet_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
+uint8_t sd_card_list_directory(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
 
 /**
  * @brief Appends a string to the given file
@@ -78,7 +78,7 @@ uint8_t sd_card_list_directory(bpk_packet_t* Bpacket, bpacket_char_array_t* bpac
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_packet_t* Bpacket);
+uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_t* Bpacket);
 
 /**
  * @brief Saves an image to the SD card
@@ -91,7 +91,7 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_packet_t* Bpacke
  * may contain information about why it failed
  * @return uint8_t uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpk_packet_t* Bpacket);
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpk_t* Bpacket);
 
 /**
  * @brief Finds all the images saved on the SD card in the image data folder and
@@ -105,7 +105,7 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpk_packet_t* Bp
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_search_num_images(uint16_t* numImages, bpk_packet_t* Bpacket);
+uint8_t sd_card_search_num_images(uint16_t* numImages, bpk_t* Bpacket);
 
 /**
  * @brief Searches the SD card for all the images on the card and updates the
@@ -117,13 +117,13 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, bpk_packet_t* Bpacket);
  * may contain information about why it failed
  * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_init(bpk_packet_t* Bpacket);
+uint8_t sd_card_init(bpk_t* Bpacket);
 
 uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings);
 
-uint8_t sd_card_format_sd_card(bpk_packet_t* Bpacket);
+uint8_t sd_card_format_sd_card(bpk_t* Bpacket);
 
-void sd_card_copy_file(bpk_packet_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
+void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
 
 /**
  * @brief Mounts the SD Card for reading and writing
@@ -137,9 +137,9 @@ uint8_t sd_card_open(void);
  */
 void sd_card_close(void);
 
-uint8_t sd_card_write_settings(bpk_packet_t* Bpacket);
+uint8_t sd_card_write_settings(bpk_t* Bpacket);
 
-uint8_t sd_card_read_settings(bpk_packet_t* Bpacket);
+uint8_t sd_card_read_settings(bpk_t* Bpacket);
 
 /**
  * @brief Mounts the SD card and writes a message to a given log file. If the

@@ -12,6 +12,10 @@
 /* C Library Includes */
 #include <stdio.h>
 
+/* STM32 Includes */
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+
 /* Personal Includes */
 #include "watchdog.h"
 #include "ds18b20.h"
@@ -115,8 +119,8 @@ void watchdog_init(void) {
     log_clear();
 
     // Initialise all the peripherals
-    ds18b20_init();     // Temperature sensor
-    comms_stm32_init(); // Bpacket communications between Maple and EPS32
+    ds18b20_init(); // Temperature sensor
+    uart_init();    // Bpacket communications between Maple and EPS32
 
     // Set the datetime to 12am 1 January 2023
     datetime.Date.year   = 23;
@@ -168,7 +172,7 @@ void watchdog_enter_state_machine(void) {
                 // TODO: Set the alarm on the RTC
 
                 // Check if there were any requests
-                if (comms_stm32_request_pending(MAPLE_UART) == TRUE) {
+                if (uart_buffer_not_empty(MAPLE_UART) == TRUE) {
                     state = S7_EXECUTE_REQUEST;
                 } else {
                     state = S3_STM32_SLEEP;
@@ -184,8 +188,7 @@ void watchdog_enter_state_machine(void) {
 
                 // TODO: Set stm32 to sleep
 
-                if ((comms_stm32_request_pending(MAPLE_UART) == TRUE) ||
-                    (comms_stm32_request_pending(ESP32_UART) == TRUE)) {
+                if ((uart_buffer_not_empty(MAPLE_UART) == TRUE) || (uart_buffer_not_empty(ESP32_UART) == TRUE)) {
                     state    = S7_EXECUTE_REQUEST;
                     sleeping = FALSE;
                     // watchdog_message_maple("Waking up\r\n", BPK_Code_Debug);
@@ -213,7 +216,7 @@ void watchdog_enter_state_machine(void) {
             case S6_CHECK_INCOMING_REQUEST:
                 // watchdog_message_maple("Checking incoming requests\r\n", BPK_Code_Debug);
 
-                if (comms_stm32_request_pending(MAPLE_UART) == TRUE) {
+                if (uart_buffer_not_empty(MAPLE_UART) == TRUE) {
                     state = S7_EXECUTE_REQUEST;
                 } else {
                     state = S3_STM32_SLEEP;
@@ -234,7 +237,7 @@ void watchdog_enter_state_machine(void) {
 
                     // Process anything Maple sends to the STM32
                     bpk_t bpacket1, bpacket2;
-                    if (comms_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
+                    if (uart_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
                         // log_message("Bpacket: %i %i %i %i %i %i\r\n", bpacket1.Receiver.val, bpacket1.Sender.val,
                         //             bpacket1.Request.val, bpacket1.Code.val, bpacket1.Data.numBytes,
                         //             bpacket1.Data.bytes[0]);
@@ -249,7 +252,7 @@ void watchdog_enter_state_machine(void) {
                     }
 
                     // Process anything the ESP32 sends to Maple
-                    if (comms_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
+                    if (uart_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
                         // watchdog_message_maple("Got request from ESP32\r\n", BPK_Code_Debug);
                         if (stm32_match_esp32_request(&bpacket2) != TRUE) {
                             process_watchdog_stm32_request(&bpacket2);
@@ -282,8 +285,7 @@ void watchdog_enter_state_machine(void) {
                     }
 
                     // Continue waiting if there is no request from ESP32 or Maple
-                    if ((comms_stm32_request_pending(MAPLE_UART) != TRUE) &&
-                        (comms_stm32_request_pending(ESP32_UART) != TRUE)) {
+                    if ((uart_buffer_not_empty(MAPLE_UART) != TRUE) && (uart_buffer_not_empty(ESP32_UART) != TRUE)) {
                         continue;
                     }
 
@@ -314,7 +316,7 @@ void watchdog_report_success(const bpk_request_t Request) {
     bpk_buffer_t packetBuffer;
     bpk_to_buffer(&Bpacket, &packetBuffer);
 
-    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+    uart_write(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_create_and_send_bpacket_to_maple(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
@@ -323,7 +325,7 @@ void watchdog_create_and_send_bpacket_to_maple(const bpk_request_t Request, cons
     bpk_buffer_t packetBuffer;
     bpk_create(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
     bpk_to_buffer(&Bpacket, &packetBuffer);
-    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+    uart_write(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_create_and_send_bpacket_to_esp32(const bpk_request_t Request, const bpk_code_t Code, uint8_t numBytes,
@@ -332,7 +334,7 @@ void watchdog_create_and_send_bpacket_to_esp32(const bpk_request_t Request, cons
     bpk_buffer_t packetBuffer;
     bpk_create(&Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, Request, Code, numBytes, data);
     bpk_to_buffer(&Bpacket, &packetBuffer);
-    comms_transmit(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
+    uart_write(ESP32_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_message_maple(char* string, bpk_code_t Code) {
@@ -355,13 +357,13 @@ void watchdog_message_maple(char* string, bpk_code_t Code) {
     }
 
     bpk_to_buffer(&Bpacket, &packetBuffer);
-    comms_transmit(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
+    uart_write(MAPLE_UART, packetBuffer.buffer, packetBuffer.numBytes);
 }
 
 void watchdog_send_bpacket_to_esp32(bpk_t* Bpacket) {
     bpk_buffer_t bpacketBuffer;
     bpk_to_buffer(Bpacket, &bpacketBuffer);
-    comms_transmit(ESP32_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+    uart_write(ESP32_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 }
 
 void process_watchdog_stm32_request(bpk_t* Bpacket) {
@@ -601,7 +603,7 @@ uint8_t stm32_match_maple_request(bpk_t* Bpacket) {
                                        BPK_Code_Success, &datetime) == TRUE) {
 
                 bpk_to_buffer(Bpacket, &bpacketBuffer);
-                comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+                uart_write(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
             } else {
                 watchdog_message_maple("Failed to convert datetime to Bpacket\0", BPK_Code_Error);
             }
@@ -647,7 +649,7 @@ uint8_t stm32_match_maple_request(bpk_t* Bpacket) {
             bpk_create_sp(&statusBpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Status,
                           BPK_Code_Success, message);
             bpk_to_buffer(&statusBpacket, &bpacketBuffer);
-            comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+            uart_write(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
             break;
 
@@ -677,7 +679,7 @@ uint8_t stm32_match_maple_request(bpk_t* Bpacket) {
 
             // Send the Bpacket to maple
             bpk_to_buffer(&settingsPacket, &bpacketBuffer);
-            comms_transmit(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
+            uart_write(MAPLE_UART, bpacketBuffer.buffer, bpacketBuffer.numBytes);
 
             break;
 
@@ -786,7 +788,7 @@ void watchdog_esp32_on(void) {
     HAL_Delay(1500);
 
     // Reopen the ESP32 uart connection
-    comms_open_connection(ESP32_UART);
+    uart_open_connection(ESP32_UART);
 
     // Ping the ESP32 to ensure it's communicating
     uint8_t pingCode = WATCHDOG_PING_CODE_ESP32;

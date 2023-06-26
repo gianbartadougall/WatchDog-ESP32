@@ -16,105 +16,93 @@
 #include "log.h"
 #include "chars.h"
 
-#define LOG_MAX_MESSAGE_SIZE 160
+char msg[160];
 
 /* Function Prototypes */
 
-int (*transmit_message)(const char* message, ...)    = NULL;
-void (*transmit_data)(uint8_t* data, uint8_t length) = NULL;
+int (*func_write_chars)(const char* message, ...)    = NULL;
+void (*func_write_u8)(uint8_t* data, uint8_t length) = NULL;
 
-void log_init(int (*func)(const char* message, ...), void (*bfunc)(uint8_t* data, uint8_t length)) {
-    transmit_message = func;
-    transmit_data    = bfunc;
+void log_init(int (*char_func)(const char* message, ...), void (*u8_func)(uint8_t* data, uint8_t length)) {
+    func_write_chars = char_func;
+    func_write_u8    = u8_func;
 }
 
 void log_error(const char* format, ...) {
 
-    if (transmit_message == NULL) {
+    if (func_write_chars == NULL) {
         return;
     }
-
-    // Limit of 160 characters per print
-    char msg[LOG_MAX_MESSAGE_SIZE];
 
     va_list args;
     va_start(args, format);
     vsprintf(msg, format, args);
     va_end(args);
 
-    transmit_message(ASCII_COLOR_RED);
-    transmit_message(msg);
-    transmit_message(ASCII_COLOR_WHITE);
+    func_write_chars(ASCII_COLOR_RED);
+    func_write_chars(msg);
+    func_write_chars(ASCII_COLOR_WHITE);
 }
 
 void log_message(const char* format, ...) {
 
-    if (transmit_message == NULL) {
+    if (func_write_chars == NULL) {
         return;
     }
-
-    // Limit of 160 characters per print
-    char msg[LOG_MAX_MESSAGE_SIZE];
 
     va_list args;
     va_start(args, format);
     vsprintf(msg, format, args);
     va_end(args);
 
-    transmit_message(ASCII_COLOR_WHITE);
-    transmit_message(msg);
-    transmit_message(ASCII_COLOR_WHITE);
+    func_write_chars(ASCII_COLOR_WHITE);
+    func_write_chars(msg);
+    func_write_chars(ASCII_COLOR_WHITE);
 }
 
 void log_warning(const char* format, ...) {
 
-    if (transmit_message == NULL) {
+    if (func_write_chars == NULL) {
         return;
     }
-
-    // Limit of 160 characters per print
-    char msg[LOG_MAX_MESSAGE_SIZE];
 
     va_list args;
     va_start(args, format);
     vsprintf(msg, format, args);
     va_end(args);
 
-    transmit_message(ASCII_COLOR_MAGENTA);
-    transmit_message(msg);
-    transmit_message(ASCII_COLOR_WHITE);
+    func_write_chars(ASCII_COLOR_MAGENTA);
+    func_write_chars(msg);
+    func_write_chars(ASCII_COLOR_WHITE);
 }
 
 void log_success(const char* format, ...) {
 
-    if (transmit_message == NULL) {
+    if (func_write_chars == NULL) {
         return;
     }
-
-    // Limit of 160 characters per print
-    char msg[LOG_MAX_MESSAGE_SIZE];
 
     va_list args;
     va_start(args, format);
     vsprintf(msg, format, args);
     va_end(args);
 
-    transmit_message(ASCII_COLOR_GREEN);
-    transmit_message(msg);
-    transmit_message(ASCII_COLOR_WHITE);
+    func_write_chars(ASCII_COLOR_GREEN);
+    func_write_chars(msg);
+    func_write_chars(ASCII_COLOR_WHITE);
 }
 
-void log_data(uint8_t* data, uint8_t length) {
-    if (transmit_data == NULL) {
+void log_bytes(uint8_t* data, uint8_t length) {
+
+    if (func_write_u8 == NULL) {
         return;
     }
 
-    transmit_message(ASCII_COLOR_WHITE);
-    transmit_data(data, length);
-    transmit_message(ASCII_COLOR_WHITE);
+    func_write_chars(ASCII_COLOR_WHITE);
+    func_write_u8(data, length);
 }
 
 void log_clear(void) {
     // Prints ANSI escape codes that will clear the terminal screen
-    transmit_message(ASCII_CLEAR_SCREEN);
+    func_write_chars(ASCII_CLEAR_SCREEN);
 }

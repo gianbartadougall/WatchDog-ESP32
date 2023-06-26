@@ -41,7 +41,7 @@ void comms_send_data(USART_TypeDef* uart, char* msg, uint8_t sendNull);
  */
 int comms_read_data(USART_TypeDef* uart, char msg[RX_BUF_SIZE], uint32_t timeout);
 
-void comms_add_to_buffer(USART_TypeDef* usart, char c);
+void uart_append_to_buffer(USART_TypeDef* usart, char c);
 
 void comms_usart1_print_buffer(void);
 

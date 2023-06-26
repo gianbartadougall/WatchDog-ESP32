@@ -14,7 +14,7 @@
 /* Personal Includes */
 #include "bpacket.h"
 
-void esp32_uart_send_bpacket(bpk_packet_t* Bpacket);
+void esp32_uart_send_bpacket(bpk_t* Bpacket);
 
 void esp32_uart_send_data(uint8_t* data, uint16_t numBytes);
 

@@ -13,7 +13,7 @@
 void hardware_config_leds(void);
 void hardware_config_uart_comms(void);
 
-uint8_t hardware_config(bpk_packet_t* Bpacket) {
+uint8_t hardware_config(bpk_t* Bpacket) {
 
     /* Configure all the required hardware */
 

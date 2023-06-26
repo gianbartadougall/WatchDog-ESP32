@@ -26,7 +26,7 @@
 
 uint8_t camera_init(void);
 
-void camera_capture_and_save_image(bpk_packet_t* Bpacket);
+void camera_capture_and_save_image(bpk_t* Bpacket);
 
 uint8_t camera_get_resolution(void);
 
@@ -34,6 +34,6 @@ uint8_t camera_get_resolution(void);
 // the FRAMESIZE_SETTINGS, the settings are QVGA, CIF, VGA, SVGA, XGA, SXGA, UXGA, WQXGA
 uint8_t camera_set_resolution(uint8_t cam_res);
 
-void camera_stream_image(bpk_packet_t* Bpacket);
+void camera_stream_image(bpk_t* Bpacket);
 
 #endif // CAMERA_H

@@ -1,5 +1,5 @@
 /**
- * @file log_log.c
+ * @file log_usb_log.c
  * @author Gian Barta-Dougall
  * @brief Library for logging
  * @version 0.1
@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef LOG_H
-#define LOG_H
+#ifndef LOG_USB_H
+#define LOG_USB_H
 
 /* Public Includes */
 #include <stdint.h>
@@ -39,53 +39,41 @@
 
 #define ASCII_CLEAR_SCREEN "\033[2J\033[H"
 
-#define LOG_ERROR() (log_error("Err %s line %i\n", __FILE__, __LINE__))
-
-/**
- * @brief Stores the handle to the function that does
- * the actual transmitting of the message to the console.
- * This keeps log hardware agnostic i.e you can use it on
- * an STM32 and you can use it on a computer without having
- * to change anything
- *
- * @param func The function that will send the message to
- * the console
- */
-void log_init(int (*func)(const char* message, ...), void (*bfunc)(uint8_t* data, uint16_t length));
+#define LOG_USB_ERROR() (log_usb_error("Err %s line %i\n", __FILE__, __LINE__))
 
 /**
  * @brief Writes data to console in red
  *
  * @param msg The message to write to the console
  */
-void log_error(const char* format, ...);
+void log_usb_error(const char* format, ...);
 
 /**
  * @brief Writes data to console in green
  *
  * @param msg The message to write to the console
  */
-void log_success(const char* format, ...);
+void log_usb_success(const char* format, ...);
 
 /**
  * @brief Writes data to console in magenta
  *
  * @param msg The message to write to the console
  */
-void log_warning(const char* format, ...);
+void log_usb_warning(const char* format, ...);
 
 /**
  * @brief Writes data to console in white
  *
  * @param msg The message to write to the console
  */
-void log_message(const char* format, ...);
+void log_usb_message(const char* format, ...);
 
-void log_bytes(uint8_t* data, uint16_t length);
+void log_usb_bytes(uint8_t* data, uint16_t length);
 
 /**
  * @brief Clears the console
  */
-void log_clear(void);
+void log_usb_clear(void);
 
-#endif // LOG_H
+#endif // LOG_USB_H

@@ -90,7 +90,7 @@ void RTC_Alarm_IRQHandler(void) {
         STM32_RTC->ISR &= ~(RTC_ISR_ALRAF);
 
         // Increment the alarm time
-        watchdog_rtc_alarm_triggered();
+        // watchdog_rtc_alarm_triggered();
 
         return;
     }

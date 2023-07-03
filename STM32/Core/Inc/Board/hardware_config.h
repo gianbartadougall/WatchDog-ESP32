@@ -12,10 +12,13 @@
 #ifndef HARDWARE_CONFIG_H
 #define HARDWARE_CONFIG_H
 
-/* Public Includes */
+/* C Library Includes */
 
-/* Public STM Includes */
+/* STM32 Includes */
 #include "stm32l4xx_hal.h"
+
+/* Personal Includes */
+#include "utils.h"
 
 /* Public #defines */
 
@@ -34,8 +37,10 @@
 
 /********** Marcos for hardware related to the LEDs **********/
 
-#define LED_GREEN_PORT GPIOB
-#define LED_GREEN_PIN  3
+#define LED_GREEN_PORT GPIOA
+#define LED_GREEN_PIN  4
+#define LED_RED_PORT   GPIOA
+#define LED_RED_PIN    3
 
 /*************************************************************/
 
@@ -122,6 +127,15 @@
 #define STM32_RTC_TIMER_FREQUENCY 1 // 1 Hz frequency for the RTC
 #define STM32_RTC_CLK_EN()        __HAL_RCC_TSC_CLK_ENABLE()
 /********************************************************************/
+
+/********* Macros for hardware related to the task scheduler *********/
+#define TS_TIMER              TIM15
+#define TS_TIMER_MAX_COUNT    UINT_16_BIT_MAX_VALUE
+#define TS_TIMER_CLK_ENABLE() __HAL_RCC_TIM15_CLK_ENABLE()
+#define TS_TIMER_FREQUENCY    TIMER_FREQUENCY_1KHz
+#define TS_TIMER_IRQn         TIM1_BRK_TIM15_IRQn
+#define TS_TIMER_ISR_PRIORITY TIM15_ISR_PRIORITY
+/*********************************************************************/
 
 /* Public Structures and Enumerations */
 

@@ -20,10 +20,10 @@ char msg[160];
 
 /* Function Prototypes */
 
-int (*func_write_chars)(const char* message, ...)    = NULL;
-void (*func_write_u8)(uint8_t* data, uint8_t length) = NULL;
+int (*func_write_chars)(const char* message, ...)     = NULL;
+void (*func_write_u8)(uint8_t* data, uint16_t length) = NULL;
 
-void log_init(int (*char_func)(const char* message, ...), void (*u8_func)(uint8_t* data, uint8_t length)) {
+void log_init(int (*char_func)(const char* message, ...), void (*u8_func)(uint8_t* data, uint16_t length)) {
     func_write_chars = char_func;
     func_write_u8    = u8_func;
 }
@@ -92,7 +92,7 @@ void log_success(const char* format, ...) {
     func_write_chars(ASCII_COLOR_WHITE);
 }
 
-void log_bytes(uint8_t* data, uint8_t length) {
+void log_bytes(uint8_t* data, uint16_t length) {
 
     if (func_write_u8 == NULL) {
         return;

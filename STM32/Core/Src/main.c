@@ -142,29 +142,7 @@ void usb_rx_handler(uint8_t* buffer, uint32_t length) {
     CDC_Transmit_FS((uint8_t*)list, listLen);
 }
 
-/**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
-
-    // Reset all peripherals, initialise the flash interface and the systick
-    HAL_Init();
-    SystemClock_Config();
-
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    hardware_config_init();
-
-    // Initialise hardware
-    // watchdog_init();
-    log_init(uart_transmit_string, NULL);
-    log_clear();
-    // watchdog_enter_state_machine();
-
-    // Sleep mode testing
+void main_sleep_test(void) {
 
     while (1) {
 
@@ -183,21 +161,22 @@ int main(void) {
 
         HAL_ResumeTick();
         log_message("Exiting sleep mode\r\n");
-
-        // GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
-        // HAL_Delay(1000);
-        // GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
-        // HAL_Delay(1000);
-
-        // // Enter Stop Mode 2
-        // HAL_SuspendTick();
-        // HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFE);
-
-        // HAL_ResumeTick();
-        // // Reinit everything
-        // hardware_config_init();
-        // log_message("Exiting stop mode 1\r\n");
     }
+}
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+
+    // Reset all peripherals, initialise the flash interface and the systick
+    HAL_Init();
+    SystemClock_Config();
+
+    wd_start();
+
+    while (1) {}
 
     return 0;
 }

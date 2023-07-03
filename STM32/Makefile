@@ -67,7 +67,8 @@ Core/Src/Board/hardware_config.c
 INTERRUPT_SOURCES = \
 Core/Src/Interrupts/stm32l4xx_it.c \
 Core/Src/Interrupts/interrupts.c \
-Core/Src/Interrupts/exti_interrupts.c 
+Core/Src/Interrupts/exti_interrupts.c \
+Core/Src/Interrupts/timer_interrupts.c 
 
 # Include Utility files
 UTILITIY_SOURCES = \
@@ -76,7 +77,6 @@ Core/Src/Utilities/stm32_rtc.c \
 RANDOM_SOURCES = \
 Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
-Core/Src/board.c \
 Core/Src/watchdog.c \
 Core/Src/comms_stm32.c \
 Core/Src/watchdog_defines.c
@@ -99,7 +99,10 @@ Library/Src/Communications/stm32_uart.c \
 Library/Src/DataTypes/chars.c \
 Library/Src/Utils/datetime.c \
 Library/Src/Utils/log.c \
+Library/Src/Utils/log_usb.c \
 Library/Src/Utils/cbuffer.c \
+Library/Src/Utils/event_group.c \
+Library/Src/Utils/task_scheduler.c \
 Library/Src/Peripherals/stm32_flash.c
 
 # Add driver libraries to C sources

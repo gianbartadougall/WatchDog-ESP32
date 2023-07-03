@@ -3,7 +3,7 @@
  * @author Gian Barta-Dougall ()
  * @brief
  * @version 0.1
- * @date 2023-02-10
+ * @date 2023-07-2
  *
  * @copyright Copyright (c) 2023
  *
@@ -12,12 +12,16 @@
 #ifndef WATCHDOG_H
 #define WATCHDOG_H
 
-void watchdog_update(void);
+/* C Library Includes */
 
-void watchdog_init(void);
+/* STM32 Library Includes */
 
-void watchdog_enter_state_machine(void);
+/* Personal Includes */
+#include "event_group.h"
 
-void watchdog_rtc_alarm_triggered(void);
+/* Public Variables */
+extern EventGroup_t gbl_EventsStm, gbl_EventsEsp;
+
+void wd_start(void);
 
 #endif // WATCHDOG_H

@@ -12,7 +12,6 @@
 
 /* Personal Includes */
 #include "hardware_config.h"
-#include "board.h"
 #include "log.h"
 #include "gpio.h"
 
@@ -56,7 +55,7 @@ void hardware_config_init(void) {
     hardware_config_gpio_init();
 
     // Initialise all timers
-    // hardware_config_timer_init();
+    hardware_config_timer_init();
 
     // Initialise stm32 peripherals such as
     // internal rtc and comparators
@@ -124,15 +123,16 @@ void hardware_config_gpio_init(void) {
     // Enable clocks for GPIO port A and B
     RCC->AHB2ENR |= 0x03;
 
-    /* Setup GPIO for LED */
+    /* Setup GPIO for LEDs */
     GPIO_SET_MODE_OUTPUT(LED_GREEN_PORT, LED_GREEN_PIN);
+    GPIO_SET_MODE_OUTPUT(LED_RED_PORT, LED_RED_PIN);
 
     /* Setup GPIO for ESP32 Power */
-    GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
+    // GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
     /****** START CODE BLOCK ******/
     // Description: Configure servo
-    GPIO_SET_MODE_ALTERNATE_FUNCTION(SERVO_PORT, SERVO_PIN, AF1);
+    // GPIO_SET_MODE_ALTERNATE_FUNCTION(SERVO_PORT, SERVO_PIN, AF1);
     // SERVO_PORT->AFR[0] &= ~(0x03 << ((SERVO_PIN % 8) * 4));
     // SERVO_PORT->AFR[0] |= (0x01 << ((SERVO_PIN % 8) * 4));
 
@@ -140,21 +140,21 @@ void hardware_config_gpio_init(void) {
 
     /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
-    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
-    GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
-    GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
-    GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
+    // GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    // GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
+    // GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
+    // GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
     // Description: Configure the USB C Connection GPIO pin
-    GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
-    SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
-    EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN);
-    EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN);
-    EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);
-    HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
+    // GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
+    // SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
+    // EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN);
+    // EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN);
+    // EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);
+    // HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
+    // HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
@@ -270,6 +270,29 @@ void hardware_config_timer_init(void) {
     /* Enable interrupt handler */
     // HAL_NVIC_SetPriority(HC_TS_TIMER_IRQn, HC_TS_TIMER_ISR_PRIORITY, 0);
     // HAL_NVIC_EnableIRQ(HC_TS_TIMER_IRQn);
+
+    /* If the system clock is too high, this timer will count too quickly and the timer
+    will reach its maximum count and reset before the timer count reaches the number
+    of ticks required to operate at the specified frequency. Lower system clock or
+    increase the timer frequency if you get this error. E.g: System clock = 1Mhz and
+    timer frequnecy = 1Hz => timer should reset after 1 million ticks to get a frequnecy
+    of 1Hz but the max count < 1 million thus 1Hz can never be reached */
+#if ((SYSTEM_CLOCK_CORE / TS_TIMER_FREQUENCY) > TS_TIMER_MAX_COUNT)
+#    error System clock frequency is too high to generate the required timer frequnecy
+#endif
+
+    /* Configure timer for task scheduler*/
+    TS_TIMER_CLK_ENABLE();                                      // Enable the clock
+    TS_TIMER->CR1 &= ~(TIM_CR1_CEN);                            // Disable counter
+    TS_TIMER->PSC = (SystemCoreClock / TS_TIMER_FREQUENCY) - 1; // Set timer frequency
+    TS_TIMER->ARR = TS_TIMER_MAX_COUNT;                         // Set maximum count for timer
+    TS_TIMER->CNT = 0;                                          // Reset count to 0
+    TS_TIMER->DIER &= 0x00;                                     // Disable all interrupts by default
+    TS_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);      // Set CH1 capture compare to mode to frozen
+
+    /* Enable interrupt handler */
+    HAL_NVIC_SetPriority(TS_TIMER_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(TS_TIMER_IRQn);
 }
 
 void hardware_config_uart_init(void) {
@@ -316,19 +339,8 @@ void hardware_config_uart_wakeup(void) {
 
 void hardware_error_handler(void) {
 
-    // Initialise onboad LED incase it hasn't been initialised
-    board_init();
-
     // Initialisation error shown by blinking LED (LD3) in pattern
-    while (1) {
-
-        for (int i = 0; i < 5; i++) {
-            brd_led_toggle();
-            HAL_Delay(100);
-        }
-
-        HAL_Delay(500);
-    }
+    while (1) {}
 }
 
 void hardware_power_tests(void) {

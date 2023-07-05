@@ -733,7 +733,7 @@ DWORD WINAPI ut_listen_rx(void* arg) {
 
         // Read the current index of the byte buffer and store the result into
         // expected byte
-        cbuffer_read_current_byte(&ByteBuffer, (void*)&expectedByte);
+        cbuffer_read_current_element(&ByteBuffer, (void*)&expectedByte);
 
         switch (expectedByte) {
 

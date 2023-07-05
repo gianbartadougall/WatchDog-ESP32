@@ -65,7 +65,7 @@ void uart_append_to_buffer(uint8_t bufferId, uint8_t byte) {
     cbuffer_append_element(&rxBuffersNew[bufferId], (void*)(&byte));
 }
 
-uint8_t uart_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
+uint8_t uart_read_bpacket(uint8_t bufferId, bpk_t* Bpacket) {
 
     uint8_t byte, expectedByte;
 
@@ -73,7 +73,7 @@ uint8_t uart_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket) {
 
         // Read the current index of the byte buffer and store the result into
         // expected byte
-        cbuffer_read_current_byte(&ByteBuffer[bufferId], (void*)(&expectedByte));
+        cbuffer_read_current_element(&ByteBuffer[bufferId], (void*)(&expectedByte));
 
         switch (expectedByte) {
 

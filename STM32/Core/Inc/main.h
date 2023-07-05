@@ -22,6 +22,5 @@
 #define LD3_Pin       GPIO_PIN_3
 #define LD3_GPIO_Port GPIOB
 void error_handler(void);
-void usb_rx_handler(uint8_t* buffer, uint32_t length);
 
 #endif // MAIN_H

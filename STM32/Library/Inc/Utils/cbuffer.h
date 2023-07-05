@@ -25,7 +25,7 @@ void cbuffer_increment_write_index(cbuffer_t* Cbuffer);
 
 uint8_t cbuffer_read_next_element(cbuffer_t* Cbuffer, void* element);
 
-void cbuffer_read_current_byte(cbuffer_t* Cbuffer, void* element);
+void cbuffer_read_current_element(cbuffer_t* Cbuffer, void* element);
 
 void cbuffer_append_element(cbuffer_t* Cbuffer, void* element);
 

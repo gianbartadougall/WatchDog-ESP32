@@ -36,16 +36,16 @@ typedef struct ts_recipe_t {
     uint32_t executeOnCount;
 } ts_recipe_t;
 
-void ts_init(void);
+void task_scheduler_init(void);
 
-uint8_t ts_add_recipe(ts_recipe_t* Recipe);
+uint8_t task_scheduler_add_recipe(ts_recipe_t* Recipe);
 
-uint8_t ts_recipe_is_running(ts_recipe_t* Recipe);
+uint8_t task_scheduler_recipe_is_running(ts_recipe_t* Recipe);
 
-void ts_isr(void);
+void task_scheduler_isr(void);
 
-void ts_cancel_recipe(ts_recipe_t* Recipe);
+void task_scheduler_cancel_recipe(ts_recipe_t* Recipe);
 
-void ts_capture_state(void);
+void task_scheduler_capture_state(void);
 
 #endif // TASK_SCHEDULER_H

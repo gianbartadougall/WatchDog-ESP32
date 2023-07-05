@@ -237,7 +237,7 @@ void watchdog_enter_state_machine(void) {
 
                     // Process anything Maple sends to the STM32
                     bpk_t bpacket1, bpacket2;
-                    if (uart_process_rxbuffer(BUFFER_2_ID, &bpacket1) == TRUE) {
+                    if (uart_read_bpacket(BUFFER_2_ID, &bpacket1) == TRUE) {
                         // log_message("Bpacket: %i %i %i %i %i %i\r\n", bpacket1.Receiver.val, bpacket1.Sender.val,
                         //             bpacket1.Request.val, bpacket1.Code.val, bpacket1.Data.numBytes,
                         //             bpacket1.Data.bytes[0]);
@@ -252,7 +252,7 @@ void watchdog_enter_state_machine(void) {
                     }
 
                     // Process anything the ESP32 sends to Maple
-                    if (uart_process_rxbuffer(BUFFER_1_ID, &bpacket2) == TRUE) {
+                    if (uart_read_bpacket(BUFFER_1_ID, &bpacket2) == TRUE) {
                         // watchdog_message_maple("Got request from ESP32\r\n", BPK_Code_Debug);
                         if (stm32_match_esp32_request(&bpacket2) != TRUE) {
                             process_watchdog_stm32_request(&bpacket2);

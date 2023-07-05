@@ -54,10 +54,9 @@ Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd_ex.c \
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usb.c
-
-# Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.c \
-# Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usb.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.c
 
 # Include Board files
 BOARD_SOURCES = \
@@ -95,6 +94,7 @@ LIBRARY_SOURCES = \
 Library/Src/Sensors/ds18b20.c \
 Library/Src/Communications/bpacket.c \
 Library/Src/Communications/bpacket_utils.c \
+Library/Src/Communications/bpacket_usb.c \
 Library/Src/Communications/stm32_uart.c \
 Library/Src/DataTypes/chars.c \
 Library/Src/Utils/datetime.c \
@@ -103,7 +103,8 @@ Library/Src/Utils/log_usb.c \
 Library/Src/Utils/cbuffer.c \
 Library/Src/Utils/event_group.c \
 Library/Src/Utils/task_scheduler.c \
-Library/Src/Peripherals/stm32_flash.c
+Library/Src/Peripherals/stm32_flash.c \
+Library/Src/Peripherals/rtc_mcp7940n.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)

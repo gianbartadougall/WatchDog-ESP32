@@ -31,6 +31,7 @@
 /* Private Structures and Enumerations */
 
 /* Private Variable Declarations */
+I2C_HandleTypeDef hi2c1;
 
 /* Private Function Prototypes */
 void hardware_config_gpio_init(void);
@@ -40,6 +41,9 @@ void hardware_config_gpio_reset(void);
 void hardware_config_uart_init(void);
 void hardware_config_stm32_peripherals(void);
 void hardware_config_usb(void);
+
+void hardware_config_i2c_init(void);
+void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c);
 
 /* Public Functions */
 
@@ -64,6 +68,8 @@ void hardware_config_init(void) {
     // It is important that this is done after __HAL_RCC_SYSCFG_CLK_ENABLE and
     // __HAL_RCC_PWR_CLK_ENABLE otherwise the USB will not work
     MX_USB_DEVICE_Init();
+
+    hardware_config_i2c_init();
 }
 
 /* Private Functions */
@@ -125,7 +131,19 @@ void hardware_config_gpio_init(void) {
 
     /* Setup GPIO for LEDs */
     GPIO_SET_MODE_OUTPUT(LED_GREEN_PORT, LED_GREEN_PIN);
+    GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
+
     GPIO_SET_MODE_OUTPUT(LED_RED_PORT, LED_RED_PIN);
+    GPIO_SET_LOW(LED_RED_PORT, LED_RED_PIN);
+
+    /* GPIO pin setup to trigger interrupt on rising and falling edge when USB C is connected */
+    GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
+    SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
+    EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN); // Trigger on rising edge
+    EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN); // Trigger on falling edge
+    EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);  // Enable interrupts
+    HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
 
     /* Setup GPIO for ESP32 Power */
     // GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
@@ -144,17 +162,6 @@ void hardware_config_gpio_init(void) {
     // GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
     // GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
     // GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
-    /****** END CODE BLOCK ******/
-
-    /****** START CODE BLOCK ******/
-    // Description: Configure the USB C Connection GPIO pin
-    // GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
-    // SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
-    // EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN);
-    // EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN);
-    // EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);
-    // HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
-    // HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
@@ -370,4 +377,82 @@ void hardware_config_normal_power_mode(void) {
     // UART_LOG_CLK_ENABLE();
 
     // Set the device to run mode
+}
+
+void hardware_config_i2c_init(void) {
+
+    /* USER CODE BEGIN I2C1_Init 0 */
+
+    /* USER CODE END I2C1_Init 0 */
+
+    /* USER CODE BEGIN I2C1_Init 1 */
+
+    /* USER CODE END I2C1_Init 1 */
+    hi2c1.Instance              = I2C1;
+    hi2c1.Init.Timing           = 0x00707CBB;
+    hi2c1.Init.OwnAddress1      = 0;
+    hi2c1.Init.AddressingMode   = I2C_ADDRESSINGMODE_7BIT;
+    hi2c1.Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
+    hi2c1.Init.OwnAddress2      = 0;
+    hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    hi2c1.Init.GeneralCallMode  = I2C_GENERALCALL_DISABLE;
+    hi2c1.Init.NoStretchMode    = I2C_NOSTRETCH_DISABLE;
+    if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+        error_handler();
+    }
+
+    /** Configure Analogue filter
+     */
+    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
+        error_handler();
+    }
+
+    /** Configure Digital filter
+     */
+    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+        error_handler();
+    }
+
+    HAL_I2C_MspInit(&hi2c1);
+}
+
+void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c) {
+    GPIO_InitTypeDef GPIO_InitStruct       = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+    if (hi2c->Instance == I2C1) {
+        /* USER CODE BEGIN I2C1_MspInit 0 */
+
+        /* USER CODE END I2C1_MspInit 0 */
+
+        /** Initializes the peripherals clock
+         */
+        PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
+        PeriphClkInit.I2c1ClockSelection   = RCC_I2C1CLKSOURCE_PCLK1;
+        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+            error_handler();
+        }
+
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+        /**I2C1 GPIO Configuration
+        PB6     ------> I2C1_SCL
+        PB7     ------> I2C1_SDA
+        */
+        GPIO_InitStruct.Pin       = GPIO_PIN_6 | GPIO_PIN_7;
+        GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
+        GPIO_InitStruct.Pull      = GPIO_NOPULL;
+        GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        /* Peripheral clock enable */
+        __HAL_RCC_I2C1_CLK_ENABLE();
+        /* I2C1 interrupt Init */
+        HAL_NVIC_SetPriority(I2C1_EV_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+        HAL_NVIC_SetPriority(I2C1_ER_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+        /* USER CODE BEGIN I2C1_MspInit 1 */
+
+        /* USER CODE END I2C1_MspInit 1 */
+    }
 }

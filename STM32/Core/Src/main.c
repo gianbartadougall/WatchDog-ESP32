@@ -130,17 +130,17 @@ void flash_test(void) {
     }
 }
 
-char list[100];
+// char list[100];
 
-void usb_rx_handler(uint8_t* buffer, uint32_t length) {
-    sprintf(list, "Bug rec: %li\r\n", length);
-    uint8_t listLen = 0;
-    for (int i = 0; list[i] != '\0'; i++) {
-        listLen++;
-    }
+// void usb_rx_handler(uint8_t* buffer, uint32_t length) {
+//     sprintf(list, "Bug rec: %li\r\n", length);
+//     uint8_t listLen = 0;
+//     for (int i = 0; list[i] != '\0'; i++) {
+//         listLen++;
+//     }
 
-    CDC_Transmit_FS((uint8_t*)list, listLen);
-}
+//     CDC_Transmit_FS((uint8_t*)list, listLen);
+// }
 
 void main_sleep_test(void) {
 

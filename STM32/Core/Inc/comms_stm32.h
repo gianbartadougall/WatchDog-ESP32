@@ -28,7 +28,7 @@
 
 void uart_append_to_buffer(uint8_t bufferId, uint8_t byte);
 
-uint8_t uart_process_rxbuffer(uint8_t bufferId, bpk_t* Bpacket);
+uint8_t uart_read_bpacket(uint8_t bufferId, bpk_t* Bpacket);
 
 void comms_print_buffer(uint8_t bufferId);
 

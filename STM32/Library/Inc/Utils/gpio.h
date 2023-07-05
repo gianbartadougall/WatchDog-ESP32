@@ -74,4 +74,7 @@
         }                                       \
     } while (0)
 
+#define GPIO_PIN_IS_HIGH(port, pin) ((port->IDR & (0x01 << pin)) != 0)
+#define GPIO_PIN_IS_LOW(port, pin)  ((port->IDR & (0x01 << pin)) == 0)
+
 #endif // GPIO_H

@@ -32,24 +32,20 @@
 #    error Task scheduler timer max count has not been declared
 #endif
 
-#define TS_TIM_SET_CAPTURE_COMPARE(ccValue) (TS_TIMER->CCR1 = ccValue)
-// #define TS_TIM_ENABLE_INTERRUPTS()          (TS_TIMER->DIER |= TIM_DIER_CC1IE)
-// #define TS_TIM_DISABLE_INTERRUPTS()         (TS_TIMER->DIER &= ~(TIM_DIER_CC1IE))
-
 /* Private Variables */
 ts_recipe_t* Recipes[TS_MAX_NUM_RECIPES];
-uint32_t lg_nextISRCount = 0;
-
-// Char array predeclared to capture the current state of the task scheduler for debugging
-// char tsState[TS_MAX_NUM_RECIPES][TS_RECIPE_PRINT_LENGTH];
 
 /* Function prototypes */
-void ts_update_cc_time(void);
-void ts_update_execution_time(ts_recipe_t* Recipe);
-void ts_enable(void);
-void ts_disable(void);
+void task_scheduler_update_cc_time(void);
+void task_scheduler_update_execution_time(ts_recipe_t* Recipe);
+void task_scheduler_enable(void);
+void task_scheduler_disable(void);
 
-void ts_init(void) {
+/**
+ * @brief Sets all the pointers in the Recipes list to NULL. Disables the
+ * timer as no tasks are currently running
+ */
+void task_scheduler_init(void) {
 
     // Set all the recipes to null
     for (uint8_t i = 0; i < TS_MAX_NUM_RECIPES; i++) {
@@ -57,13 +53,22 @@ void ts_init(void) {
     }
 
     // Disable ask scheduler as there are no recipes added yet
-    ts_disable();
+    task_scheduler_disable();
 }
 
-uint8_t ts_add_recipe(ts_recipe_t* Recipe) {
+/**
+ * @brief Adds a recipe to the Recipes list if there is an available spot.
+ * The new recipe will be added the first available position in the list.
+ * The Recipe will only be added if it does not already exist in the list
+ *
+ * @param Recipe A pointer to the new recipe to be added
+ * @return uint8_t Returns TRUE if a recipe could be added and FALSe if the
+ * recipe could not be added.
+ */
+uint8_t task_scheduler_add_recipe(ts_recipe_t* Recipe) {
 
     // Exit function if the recipe is already running
-    if (ts_recipe_is_running(Recipe) == TRUE) {
+    if (task_scheduler_recipe_is_running(Recipe) == TRUE) {
         return TRUE;
     }
 
@@ -78,11 +83,11 @@ uint8_t ts_add_recipe(ts_recipe_t* Recipe) {
             Recipes[i] = Recipe;
 
             // Calculate when the task of the recipe needs to be run by the isr
-            ts_update_execution_time(Recipes[i]);
+            task_scheduler_update_execution_time(Recipes[i]);
 
             // Update the capture compare of the timer incase this new task
             // needs to be run before any tasks that are currently in the list
-            ts_update_cc_time();
+            task_scheduler_update_cc_time();
 
             return TRUE;
         }
@@ -92,7 +97,17 @@ uint8_t ts_add_recipe(ts_recipe_t* Recipe) {
     return FALSE;
 }
 
-void ts_update_cc_time(void) {
+/**
+ * @brief Loops through all the recipes and compares the execution times of all
+ * their current tasks that need to be run. The task that needs to be executed
+ * the soonest will be chosen and its execution time will be set as the new
+ * capture compare value for the timer
+ *
+ * This function will automatically disable/eneable the timer based on whether
+ * there are any recipes in the recipe list to run. If there are none the timer
+ * is disabled to prevent random interrupts from occuring
+ */
+void task_scheduler_update_cc_time(void) {
 
     // Store the current count on the timer
     uint32_t currentTimerCount = TS_TIMER->CNT;
@@ -121,32 +136,28 @@ void ts_update_cc_time(void) {
         } else {
             countsUntilISR = Recipes[i]->executeOnCount + (TS_TIMER_MAX_COUNT - currentTimerCount);
         }
-        log_usb_message("Counts until ISR: exTime %li -> %li\r\n", Recipes[i]->executeOnCount, countsUntilISR);
+
         // Update the capture compare time if the number of counts for the task of this recipe
         // is smaller than all the tasks that have been checked so far
         if (countsUntilISR <= smallestCountUntilISR) {
-            lg_nextISRCount       = Recipes[i]->executeOnCount;
+            TS_TIMER->CCR1 = Recipes[i]->executeOnCount;
+
+            // Update the smallest count to the new smallest count
             smallestCountUntilISR = countsUntilISR;
         }
     }
-
-    // Update the capture compare of the timer so the ISR triggers on next soonest count
-    TS_TIM_SET_CAPTURE_COMPARE(lg_nextISRCount);
-    log_usb_message("Next ISR: %li\r\n", lg_nextISRCount);
 
     // Disable interrupts if there are no more recipes. If this is not done then
     // the interrupts will continue to fire when they reach whatever count is currently
     // in the capture compare register
     if (recipeFound == TRUE) {
-        ts_enable();
-        log_usb_message("Ts enabled\r\n");
+        task_scheduler_enable();
     } else {
-        ts_disable();
-        log_usb_message("Ts disabled\r\n");
+        task_scheduler_disable();
     }
 }
 
-void ts_update_execution_time(ts_recipe_t* Recipe) {
+void task_scheduler_update_execution_time(ts_recipe_t* Recipe) {
 
     if (TS_TIMER->CNT > (TS_TIMER_MAX_COUNT + Recipe->Task->delay)) {
         Recipe->executeOnCount = Recipe->Task->delay - (TS_TIMER_MAX_COUNT - TS_TIMER->CNT);
@@ -156,7 +167,7 @@ void ts_update_execution_time(ts_recipe_t* Recipe) {
     Recipe->executeOnCount = TS_TIMER->CNT + Recipe->Task->delay;
 }
 
-uint8_t ts_recipe_is_running(ts_recipe_t* Recipe) {
+uint8_t task_scheduler_recipe_is_running(ts_recipe_t* Recipe) {
 
     for (uint8_t i = 0; i < TS_MAX_NUM_RECIPES; i++) {
         if (Recipes[i] == Recipe) {
@@ -167,7 +178,7 @@ uint8_t ts_recipe_is_running(ts_recipe_t* Recipe) {
     return FALSE;
 }
 
-void ts_cancel_recipe(ts_recipe_t* Recipe) {
+void task_scheduler_cancel_recipe(ts_recipe_t* Recipe) {
 
     for (uint8_t i = 0; i < TS_MAX_NUM_RECIPES; i++) {
         if (Recipes[i] == Recipe) {
@@ -175,13 +186,24 @@ void ts_cancel_recipe(ts_recipe_t* Recipe) {
 
             // Update the capture compare of the timer as the execution
             // of this recipe is no longer needed
-            ts_update_cc_time();
+            task_scheduler_update_cc_time();
         }
     }
 }
 
-void ts_isr(void) {
-    log_usb_success("ISR run. t= %li\r\n", TIM15->CNT);
+/**
+ * @brief This function is run anytime the timer reaches the capture compare value.
+ * Loops through every recipe and checks whether the execution time matches the
+ * capture compare value. The corresponding flag that each task points to will be
+ * set if the recipes execution time for that task matches the capture compare value.
+ *
+ * Any recipes with no more tasks to run will be removed from the Recipes list and any
+ * recipes with more tasks to run will have their tasks incremented to the next task
+ * in their recipe
+ *
+ * The capture compare value for the timer is updated at the end of the ISR
+ */
+void task_scheduler_isr(void) {
 
     // Loop through each Recipe in the list and set the appropriate flag of the current task
     // if the recipues exeecution time matches the execution time of this ISR
@@ -195,11 +217,11 @@ void ts_isr(void) {
         }
 
         // Skip any recipes whos tasks are not supposed to execute at this time
-        if (Recipes[i]->executeOnCount != lg_nextISRCount) {
+        if (Recipes[i]->executeOnCount != TS_TIMER->CCR1) {
             continue;
         }
 
-        if (Recipes[i]->executeOnCount == lg_nextISRCount) {
+        if (Recipes[i]->executeOnCount == TS_TIMER->CCR1) {
             ts_task_t* Task = Recipes[i]->Task;
             event_group_set_bit(Task->EventGroup, Task->egBit, Task->egTrait);
         }
@@ -214,15 +236,18 @@ void ts_isr(void) {
         Recipes[i]->Task = Recipes[i]->Task->NextTask;
 
         // Update the execution time of the recipe so it matches that of the new task
-        ts_update_execution_time(Recipes[i]);
+        task_scheduler_update_execution_time(Recipes[i]);
     }
 
     // Update the capture compare of the timer so the capture compare can be set for
     // the next task that needs to run
-    ts_update_cc_time();
+    task_scheduler_update_cc_time();
 }
 
-void ts_capture_state(void) {
+/**
+ * @brief Prints out the current state of the recipes
+ */
+void task_scheduler_capture_state(void) {
 
     for (uint8_t i = 0; i < TS_MAX_NUM_RECIPES; i++) {
 
@@ -244,7 +269,10 @@ void ts_capture_state(void) {
     }
 }
 
-void ts_enable(void) {
+/**
+ * @brief Enables and resets the timer and enables and clears the capture compare 1 interrupt
+ */
+void task_scheduler_enable(void) {
     // Only enable timer if its currently disabled
     if ((TS_TIMER->CR1 & TIM_CR1_CEN) == 0) {
         TS_TIMER->EGR |= (TIM_EGR_UG);    // Reset counter to 0 and update all registers
@@ -253,7 +281,10 @@ void ts_enable(void) {
     }
 }
 
-void ts_disable(void) {
+/**
+ * @brief Disables the timer and all interrupts
+ */
+void task_scheduler_disable(void) {
     TS_TIMER->DIER &= 0x00;          // Disable all interrupts
     TS_TIMER->CR1 &= ~(TIM_CR1_CEN); // Disbable timer
 }

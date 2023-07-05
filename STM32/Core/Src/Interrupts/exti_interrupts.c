@@ -16,8 +16,11 @@
 
 /* Personal Includes */
 #include "utils.h"
-#include "log.h"
-
+#include "log_usb.h"
+#include "gpio.h"
+#include "event_group.h"
+#include "watchdog.h"
+#include "hardware_config.h"
 /**
  * @brief Interrupt routine for EXTI1
  *
@@ -154,7 +157,14 @@ void EXTI9_5_IRQHandler(void) {
         EXTI->PR1 |= EXTI_PR1_PIF8;
 
         /* Call required functions */
-        log_message("Interrupt PA8\r\n");
+
+        // This interrupt fires whenever the USBC cord
+        // has been connected or disconnected
+        if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN)) {
+            event_group_set_bit(&gbl_EventsStm, EVENT_STM_USBC_CONNECTED, EGT_ACTIVE);
+        } else {
+            event_group_clear_bit(&gbl_EventsStm, EVENT_STM_USBC_CONNECTED, EGT_ACTIVE);
+        }
     }
 
     // // Confirm pending interrupt exists on EXTI line 9

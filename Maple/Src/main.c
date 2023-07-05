@@ -52,6 +52,8 @@ void maple_create_and_send_bpacket(const bpk_request_t Request, const bpk_addr_r
                                    uint8_t numDataBytes, uint8_t* data);
 void maple_print_uart_response(void);
 void maple_test(void);
+void maple_gui_init(void);
+void maple_handle_watchdog_response(bpk_t* Bpacket);
 
 uint32_t packetBufferIndex  = 0;
 uint32_t packetPendingIndex = 0;
@@ -59,8 +61,8 @@ bpk_t packetBuffer[PACKET_BUFFER_SIZE];
 
 struct sp_port* gbl_activePort = NULL;
 
-void print_data(uint8_t* data, uint8_t length) {
-    for (int i = 0; i < length; i++) {
+void print_data(uint8_t* data, uint16_t length) {
+    for (uint16_t i = 0; i < length; i++) {
         printf("%c", data[i]);
     }
     printf("\r\n");
@@ -135,7 +137,8 @@ int maple_read_port(void* buf, size_t count, unsigned int timeout_ms) {
 
 DWORD WINAPI maple_listen_rx(void* arg) {
 
-    uint8_t byte, expectedByte, numBytes;
+    uint8_t byte, expectedByte;
+    int numBytes;
     cbuffer_t ByteBuffer;
     uint8_t byteBuffer[8];
     bpk_utils_init_expected_byte_buffer(byteBuffer);
@@ -147,7 +150,7 @@ DWORD WINAPI maple_listen_rx(void* arg) {
 
         // Read the current index of the byte buffer and store the result into
         // expected byte
-        cbuffer_read_current_byte(&ByteBuffer, (void*)&expectedByte);
+        cbuffer_read_current_element(&ByteBuffer, (void*)&expectedByte);
 
         switch (expectedByte) {
 
@@ -219,7 +222,8 @@ DWORD WINAPI maple_listen_rx(void* arg) {
                 }
 
                 // Decoding failed, print error
-                log_error("BPK Read failed. %i %i\n", expectedByte, byte);
+                // log_error("BPK Read failed. %i %i. Num bytes %i\n", expectedByte, byte,
+                // numBytes);
         }
 
         // Reset the expected byte back to the start and bpacket buffer index
@@ -227,7 +231,9 @@ DWORD WINAPI maple_listen_rx(void* arg) {
         bi = 0;
     }
 
-    log_error("Connection terminated\n");
+    log_error("Connection terminated with code %i\n", numBytes);
+
+    return FALSE;
 }
 
 uint8_t maple_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
@@ -251,6 +257,16 @@ uint8_t maple_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
         enum sp_return result = sp_open(gbl_activePort, SP_MODE_READ_WRITE);
         if (result != SP_OK) {
             return result;
+        }
+
+        // Creating thread inside this function because the thread needs to be active after a port
+        // is open but before it closes. Anytime you try listen when a port isn't open the sp read
+        // function will return error code and so the thread will exit
+        HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
+
+        if (!thread) {
+            log_error("Thread failed\n");
+            return 0;
         }
 
         // Configure the port settings for communication
@@ -299,7 +315,13 @@ uint8_t maple_connect_to_device(bpk_addr_receive_t receiver, uint8_t pingCode) {
 
         // Close port and check next port if this was not the correct port
         if (portFound != TRUE) {
+
+            // Terminate the thread
+            TerminateThread(thread, FALSE);
+
+            // Close the port
             sp_close(gbl_activePort);
+
             continue;
         }
 
@@ -374,53 +396,48 @@ int main(int argc, char** argv) {
     // Initialise logging
     log_init(printf, print_data);
 
-    // Initialise rx and tx buffers
+    // TODO: Check the folder to see if the watchdog folder exists or not. If
+
+    // Initialise the GUI
+    maple_gui_init();
+
     cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
-    cbuffer_init(&TxCbuffer, txCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
 
-    HANDLE thread = CreateThread(NULL, 0, maple_listen_rx, NULL, 0, NULL);
-
-    if (!thread) {
-        log_error("Thread failed\n");
-        return 0;
-    }
-
-    // Try connect to the device
-    if (maple_connect_to_device(BPK_Addr_Receive_Stm32, WATCHDOG_PING_CODE_STM32) != TRUE) {
-        log_error("Unable to connect to device. Check if the COM port is already in use\n");
-        TerminateThread(thread, 0);
-        return FALSE;
-    }
-
-    log_success("Connected to port %s\n", sp_get_port_name(gbl_activePort));
-
-    int i = 0;
+    // Main loop
+    uint8_t watchdogConnected = FALSE;
+    bpk_t BpkWatchdogResponse;
     while (1) {
 
-        if (i == 0) {
-            maple_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Esp32, 0, NULL);
-            i = 1;
-        } else {
-            maple_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Esp32, 0, NULL);
-            i = 0;
+        if (watchdogConnected != TRUE) {
+
+            if (maple_connect_to_device(BPK_Addr_Receive_Stm32, WATCHDOG_PING_CODE_STM32) != TRUE) {
+
+                // TODO: Delay 500ms
+
+                // TODO: Display error on GUI
+
+                continue;
+            }
+
+            // TODO: Display connection status on GUI
+            char* portName = sp_get_port_name(gbl_activePort);
+            log_success("Watchdog connected (%s)\r\n", portName);
+            free(portName);
         }
 
-        Sleep(2000);
+        if (watchdogConnected != TRUE) {
+            continue;
+        }
+
+        // Process any bpackets received from a Watchdog
+        if (cbuffer_read_next_element(&RxCbuffer, &BpkWatchdogResponse) == TRUE) {
+            maple_handle_watchdog_response(&BpkWatchdogResponse);
+        }
     }
+}
 
-    maple_test();
-
-    /* This code currently does nothing as there is an infinite while loop in there! */
-    HANDLE guiThread = CreateThread(NULL, 0, gui, NULL, 0, NULL);
-
-    if (!guiThread) {
-        printf("Thread failed\n");
-        return 0;
-    }
-
-    while (1) {}
-
-    return 0;
+void maple_handle_watchdog_response(bpk_t* Bpacket) {
+    // TODO: Implement
 }
 
 uint8_t maple_response_is_valid(bpk_request_t ExpectedRequest, uint16_t timeout) {
@@ -502,11 +519,15 @@ uint8_t maple_restart_esp32(void) {
     return TRUE;
 }
 
+void maple_gui_init(void) {
+    // TODO: Implement
+}
+
 void maple_test(void) {
 
-    bpk_t Bpacket;
-    uint8_t failed = FALSE;
-    char msg[100];
+    // bpk_t Bpacket;
+    // uint8_t failed = FALSE;
+    // char msg[100];
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -673,7 +694,41 @@ void maple_test(void) {
     /* Test that updating the resolution on the camera actually changes the resolution of the photos
      * taken */
 
-    if (failed == FALSE) {
-        printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
-    }
+    // if (failed == FALSE) {
+    //     printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
+    // }
 }
+
+/* GARBAGE CODE */
+// // Initialise rx and tx buffers
+// cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
+// cbuffer_init(&TxCbuffer, txCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
+// while (1) {}
+
+// int i = 0;
+// while (1) {
+
+//     if (i == 0) {
+//         maple_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Esp32, 0, NULL);
+//         i = 1;
+//     } else {
+//         maple_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Esp32, 0, NULL);
+//         i = 0;
+//     }
+
+//     Sleep(2000);
+// }
+
+// maple_test();
+
+// /* This code currently does nothing as there is an infinite while loop in there! */
+// HANDLE guiThread = CreateThread(NULL, 0, gui, NULL, 0, NULL);
+
+// if (!guiThread) {
+//     printf("Thread failed\n");
+//     return 0;
+// }
+
+// while (1) {}
+
+// return 0;

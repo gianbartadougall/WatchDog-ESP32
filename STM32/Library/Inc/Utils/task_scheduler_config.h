@@ -11,7 +11,7 @@
 
 struct ts_task_t ledGreenOff = {
     .EventGroup = &gbl_EventsStm,
-    .egBit      = EGB_GREEN_LED_OFF,
+    .egBit      = EVENT_STM_LED_GREEN_OFF,
     .egTrait    = EGT_ACTIVE,
     .delay      = 1000,
     .NextTask   = NULL,
@@ -19,7 +19,7 @@ struct ts_task_t ledGreenOff = {
 
 struct ts_task_t ledGreenOn = {
     .EventGroup = &gbl_EventsStm,
-    .egBit      = EGB_GREEN_LED_ON,
+    .egBit      = EVENT_STM_LED_GREEN_ON,
     .egTrait    = EGT_ACTIVE,
     .delay      = 2000,
     .NextTask   = &ledGreenOff,
@@ -27,7 +27,7 @@ struct ts_task_t ledGreenOn = {
 
 struct ts_task_t ledRedOff = {
     .EventGroup = &gbl_EventsStm,
-    .egBit      = EGB_RED_LED_OFF,
+    .egBit      = EVENT_STM_LED_RED_OFF,
     .egTrait    = EGT_ACTIVE,
     .delay      = 1000,
     .NextTask   = NULL,
@@ -35,7 +35,7 @@ struct ts_task_t ledRedOff = {
 
 struct ts_task_t ledRedOn = {
     .EventGroup = &gbl_EventsStm,
-    .egBit      = EGB_RED_LED_ON,
+    .egBit      = EVENT_STM_LED_RED_ON,
     .egTrait    = EGT_ACTIVE,
     .delay      = 1500,
     .NextTask   = &ledRedOff,

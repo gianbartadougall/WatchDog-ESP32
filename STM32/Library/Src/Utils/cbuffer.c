@@ -32,13 +32,13 @@ uint8_t cbuffer_read_next_element(cbuffer_t* Cbuffer, void* element) {
         return FALSE;
     }
 
-    cbuffer_read_current_byte(Cbuffer, element);
+    cbuffer_read_current_element(Cbuffer, element);
 
     cbuffer_increment_read_index(Cbuffer);
     return TRUE;
 }
 
-void cbuffer_read_current_byte(cbuffer_t* Cbuffer, void* element) {
+void cbuffer_read_current_element(cbuffer_t* Cbuffer, void* element) {
 
     // Cast the data pointer to the appropriate type
     uint8_t* ptr = (uint8_t*)Cbuffer->elements;

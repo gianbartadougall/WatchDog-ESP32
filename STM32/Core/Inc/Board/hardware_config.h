@@ -36,12 +36,10 @@
 // configuration.h file
 
 /********** Marcos for hardware related to the LEDs **********/
-
 #define LED_GREEN_PORT GPIOA
 #define LED_GREEN_PIN  4
 #define LED_RED_PORT   GPIOA
 #define LED_RED_PIN    3
-
 /*************************************************************/
 
 /******** Macros for DS18B20 **********/
@@ -140,6 +138,7 @@
 /* Public Structures and Enumerations */
 
 /* Public Variable Declarations */
+extern I2C_HandleTypeDef hi2c1;
 
 /* Public Function Prototypes */
 

@@ -35,6 +35,6 @@ void TIM1_BRK_TIM15_IRQHandler(void) {
         TIM15->SR = ~TIM_SR_CC1IF;
 
         /* Call required functions */
-        ts_isr();
+        task_scheduler_isr();
     }
 }

@@ -52,3 +52,7 @@ void event_group_clear(EventGroup_t* Eg) {
         Eg->bits[i] = 0;
     }
 }
+
+uint32_t event_group_get_bits(EventGroup_t* Eg, enum eg_trait_e trait) {
+    return Eg->bits[trait];
+}

@@ -78,7 +78,7 @@ Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
 Core/Src/watchdog.c \
 Core/Src/comms_stm32.c \
-Core/Src/watchdog_defines.c
+Core/Src/watchdog_utils.c
 
 USB_SOURCES = \
 Drivers/USB/Src/usb_device.c \
@@ -101,10 +101,12 @@ Library/Src/Utils/datetime.c \
 Library/Src/Utils/log.c \
 Library/Src/Utils/log_usb.c \
 Library/Src/Utils/cbuffer.c \
-Library/Src/Utils/event_group.c \
 Library/Src/Utils/task_scheduler.c \
 Library/Src/Peripherals/stm32_flash.c \
 Library/Src/Peripherals/rtc_mcp7940n.c
+
+EXTERN_LIB_SOURCES = \
+E:/Software_Libraries/Personal/C/Utils/Src/event_group.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)
@@ -113,6 +115,7 @@ C_SOURCES += $(UTILITIY_SOURCES)
 C_SOURCES += $(RANDOM_SOURCES)
 C_SOURCES += $(LIBRARY_SOURCES)
 C_SOURCES += $(USB_SOURCES)
+C_SOURCES += $(EXTERN_LIB_SOURCES)
 
 # ASM sources
 ASM_SOURCES = startup_stm32l432xx.s
@@ -183,8 +186,8 @@ C_INCLUDES =  \
 -IDrivers/STM32L4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
 -IDrivers/CMSIS/Include \
--IDrivers/USB/Inc
-
+-IDrivers/USB/Inc \
+-IE:/Software_Libraries/Personal/C/Utils/Inc
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
@@ -243,6 +246,9 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	
 $(BUILD_DIR):
 	mkdir $@		
+
+E:/Software_Libraries/Personal/C/Utils/Src/event_group.c:
+	gcc -c -o $(BUILD_DIR)/event_group.o $@
 
 #######################################
 # clean up

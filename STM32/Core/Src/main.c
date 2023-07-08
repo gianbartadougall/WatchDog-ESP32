@@ -21,7 +21,6 @@
 #include "datetime.h"
 #include "stm32_rtc.h"
 #include "bpacket.h"
-#include "watchdog_defines.h"
 #include "stm32_uart.h"
 #include "bpacket_utils.h"
 #include "stm32_flash.h"
@@ -42,105 +41,6 @@
 /* Function prototypes */
 void error_handler(void);
 void SystemClock_Config(void);
-
-void rtc_testing(void) {
-    dt_datetime_t datetime;
-    datetime.Date.year   = 23;
-    datetime.Date.month  = 1;
-    datetime.Date.day    = 1;
-    datetime.Time.hour   = 0;
-    datetime.Time.minute = 0;
-    datetime.Time.second = 0;
-
-    // date_time_t dt;
-    stm32_rtc_write_datetime(&datetime);
-
-    char msg[50];
-    uint8_t halTick    = 0;
-    uint8_t halSecond  = 0;
-    uint8_t halMinute  = 0;
-    uint8_t halHour    = 0;
-    uint8_t lastSecond = 0;
-
-    while (1) {
-
-        if (SysTick->VAL > ((halTick + 1) * 1000)) {
-            halTick++;
-            halSecond++;
-            if (halSecond > 59) {
-                halSecond = 0;
-                halMinute++;
-            }
-
-            if (halMinute > 59) {
-                halMinute = 0;
-                halHour++;
-            }
-
-            sprintf(msg, "%i:%i:%i\n", halSecond, halMinute, halHour);
-            log_message(msg);
-        }
-
-        stm32_rtc_read_datetime(&datetime);
-
-        if (lastSecond != datetime.Time.second) {
-            lastSecond = datetime.Time.second;
-            // stm32_rtc_print_datetime(&datetime);
-        }
-    }
-}
-
-void log_p(char* msg) {
-
-    // Transmit over uart if using a micrcontroller
-    uint16_t i = 0;
-
-    // Transmit until end of message reached
-    while (msg[i] != '\0') {
-        while ((USART2->ISR & USART_ISR_TXE) == 0) {};
-
-        USART2->TDR = msg[i];
-        i++;
-    }
-}
-
-void flash_test(void) {
-
-    log_init(uart_transmit_string, NULL);
-    log_clear();
-    uint32_t data = 0;
-
-    // Erase the entire flash
-    RCC->AHB1ENR |= RCC_AHB1ENR_FLASHEN;
-    // FLASH->ACR |= 0x01;
-
-    log_message("FLASH->SR: %x\r\n", FLASH->SR);
-
-    // log_message("Flash 1: %x\r\n", FLASH->SR);
-    if (stm32_flash_erase_page(0) != TRUE) {
-        log_message("Failed to erase flash\r\n");
-    } else {
-        log_message("Flash 2: %x\r\n", FLASH->SR);
-    }
-
-    if (stm32_flash_read(STM32_FLASH_ADDR_START, &data) != TRUE) {
-        log_message("Read failed\r\n");
-    } else {
-        log_message("Read flash\r\n");
-    }
-}
-
-// char list[100];
-
-// void usb_rx_handler(uint8_t* buffer, uint32_t length) {
-//     sprintf(list, "Bug rec: %li\r\n", length);
-//     uint8_t listLen = 0;
-//     for (int i = 0; list[i] != '\0'; i++) {
-//         listLen++;
-//     }
-
-//     CDC_Transmit_FS((uint8_t*)list, listLen);
-// }
 
 void main_sleep_test(void) {
 

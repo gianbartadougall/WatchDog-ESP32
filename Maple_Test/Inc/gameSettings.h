@@ -1,0 +1,7 @@
+#ifndef GAME_SETTINGS_H
+#define GAME_SETTINGS_H
+
+#define WINDOW_WIDTH  1000
+#define WINDOW_HEIGHT 600
+
+#endif // GAME_SETTINGS_H

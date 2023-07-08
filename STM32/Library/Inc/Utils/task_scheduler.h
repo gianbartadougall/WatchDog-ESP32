@@ -24,7 +24,7 @@
 #define TS_RECIPE_PRINT_LENGTH 70
 
 typedef struct ts_task_t {
-    EventGroup_t* EventGroup;
+    event_group_t* EventGroup;
     enum eg_bit_e egBit;
     enum eg_trait_e egTrait;
     uint32_t delay;

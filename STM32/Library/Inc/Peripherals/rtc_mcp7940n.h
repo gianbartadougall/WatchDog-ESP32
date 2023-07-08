@@ -21,26 +21,34 @@
 
 /* Public Structs and Enums */
 
-// Do not change the values of these enums
-// They map to bits for registers
-enum rtc_alarm_e {
-    RTC_ALARM_0 = 0x0D,
-    RTC_ALARM_1 = 0x14,
-};
-
-// Do not change the values of these enums
-// They map to bits for registers
-enum rtc_alarm_mode_e {
-    RTC_ALRM_MODE_SECONDS = 0x00,
-    RTC_ALRM_MODE_MINUTES = 0x01,
-    RTC_ALRM_MODE_HOURS   = 0x02,
-    RTC_ALRM_MODE_ALL     = 0x07,
-};
-
 uint8_t rtc_init(void);
 
-uint8_t rtc_set_alarm_settings(enum rtc_alarm_e alarmAddress, enum rtc_alarm_mode_e mode);
+uint8_t rtc_read_time(dt_time_t* Time);
+
+uint8_t rtc_read_datetime(dt_datetime_t* Datetime);
+
+uint8_t rtc_read_date(dt_date_t* Date);
 
 uint8_t rtc_read_time(dt_time_t* Time);
+
+uint8_t rtc_write_datetime(dt_datetime_t* Datetime);
+
+uint8_t rtc_write_date(dt_date_t* Date);
+
+uint8_t rtc_write_time(dt_time_t* Time);
+
+uint8_t rtc_set_alarm(dt_datetime_t* Datetime);
+
+uint8_t rtc_enable_alarm(void);
+
+uint8_t rtc_disable_alarm(void);
+
+uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime);
+
+uint8_t rtc_read_alarm_time(dt_time_t* Time);
+
+uint8_t rtc_read_alarm_date(dt_date_t* Date);
+
+uint8_t rtc_alarm_clear(void);
 
 #endif // RTC_MCP7940N

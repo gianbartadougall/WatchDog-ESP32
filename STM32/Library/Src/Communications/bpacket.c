@@ -47,23 +47,21 @@ const bpk_request_t BPK_Request_Ping    = {.val = BPK_REQUEST_PING};
 const bpk_request_t BPK_Request_Status  = {.val = BPK_REQUEST_STATUS};
 const bpk_request_t BPK_Request_Message = {.val = BPK_REQUEST_MESSAGE};
 
-const bpk_request_t BPK_Req_List_Dir                 = {.val = BPK_REQ_LIST_DIR};
-const bpk_request_t BPK_Req_Copy_File                = {.val = BPK_REQ_COPY_FILE};
-const bpk_request_t BPK_Req_Take_Photo               = {.val = BPK_REQ_TAKE_PHOTO};
-const bpk_request_t BPK_Req_Write_To_File            = {.val = BPK_REQ_WRITE_TO_FILE};
-const bpk_request_t BPK_Req_Record_Data              = {.val = BPK_REQ_RECORD_DATA};
-const bpk_request_t BPK_Req_Led_Red_On               = {.val = BPK_REQ_LED_RED_ON};
-const bpk_request_t BPK_Req_Led_Red_Off              = {.val = BPK_REQ_LED_RED_OFF};
-const bpk_request_t BPK_Req_Camera_View              = {.val = BPK_REQ_CAMERA_VIEW};
-const bpk_request_t BPK_Req_Get_Datetime             = {.val = BPK_REQ_GET_DATETIME};
-const bpk_request_t BPK_Req_Set_Datetime             = {.val = BPK_REQ_SET_DATETIME};
-const bpk_request_t BPK_Req_Get_Camera_Settings      = {.val = BPK_REQ_GET_CAMERA_SETTINGS};
-const bpk_request_t BPK_Req_Set_Camera_Settings      = {.val = BPK_REQ_SET_CAMERA_SETTINGS};
-const bpk_request_t BPK_Req_Get_Camera_Capture_Times = {.val = BPK_REQ_GET_CAMERA_CAPTURE_TIMES};
-const bpk_request_t BPK_Req_Set_Camera_Capture_Times = {.val = BPK_REQ_SET_CAMERA_CAPTURE_TIMES};
-const bpk_request_t BPK_Req_Stream_Images            = {.val = BPK_REQ_STREAM_IMAGE};
-const bpk_request_t BPK_Req_Esp32_On                 = {.val = BPK_REQ_ESP32_ON};
-const bpk_request_t BPK_Req_Esp32_Off                = {.val = BPK_REQ_ESP32_OFF};
+const bpk_request_t BPK_Req_List_Dir              = {.val = BPK_REQ_LIST_DIR};
+const bpk_request_t BPK_Req_Copy_File             = {.val = BPK_REQ_COPY_FILE};
+const bpk_request_t BPK_Req_Take_Photo            = {.val = BPK_REQ_TAKE_PHOTO};
+const bpk_request_t BPK_Req_Write_To_File         = {.val = BPK_REQ_WRITE_TO_FILE};
+const bpk_request_t BPK_Req_Record_Data           = {.val = BPK_REQ_RECORD_DATA};
+const bpk_request_t BPK_Req_Led_Red_On            = {.val = BPK_REQ_LED_RED_ON};
+const bpk_request_t BPK_Req_Led_Red_Off           = {.val = BPK_REQ_LED_RED_OFF};
+const bpk_request_t BPK_Req_Camera_View           = {.val = BPK_REQ_CAMERA_VIEW};
+const bpk_request_t BPK_Req_Get_Datetime          = {.val = BPK_REQ_GET_DATETIME};
+const bpk_request_t BPK_Req_Set_Datetime          = {.val = BPK_REQ_SET_DATETIME};
+const bpk_request_t BPK_Req_Get_Watchdog_Settings = {.val = BPK_REQ_GET_WATCHDOG_SETTINGS};
+const bpk_request_t BPK_Req_Set_Watchdog_Settings = {.val = BPK_REQ_SET_WATCHDOG_SETTINGS};
+const bpk_request_t BPK_Req_Stream_Images         = {.val = BPK_REQ_STREAM_IMAGE};
+const bpk_request_t BPK_Req_Esp32_On              = {.val = BPK_REQ_ESP32_ON};
+const bpk_request_t BPK_Req_Esp32_Off             = {.val = BPK_REQ_ESP32_OFF};
 
 const bpk_error_code_t BPK_Err_Invalid_Sender     = {.val = BPK_ERR_INVALID_SENDER};
 const bpk_error_code_t BPK_Err_Invalid_Receiver   = {.val = BPK_ERR_INVALID_RECEIVER};
@@ -308,10 +306,8 @@ uint8_t bpk_set_request(bpk_t* Bpacket, uint8_t request) {
         case BPK_REQ_CAMERA_VIEW:
         case BPK_REQ_GET_DATETIME:
         case BPK_REQ_SET_DATETIME:
-        case BPK_REQ_GET_CAMERA_SETTINGS:
-        case BPK_REQ_SET_CAMERA_SETTINGS:
-        case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:
-        case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:
+        case BPK_REQ_GET_WATCHDOG_SETTINGS:
+        case BPK_REQ_SET_WATCHDOG_SETTINGS:
         case BPK_REQ_STREAM_IMAGE:
         case BPK_REQ_ESP32_ON:
         case BPK_REQ_ESP32_OFF:

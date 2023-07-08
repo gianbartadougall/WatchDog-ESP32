@@ -21,9 +21,21 @@
 #define RTC_I2C_READ    (RTC_I2C_ADDRESS | 0x01)
 #define RTC_I2C_WRITE   RTC_I2C_ADDRESS
 
-#define RTC_SECONDS_REGISTER_TO_SECONDS(register) ((((register >> 4) & 0x07) * 10) + (register & 0x0F))
-#define RTC_MINUTES_REGISTER_TO_MINUTES(register) ((((register >> 4) & 0x07) * 10) + (register & 0x0F))
-#define RTC_HOURS_REGISTER_TO_HOURS(register)     ((((register >> 4) & 0x03) * 10) + (register & 0x0F))
+#define RTC_REGISTER_TO_SECONDS(register) ((((register >> 4) & 0x07) * 10) + (register & 0x0F))
+#define RTC_REGISTER_TO_MINUTES(register) ((((register >> 4) & 0x07) * 10) + (register & 0x0F))
+#define RTC_REGISTER_TO_HOURS(register)   ((((register >> 4) & 0x03) * 10) + (register & 0x0F))
+
+#define RTC_REGISTER_TO_DAYS(register)   ((((register >> 4) & 0x03) * 10) + (register & 0x0F))
+#define RTC_REGISTER_TO_MONTHS(register) ((((register >> 4) & 0x01) * 10) + (register & 0x0F))
+#define RTC_REGISTER_TO_YEARS(register)  (2000 + (((register >> 4) * 10) + (register & 0x0F)))
+
+#define RTC_SECONDS_TO_REGISTER(seconds) (((seconds / 10) << 4) | (seconds % 10))
+#define RTC_MINUTES_TO_REGISTER(minutes) (((minutes / 10) << 4) | (minutes % 10))
+#define RTC_HOURS_TO_REGISTER(hours)     (((hours / 10) << 4) | (hours % 10))
+
+#define RTC_DAYS_TO_REGISTER(days)     (((days / 10) << 4) | (days % 10))
+#define RTC_MONTHS_TO_REGISTER(months) (((months / 10) << 4) | (months % 10))
+#define RTC_YEARS_TO_REGISTER(years)   ((((years % 2000) / 10) << 4) | ((years % 2000) % 10))
 
 #define RTC_ADDR_SECONDS           0x00
 #define RTC_ADDR_MINUTES           0x01
@@ -47,7 +59,10 @@
 #define RTC_ADDR_ALARM_1_DAYS      0x15
 #define RTC_ADDR_ALARM_1_MONTHS    0x16
 
+#define ALARM_SETTINGS 0x70
+
 /* Function Prototypes */
+uint8_t rtc_set_alarm_settings(void);
 
 uint8_t rtc_init(void) {
 
@@ -105,15 +120,18 @@ uint8_t rtc_init(void) {
     }
 
     /* Set the alarm mode to trigger on the every register. Only need one alarm. Using alarm 0 */
-    if (rtc_set_alarm_settings(RTC_ALARM_0, RTC_ALRM_MODE_ALL) != TRUE) {
+    if (rtc_set_alarm_settings() != TRUE) {
         return FALSE;
     }
 
     return TRUE;
 }
 
-uint8_t rtc_set_alarm_settings(enum rtc_alarm_e alarmAddress, enum rtc_alarm_mode_e mode) {
+uint8_t rtc_set_alarm_settings(void) {
 
+    // Only intend to use one alarm so this is why its hardcoded to alarm 0. The settings for
+    // alarm 0 are in the week days register
+    uint8_t alarmAddress = RTC_ADDR_ALARM_0_WEEK_DAYS;
     if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &alarmAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
@@ -123,8 +141,9 @@ uint8_t rtc_set_alarm_settings(enum rtc_alarm_e alarmAddress, enum rtc_alarm_mod
         return FALSE;
     }
 
-    // Also clearing the alarm interrupt flag here and setting the alarm interrupt output to logic high
-    uint8_t alarmWrite[2] = {alarmAddress, (0x01 << 7) | (mode << 4) | (alarmRead & 0x07)};
+    // Also clearing the alarm interrupt flag here and setting the alarm interrupt output to logic high.
+    // Only planning on using the alarm in mode where it checks everything so thats why its hardcoded as such
+    uint8_t alarmWrite[2] = {alarmAddress, ALARM_SETTINGS & (alarmRead & 0x07)};
     if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, alarmWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
@@ -132,9 +151,177 @@ uint8_t rtc_set_alarm_settings(enum rtc_alarm_e alarmAddress, enum rtc_alarm_mod
     return TRUE;
 }
 
-uint8_t rtc_read_time(dt_time_t* Time) {
+uint8_t rtc_set_alarm(dt_datetime_t* Datetime) {
 
-    /* Read the seconds from the RTC */
+    /* For some reason the alarm will get triggered when changing the time it again.
+        To prevent this disabling the alarm first then renabling it afterwards */
+    rtc_disable_alarm();
+
+    // Alarm settings are not intended to change so these will remain hardcoded
+
+    /* Write the time first */
+
+    // Create the buffer to write to the alarm
+    uint8_t buffer[7] = {
+        RTC_ADDR_ALARM_0_SECONDS,
+        RTC_SECONDS_TO_REGISTER(Datetime->Time.second),
+        RTC_MINUTES_TO_REGISTER(Datetime->Time.minute),
+        RTC_HOURS_TO_REGISTER(Datetime->Time.hour),
+        ALARM_SETTINGS & dt_calculate_day_of_week(&Datetime->Date),
+        RTC_DAYS_TO_REGISTER(Datetime->Date.day),
+        RTC_MONTHS_TO_REGISTER(Datetime->Date.month),
+    };
+
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 7, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    rtc_enable_alarm();
+
+    return TRUE;
+}
+
+uint8_t rtc_enable_alarm(void) {
+
+    // Read the control register so none of the other values are changed
+    uint8_t controlAddr = RTC_ADDR_CONTROL;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    static uint8_t controlRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t controlWrite[2] = {controlAddr, controlRead | (0x01 << 4)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_disable_alarm(void) {
+
+    // Read the control register so none of the other values are changed
+    uint8_t controlAddr = RTC_ADDR_CONTROL;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    static uint8_t controlRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t controlWrite[2] = {controlAddr, controlRead & ~(0x01 << 4)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_alarm_clear(void) {
+
+    // Read the control register so none of the other values are changed
+    uint8_t weekDaysAddr = RTC_ADDR_ALARM_0_WEEK_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t weekDaysRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t weekDaysWrite[2] = {weekDaysAddr, weekDaysRead & ~(0x01 << 3)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, weekDaysWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime) {
+
+    if (rtc_read_alarm_time(&Datetime->Time) != TRUE) {
+        return FALSE;
+    }
+
+    if (rtc_read_alarm_date(&Datetime->Date) != TRUE) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_read_alarm_time(dt_time_t* Time) {
+
+    uint8_t startAddress = RTC_ADDR_ALARM_0_SECONDS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t buffer[3] = {0};
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    Time->second = RTC_REGISTER_TO_SECONDS(buffer[0]);
+    Time->minute = RTC_REGISTER_TO_MINUTES(buffer[1]);
+    Time->hour   = RTC_REGISTER_TO_HOURS(buffer[2]);
+
+    return TRUE;
+}
+
+uint8_t rtc_read_alarm_date(dt_date_t* Date) {
+
+    uint8_t startAddress = RTC_ADDR_ALARM_0_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t buffer[2] = {0};
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    /* The alarm does not check the year. Set the year to be the current year on the RTC */
+    uint8_t yearsAddr = RTC_ADDR_YEARS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &yearsAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t yearsRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &yearsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    Date->day   = RTC_REGISTER_TO_DAYS(buffer[0]);
+    Date->month = RTC_REGISTER_TO_MONTHS(buffer[1]);
+    Date->year  = RTC_REGISTER_TO_YEARS(yearsRead);
+
+    return TRUE;
+}
+
+uint8_t rtc_write_datetime(dt_datetime_t* Datetime) {
+
+    if (rtc_write_time(&Datetime->Time) != TRUE) {
+        return FALSE;
+    }
+
+    if (rtc_write_date(&Datetime->Date) != TRUE) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_write_time(dt_time_t* Time) {
+
+    /* Read the start oscillator bit so that value is not altered */
     uint8_t secondsAddr = RTC_ADDR_SECONDS;
     if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondsAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
@@ -145,33 +332,99 @@ uint8_t rtc_read_time(dt_time_t* Time) {
         return FALSE;
     }
 
-    Time->second = RTC_SECONDS_REGISTER_TO_SECONDS(secondsRead);
+    /* Computer all the values time register values to write to the RTC */
 
-    /* Read the minutes from the RTC */
-    uint8_t minutesAddr = RTC_ADDR_MINUTES;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &minutesAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    uint8_t buffer[4] = {
+        RTC_ADDR_SECONDS,
+        (secondsRead & 0x80) | RTC_SECONDS_TO_REGISTER(Time->second),
+        RTC_MINUTES_TO_REGISTER(Time->minute),
+        0x3F & RTC_HOURS_TO_REGISTER(Time->hour),
+    };
+
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 4, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
 
-    uint8_t minutesRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &minutesRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    return TRUE;
+}
+
+uint8_t rtc_write_date(dt_date_t* Date) {
+
+    /* Read the OSCRUN, PWRFAIL and VBATEN bits so those values are not altered */
+    uint8_t weekDayAddr = RTC_ADDR_WEEK_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDayAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
 
-    Time->minute = RTC_MINUTES_REGISTER_TO_MINUTES(minutesRead);
-
-    /* Read the hours from the RTC */
-    uint8_t hoursAddr = RTC_ADDR_HOURS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &hoursAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    uint8_t weekDaysRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
 
-    uint8_t hoursRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &hoursRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    /* Computer all the values date register values to write to the RTC */
+
+    uint8_t buffer[5] = {
+        RTC_ADDR_WEEK_DAYS,
+        (weekDaysRead & 0x38) | dt_calculate_day_of_week(Date),
+        RTC_DAYS_TO_REGISTER(Date->day),
+        RTC_MONTHS_TO_REGISTER(Date->month),
+        RTC_YEARS_TO_REGISTER(Date->year),
+    };
+
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 5, HAL_MAX_DELAY) != HAL_OK) {
         return FALSE;
     }
 
-    Time->hour = RTC_HOURS_REGISTER_TO_HOURS(hoursRead);
+    return TRUE;
+}
+
+uint8_t rtc_read_datetime(dt_datetime_t* Datetime) {
+
+    if (rtc_read_time(&Datetime->Time) != TRUE) {
+        return FALSE;
+    }
+
+    if (rtc_read_date(&Datetime->Date) != TRUE) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_read_time(dt_time_t* Time) {
+
+    uint8_t startAddress = RTC_ADDR_SECONDS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t buffer[3] = {0};
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    Time->second = RTC_REGISTER_TO_SECONDS(buffer[0]);
+    Time->minute = RTC_REGISTER_TO_MINUTES(buffer[1]);
+    Time->hour   = RTC_REGISTER_TO_HOURS(buffer[2]);
+
+    return TRUE;
+}
+
+uint8_t rtc_read_date(dt_date_t* Date) {
+
+    uint8_t startAddress = RTC_ADDR_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t buffer[3] = {0};
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    Date->day   = RTC_REGISTER_TO_DAYS(buffer[0]);
+    Date->month = RTC_REGISTER_TO_MONTHS(buffer[1]);
+    Date->year  = RTC_REGISTER_TO_YEARS(buffer[2]);
 
     return TRUE;
 }

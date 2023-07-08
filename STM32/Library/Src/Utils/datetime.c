@@ -32,24 +32,36 @@
 #define MIN_YEAR  2022
 #define MAX_YEAR  2100
 
+#define DT_DAY_MONDAY    1
+#define DT_DAY_TUESDAY   2
+#define DT_DAY_WEDNESDAY 3
+#define DT_DAY_THURSDAY  4
+#define DT_DAY_FRIDAY    5
+#define DT_DAY_SATURDAY  6
+#define DT_DAY_SUNDAY    7
+
 #define YEAR_IS_LEAP_YEAR(year) ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0)))
 
 const uint8_t daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /* Function Prototypes */
+void dt_datetime_add_days(dt_datetime_t* Datetime, uint16_t days);
+void dt_datetime_add_hours(dt_datetime_t* Datetime, uint16_t hours);
+void dt_datetime_add_minutes(dt_datetime_t* Datetime, uint16_t minutes);
+void dt_datetime_add_seconds(dt_datetime_t* Datetime, uint16_t minutes);
 
 uint8_t dt_time_is_valid(dt_time_t* Time) {
     return dt_time_valid(Time->second, Time->minute, Time->hour);
 }
 
-uint8_t dt_datetime_init(dt_datetime_t* datetime, uint8_t second, uint8_t minute, uint8_t hour, uint8_t day,
-                         uint8_t month, uint16_t year) {
+uint8_t dt_datetime_init(dt_datetime_t* datetime, uint8_t seconds, uint8_t minutes, uint8_t hours, uint8_t days,
+                         uint8_t months, uint16_t years) {
 
-    if (dt_time_init(&datetime->Time, second, minute, hour) != TRUE) {
+    if (dt_time_init(&datetime->Time, seconds, minutes, hours) != TRUE) {
         return FALSE;
     }
 
-    if (dt_date_init(&datetime->Date, day, month, year) != TRUE) {
+    if (dt_date_init(&datetime->Date, days, months, years) != TRUE) {
         return FALSE;
     }
 
@@ -143,6 +155,42 @@ uint8_t dt_time_add_time(dt_time_t* Time, dt_time_t timeToAdd) {
     return TRUE;
 }
 
+void dt_datetime_add_time(dt_datetime_t* Datetime, uint16_t seconds, uint16_t minutes, uint16_t hours, uint16_t days) {
+    dt_datetime_add_seconds(Datetime, seconds);
+    dt_datetime_add_minutes(Datetime, minutes);
+    dt_datetime_add_hours(Datetime, hours);
+    dt_datetime_add_days(Datetime, days);
+}
+
+uint8_t dt1_greater_than_dt2(dt_datetime_t* Dt1, dt_datetime_t* Dt2) {
+
+    if (Dt2->Date.year > Dt1->Date.year) {
+        return FALSE;
+    }
+
+    if (Dt2->Date.month > Dt1->Date.month) {
+        return FALSE;
+    }
+
+    if (Dt2->Date.day > Dt1->Date.day) {
+        return FALSE;
+    }
+
+    if (Dt2->Time.hour > Dt1->Time.hour) {
+        return FALSE;
+    }
+
+    if (Dt2->Time.minute > Dt1->Time.minute) {
+        return FALSE;
+    }
+
+    if (Dt2->Time.second >= Dt1->Time.second) {
+        return FALSE;
+    }
+
+    return FALSE;
+}
+
 void dt_datetime_increment_day(dt_datetime_t* datetime) {
 
     uint8_t nextMonth = FALSE;
@@ -191,7 +239,7 @@ uint8_t dt_time_valid(uint8_t second, uint8_t minute, uint8_t hour) {
         return FALSE;
     }
 
-    // Confirm minuytes are valid
+    // Confirm minutes are valid
     if (minute > 59) {
         return FALSE;
     }
@@ -346,3 +394,212 @@ void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod
         sprintf(timeString, "%i:%s%i", hour, minute < 10 ? "0" : "", minute);
     }
 }
+
+uint8_t dt_calculate_day_of_week(dt_date_t* Date) {
+
+    // Copy values across so the date data is not altered
+    uint8_t day   = Date->day;
+    uint8_t month = Date->month;
+    uint16_t year = Date->year;
+
+    /* Below is just a standard formula that I have gotten of the internet*/
+    if (month < 3) {
+        month += 12;
+        year--;
+    }
+
+    int century         = year / 100;
+    int year_of_century = year % 100;
+
+    int day_of_week =
+        (day + (13 * (month + 1) / 5) + year_of_century + (year_of_century / 4) + (century / 4) - (2 * century)) % 7;
+
+    day_of_week--;
+
+    if (day_of_week < 0) {
+        day_of_week += 7;
+    }
+
+    if (day_of_week == 0) {
+        return DT_DAY_SUNDAY;
+    }
+
+    return day_of_week;
+}
+
+void dt_datetime_add_days(dt_datetime_t* Datetime, uint16_t days) {
+
+    while (1) {
+
+        // Calculate number of days until
+        uint8_t daysLeftInMonth = daysInMonth[Datetime->Date.month - 1] - Datetime->Date.day;
+        if (days <= daysLeftInMonth) {
+            Datetime->Date.day += days;
+            return;
+        }
+
+        // Subtract extra 1 to get to the first day of the next month
+        days = days - daysLeftInMonth - 1;
+
+        Datetime->Date.day = 1;
+        Datetime->Date.month++;
+
+        if (Datetime->Date.month == 13) {
+            Datetime->Date.month = 1;
+
+            // increment the year by 1
+            Datetime->Date.year++;
+        }
+    }
+}
+
+void dt_datetime_add_hours(dt_datetime_t* Datetime, uint16_t hours) {
+
+    uint16_t daysToAdd = hours / 24;
+    uint8_t hoursToAdd = hours % 24;
+
+    if ((Datetime->Time.hour + hoursToAdd) < 24) {
+        Datetime->Time.hour += hoursToAdd;
+    } else {
+        Datetime->Time.hour += hoursToAdd - 24;
+        daysToAdd++;
+    }
+
+    // Add extra days
+    dt_datetime_add_days(Datetime, daysToAdd);
+}
+
+void dt_datetime_add_minutes(dt_datetime_t* Datetime, uint16_t minutes) {
+
+    uint32_t hoursToAdd   = minutes / 60;
+    uint16_t minutesToAdd = minutes % 60;
+
+    if ((Datetime->Time.minute + minutesToAdd) < 60) {
+        Datetime->Time.minute += minutesToAdd;
+    } else {
+        Datetime->Time.minute += minutesToAdd - 60;
+        hoursToAdd++;
+    }
+
+    // Add extra hours
+    dt_datetime_add_hours(Datetime, hoursToAdd);
+}
+
+void dt_datetime_add_seconds(dt_datetime_t* Datetime, uint16_t seconds) {
+
+    uint16_t minutesToAdd = seconds / 60;
+    uint8_t secondsToAdd  = seconds % 60;
+
+    if ((Datetime->Time.second + secondsToAdd) < 60) {
+        Datetime->Time.second += secondsToAdd;
+    } else {
+        Datetime->Time.second += secondsToAdd - 60;
+        minutesToAdd++;
+    }
+
+    // Add extra minutes
+    dt_datetime_add_minutes(Datetime, minutesToAdd);
+}
+
+uint8_t dt_datetimes_are_equal(dt_datetime_t* dt1, dt_datetime_t* dt2) {
+
+    if (dt1->Time.second != dt2->Time.second) {
+        return FALSE;
+    }
+
+    if (dt1->Time.minute != dt2->Time.minute) {
+        return FALSE;
+    }
+
+    if (dt1->Time.hour != dt2->Time.hour) {
+        return FALSE;
+    }
+
+    if (dt1->Date.day != dt2->Date.day) {
+
+        return FALSE;
+    }
+
+    if (dt1->Date.month != dt2->Date.month) {
+        return FALSE;
+    }
+
+    if (dt1->Date.year != dt2->Date.year) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+// void dt_datetime_subtract_seconds(dt_datetime_t* Datetime, uint16_t seconds) {
+
+//     uint16_t minutesToRemove = seconds / 60;
+//     uint8_t secondsToRemove  = seconds % 60;
+
+//     if ((Datetime->Time.second - secondsToRemove) >= 0) {
+//         Datetime->Time.second -= secondsToRemove;
+//     } else {
+//         Datetime->Time.second = (60 - (secondsToRemove - Datetime->Time.second));
+//         minutesToRemove++;
+//     }
+
+//     if (minutesToRemove > 0) {
+//         dt_datetime_subtract_minutes(Datetime, minutesToRemove);
+//     }
+// }
+
+// void dt_datetime_subtract_minutes(dt_datetime_t* Datetime, uint16_t minutes) {
+
+//     uint32_t hoursToRemove   = minutes / 60;
+//     uint16_t minutesToRemove = minutes % 60;
+
+//     if ((Datetime->Time.minute - minutesToRemove) >= 0) {
+//         Datetime->Time.minute -= minutesToRemove;
+//     } else {
+//         Datetime->Time.minute = (60 - (minutesToRemove - Datetime->Time.minute));
+//         hoursToRemove++;
+//     }
+
+//     if (hoursToRemove > 0) {
+//         dt_datetime_subtract_hours(Datetime, hoursToRemove);
+//     }
+// }
+
+// void dt_datetime_subtract_hours(dt_datetime_t* Datetime, uint16_t hours) {
+
+//     uint16_t daysToRemove = hours / 24;
+//     uint8_t hoursToRemove = hours % 24;
+
+//     if ((Datetime->Time.hour - hoursToRemove) >= 0) {
+//         Datetime->Time.hour -= hoursToRemove;
+//     } else {
+//         Datetime->Time.hour = (60 - (hoursToRemove - Datetime->Time.hour));
+//         daysToRemove++;
+//     }
+
+//     // Add extra days
+//     dt_datetime_subtract_days(Datetime, daysToRemove);
+// }
+
+// void dt_datetime_subtract_days(dt_datetime_t* Datetime, uint16_t days) {
+
+//     while (1) {
+
+//         if ((Datetime->Date.day - days) > 0) {
+//             Datetime->Date.day -= days;
+//             return;
+//         }
+
+//         // Subtract days then decrease the month
+//         days -= Datetime->Date.day;
+
+//         Datetime->Date.month--;
+
+//         if (Datetime->Date.month == 0) {
+//             Datetime->Date.month = 12;
+//             Datetime->Date.year--;
+//         }
+
+//         Datetime->Date.day = daysInMonth[Datetime->Date.month - 1];
+//     }
+// }

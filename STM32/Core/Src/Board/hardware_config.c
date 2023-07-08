@@ -138,12 +138,23 @@ void hardware_config_gpio_init(void) {
 
     /* GPIO pin setup to trigger interrupt on rising and falling edge when USB C is connected */
     GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
-    SYSCFG->EXTICR[3] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
+    SYSCFG->EXTICR[2] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
     EXTI->RTSR1 |= (0x01 << USBC_CONN_PIN); // Trigger on rising edge
     EXTI->FTSR1 |= (0x01 << USBC_CONN_PIN); // Trigger on falling edge
     EXTI->IMR1 |= (0x01 << USBC_CONN_PIN);  // Enable interrupts
     HAL_NVIC_SetPriority(USBC_CONN_IRQn, 10, 0);
     HAL_NVIC_EnableIRQ(USBC_CONN_IRQn);
+
+    /* Setup GPIO for the RTC alarm */
+    GPIO_SET_MODE_INPUT(RTC_ALARM_PORT, RTC_ALARM_PIN);
+    GPIO_SET_PULL_AS_NONE(RTC_ALARM_PORT, RTC_ALARM_PIN);
+    SYSCFG->EXTICR[1] &= ~(0x07 << (4 * (RTC_ALARM_PIN % 4))); // Clear bits
+    SYSCFG->EXTICR[1] |= (0x01 << (4 * (RTC_ALARM_PIN % 4)));  // Set bits for
+    EXTI->RTSR1 &= ~(0x01 << RTC_ALARM_PIN);                   // No trigger on rising edge
+    EXTI->FTSR1 |= (0x01 << RTC_ALARM_PIN);                    // Trigger on falling edge
+    EXTI->IMR1 |= (0x01 << RTC_ALARM_PIN);                     // Enable interrupts
+    HAL_NVIC_SetPriority(RTC_ALARM_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(RTC_ALARM_IRQn);
 
     /* Setup GPIO for ESP32 Power */
     // GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);

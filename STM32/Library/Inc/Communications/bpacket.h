@@ -75,8 +75,8 @@ enum bpk_request_e {
     BPK_REQ_CAMERA_VIEW,
     BPK_REQ_GET_DATETIME,
     BPK_REQ_SET_DATETIME,
-    BPK_REQ_GET_CAMERA_SETTINGS,
-    BPK_REQ_SET_CAMERA_SETTINGS,
+    BPK_REQ_GET_WATCHDOG_SETTINGS,
+    BPK_REQ_SET_WATCHDOG_SETTINGS,
     BPK_REQ_GET_CAMERA_CAPTURE_TIMES,
     BPK_REQ_SET_CAMERA_CAPTURE_TIMES,
     BPK_REQ_STREAM_IMAGE,
@@ -224,10 +224,8 @@ extern const bpk_request_t BPK_Req_Led_Red_Off;
 extern const bpk_request_t BPK_Req_Camera_View;
 extern const bpk_request_t BPK_Req_Get_Datetime;
 extern const bpk_request_t BPK_Req_Set_Datetime;
-extern const bpk_request_t BPK_Req_Get_Camera_Settings;
-extern const bpk_request_t BPK_Req_Set_Camera_Settings;
-extern const bpk_request_t BPK_Req_Get_Camera_Capture_Times;
-extern const bpk_request_t BPK_Req_Set_Camera_Capture_Times;
+extern const bpk_request_t BPK_Req_Get_Watchdog_Settings;
+extern const bpk_request_t BPK_Req_Set_Watchdog_Settings;
 extern const bpk_request_t BPK_Req_Stream_Images;
 extern const bpk_request_t BPK_Req_Esp32_On;
 extern const bpk_request_t BPK_Req_Esp32_Off;

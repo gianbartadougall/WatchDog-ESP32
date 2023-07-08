@@ -23,6 +23,9 @@
 #define SYSTEM_STATUS_ERROR 0
 #define SYSTEM_STATUS_OK    1
 
+#define WINDOW_WIDTH  1300
+#define WINDOW_HEIGHT 768
+
 #define MAX_CHARACTER_INPUT_TO_TEXT_BOX 20
 #define GUI_TURN_RED_LED_ON             (0x01 << 0)
 #define GUI_TURN_RED_LED_OFF            (0x01 << 1)

@@ -43,28 +43,28 @@
 /*************************************************************/
 
 /******** Macros for DS18B20 **********/
-
 #define DS18B20_PORT GPIOB
 #define DS18B20_PIN  0
-
 /**************************************/
 
-/******** Macros for Power BJT **********/
+/******** Macros for Real Time Clock **********/
+#define RTC_ALARM_PORT GPIOB
+#define RTC_ALARM_PIN  5
+#define RTC_ALARM_IRQn EXTI9_5_IRQn
+/**********************************************/
 
+/******** Macros for Power BJT **********/
 #define ESP32_POWER_PORT GPIOA
 #define ESP32_POWER_PIN  11
-
 /**************************************/
 
 /********** Marcos for hardware related to the DS18B20 Temperature Sensor ***********/
-
 #define DS18B20_TIMER              TIM15
 #define DS18B20_TIMER_CLK_ENABLE() __HAL_RCC_TIM15_CLK_ENABLE()
 #define DS18B20_TIMER_FREQUENCY    TIMER_FREQUENCY_1MHz
 #define DS18B20_TIMER_MAX_COUNT    65535
 #define DS18B20_TIMER_IRQn         TIM1_BRK_TIM15_IRQn
 #define DS18B20_TIMER_ISR_PRIORITY TIM15_ISR_PRIORITY
-
 /************************************************************************************/
 
 /********** Marcos for hardware related to the servo ***********/
@@ -77,7 +77,6 @@
 #define SERVO_TIMER_MAX_COUNT    500
 #define SERVO_TIMER_IRQn         TIM2_IRQn
 #define SERVO_TIMER_ISR_PRIORITY TIM2_ISR_PRIORITY
-
 /***************************************************************/
 
 /********** Marcos for hardware related to USB C ***********/
@@ -87,7 +86,6 @@
 /***************************************************************/
 
 /********** Marcos for UART Communication with ESP32 Cam ***********/
-
 #define UART_ESP32_GPIO_RX_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
 #define UART_ESP32_GPIO_TX_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
 #define UART_ESP32_CLK_ENABLE()         __HAL_RCC_USART1_CLK_ENABLE()

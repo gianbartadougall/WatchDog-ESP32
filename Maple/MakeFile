@@ -1,22 +1,26 @@
 # *-* MakeFile *-*
 
 BUILD_DIR = build
-EXECUTABLE_NAME = Maple
+EXECUTABLE_NAME = UnitTests
 EXECUTABLE = $(BUILD_DIR)\$(EXECUTABLE_NAME)
 
 LIB_SP_DIRECTORY = ../Drivers/LibSerialPort
 STB_DIRECTORY = ../Drivers/stb_image/Src
+CPP_LIB_PATH=E:\Software_Libraries\Personal\C
 
 C_SOURCES = \
 Src/main.c \
-Src/gui.c \
+Src/gui_utils.c \
 ../STM32/Core/Src/watchdog_defines.c \
+../STM32/Core/Src/watchdog_utils.c \
 ../STM32/Library/Src/DataTypes/chars.c \
 ../STM32/Library/Src/Communications/bpacket.c \
 ../STM32/Library/Src/Communications/bpacket_utils.c \
 ../STM32/Library/Src/Utils/datetime.c \
 ../STM32/Library/Src/Utils/log.c \
-../STM32/Library/Src/Utils/cbuffer.c
+../STM32/Library/Src/Utils/cbuffer.c \
+$(CPP_LIB_PATH)/Utils/Src/event_timeout.c \
+$(CPP_LIB_PATH)/Utils/Src/event_group.c
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \
@@ -26,9 +30,11 @@ C_INCLUDES = \
 -I../STM32/Library/Inc/Utils \
 -I../STM32/Library/Inc/Communications \
 -I../STM32/Core/Inc/Board \
+-I../STM32/Core/Inc \
 -I../STM32/Library/Inc \
 -I../Drivers/ESP32_Camera/driver/include \
--IInc
+-IInc \
+-I$(CPP_LIB_PATH)\Utils\Inc
 
 STB_SOURCES = \
 ../Drivers/stb_image/Src/stb_image.c \
@@ -58,24 +64,22 @@ C_OBJECTS_BUILD_DIR = $(foreach D, $(C_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 LIB_SP_OBJECTS_BUILD_DIR = $(foreach D, $(LIB_SP_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 STB_OBJECTS_BUILD_DIR = $(foreach D, $(STB_OBJECTS), $(BUILD_DIR)/$(notdir $(D)))
 
-
-
 OPT = -Og
 C_COMPILER=gcc
+CPP_COMPILER=g++
 DEBUG_MODE=-g
-
 
 # Ensures .cpp files are recompiled if header files are edited 
 DEPENDENCY_FLAGS = -MP -MD
 
 FLAGS = -Wall $(DEBUG_MODE) $(LIB_SP_INCLUDES) $(LIB_STB_INCLUDES) $(C_INCLUDES) $(DEPENDENCY_FLAGS) $(OPT)
-# $(info ARGS $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR))
+$(info ARGS $(CPP_LIB_SOURCES))
 
 all: $(BUILD_DIR) $(C_SOURCES) Linker
 
 # The -lsetupapi (used for libSerialPort) include must go at the end for it to compile properly.
 # The gdi32.lib is used for the win32A API
-Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR) $(STB_OBJECTS_BUILD_DIR)
+Linker: $(C_OBJECTS_BUILD_DIR) $(LIB_SP_OBJECTS_BUILD_DIR) $(STB_OBJECTS_BUILD_DIR) build/event_timeout.o
 	$(C_COMPILER) $(FLAGS) -o $(BUILD_DIR)/$(EXECUTABLE_NAME) $^ -lsetupapi -lgdi32
 
 $(C_SOURCES):

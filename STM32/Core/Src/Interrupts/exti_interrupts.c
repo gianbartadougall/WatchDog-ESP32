@@ -21,6 +21,10 @@
 #include "event_group.h"
 #include "watchdog.h"
 #include "hardware_config.h"
+#include "rtc_mcp7940n.h"
+#include "datetime.h"
+#include "log_usb.h"
+
 /**
  * @brief Interrupt routine for EXTI1
  *
@@ -121,14 +125,19 @@ void EXTI9_5_IRQHandler(void) {
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
 
-    // // Confirm pending interrupt exists on EXTI line 6
-    // if ((EXTI->PR1 & EXTI_PR1_PIF5) == (EXTI_PR1_PIF5)) {
+    // Confirm pending interrupt exists on EXTI line 5
+    if ((EXTI->PR1 & EXTI_PR1_PIF5) == (EXTI_PR1_PIF5)) {
+        log_usb_message("Triggered\r\n");
 
-    //     // Clear the pending interrupt
-    //     EXTI->PR1 = EXTI_PR1_PIF5;
+        // Clear the pending interrupt
+        EXTI->PR1 = EXTI_PR1_PIF5;
 
-    //     /* Call required functions */
-    // }
+        /* Call required functions */
+
+        event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
+
+        event_group_set_bit(&gbl_EventsStm, EVENT_STM_RTC_UPDATE_ALARM, EGT_ACTIVE);
+    }
 
     // // Confirm pending interrupt exists on EXTI line 6
     // if ((EXTI->PR1 & EXTI_PR1_PIF6) == EXTI_PR1_PIF6) {

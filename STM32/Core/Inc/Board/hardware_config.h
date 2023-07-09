@@ -30,7 +30,7 @@
 
 // TEMPORARY MARCO: TODO IS MAKE A WHOE CLOCK CONFIG FILE. This currently
 // just copies value from STM32 file
-#define SYSTEM_CLOCK_CORE 4000000
+#define SYSTEM_CLOCK_CORE 32000000
 
 // Define ports and pins for peripherals that have been enabled in
 // configuration.h file
@@ -65,6 +65,9 @@
 #define DS18B20_TIMER_MAX_COUNT    65535
 #define DS18B20_TIMER_IRQn         TIM1_BRK_TIM15_IRQn
 #define DS18B20_TIMER_ISR_PRIORITY TIM15_ISR_PRIORITY
+
+#define DS18B20_ROM_1 0xa73c01d607368428
+#define DS18B20_ROM_2 0x3f3c01d607587728
 /************************************************************************************/
 
 /********** Marcos for hardware related to the servo ***********/

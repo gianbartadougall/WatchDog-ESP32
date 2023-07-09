@@ -169,10 +169,10 @@ void hardware_config_gpio_init(void) {
 
     /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
-    // GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
-    // GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
-    // GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
-    // GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_TYPE_PUSH_PULL(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_SPEED_HIGH(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
@@ -295,22 +295,22 @@ void hardware_config_timer_init(void) {
     increase the timer frequency if you get this error. E.g: System clock = 1Mhz and
     timer frequnecy = 1Hz => timer should reset after 1 million ticks to get a frequnecy
     of 1Hz but the max count < 1 million thus 1Hz can never be reached */
-#if ((SYSTEM_CLOCK_CORE / TS_TIMER_FREQUENCY) > TS_TIMER_MAX_COUNT)
-#    error System clock frequency is too high to generate the required timer frequnecy
-#endif
+    // #if ((SYSTEM_CLOCK_CORE / TS_TIMER_FREQUENCY) > TS_TIMER_MAX_COUNT)
+    // #    error System clock frequency is too high to generate the required timer frequnecy
+    // #endif
 
-    /* Configure timer for task scheduler*/
-    TS_TIMER_CLK_ENABLE();                                      // Enable the clock
-    TS_TIMER->CR1 &= ~(TIM_CR1_CEN);                            // Disable counter
-    TS_TIMER->PSC = (SystemCoreClock / TS_TIMER_FREQUENCY) - 1; // Set timer frequency
-    TS_TIMER->ARR = TS_TIMER_MAX_COUNT;                         // Set maximum count for timer
-    TS_TIMER->CNT = 0;                                          // Reset count to 0
-    TS_TIMER->DIER &= 0x00;                                     // Disable all interrupts by default
-    TS_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);      // Set CH1 capture compare to mode to frozen
+    //     /* Configure timer for task scheduler*/
+    //     TS_TIMER_CLK_ENABLE();                                      // Enable the clock
+    //     TS_TIMER->CR1 &= ~(TIM_CR1_CEN);                            // Disable counter
+    //     TS_TIMER->PSC = (SystemCoreClock / TS_TIMER_FREQUENCY) - 1; // Set timer frequency
+    //     TS_TIMER->ARR = TS_TIMER_MAX_COUNT;                         // Set maximum count for timer
+    //     TS_TIMER->CNT = 0;                                          // Reset count to 0
+    //     TS_TIMER->DIER &= 0x00;                                     // Disable all interrupts by default
+    //     TS_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);      // Set CH1 capture compare to mode to frozen
 
-    /* Enable interrupt handler */
-    HAL_NVIC_SetPriority(TS_TIMER_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(TS_TIMER_IRQn);
+    //     /* Enable interrupt handler */
+    //     HAL_NVIC_SetPriority(TS_TIMER_IRQn, 10, 0);
+    //     HAL_NVIC_EnableIRQ(TS_TIMER_IRQn);
 }
 
 void hardware_config_uart_init(void) {

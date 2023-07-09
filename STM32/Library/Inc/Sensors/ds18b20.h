@@ -71,6 +71,20 @@
                                                          \
     } while (0)
 
+/** This holds the required information for each sensor that is connected to the line.
+ * Currently there is only need for the ROM code and the temperature of the sensor.
+ * If additional features are added like settings for each sensor then this struct
+ * may need to be expanded.
+ *
+ * The temperature received from the DS18B20 is always of the form +-XXXXXXX.XXXX thus
+ * the decimal point is always 4 and does not need to be stored
+ */
+typedef struct ds18b20_t {
+    uint8_t id;
+    uint64_t rom;
+    float temp;
+} ds18b20_t;
+
 /* Public Enumerations and Structures */
 
 /**
@@ -106,35 +120,6 @@ void ds18b20_deinit(void);
  * @param id The id specifies which DS18B20 sensor to read the temperature from
  * @return uint8_t DS18B20_SUCCESS if the temperature was updated correctly else DS18B20_ERROR
  */
-uint8_t ds18b20_read_temperature(uint8_t id);
-
-/**
- * @brief Prints the last temperature read from each sensor to the console.
- */
-void ds18b20_print_temperatures(void);
-
-/**
- * @brief Prints the temperature of the given DS18B20 sensor
- *
- * @param id The id of the DS18B20 sensor to print the temperature of
- */
-void ds18b20_print_temperature(uint8_t id);
-
-/**
- * @brief Stores the temperature of the given DS18B20 sensor into
- * the given struct
- *
- * @param id The id of the DS18B20 sensor to print the temperature of
- */
-uint8_t ds18b20_copy_temperature(uint8_t id, cdt_dbl_16_t* temp);
-
-/**
- * @brief Prints the ROM of a given sensor to the console
- *
- * @param id The ID of the sensor to be printed to the console
- */
-void ds18b20_print_rom(uint8_t id);
-
-void ds18b20_get_temperature(uint8_t id, char tempStr[30]);
+uint8_t ds18b20_read_temperature(ds18b20_t* Ds18b20);
 
 #endif // DS18B20_H

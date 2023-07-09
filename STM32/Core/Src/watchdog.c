@@ -31,12 +31,9 @@
 #include "comms_stm32.h"
 #include "rtc_mcp7940n.h"
 #include "watchdog_utils.h"
+#include "ds18b20.h"
 
 /* Private Enums */
-
-// typedef struct camera_settings_t {
-//     uint8_t resolution;
-// } camera_settings_t;
 
 /* Private Macros */
 #define WD_FLASH_SETTINGS_START_ADDRESS 0x0803F800
@@ -160,62 +157,6 @@ void i2c_test(void) {
     }
 }
 
-void flash_test(void) {
-
-    capture_time_t CPSettings = {
-        .Start.Time.second = 00,
-        .Start.Time.minute = 30,
-        .Start.Time.hour   = 9,
-        .Start.Date.day    = 1,
-        .Start.Date.month  = 1,
-        .Start.Date.year   = 2023,
-        .End.Time.second   = 00,
-        .End.Time.minute   = 30,
-        .End.Time.hour     = 7,
-        .End.Date.day      = 31,
-        .End.Date.month    = 12,
-        .End.Date.year     = 2024,
-        .intervalDay       = 0,
-        .intervalSecond    = 0,
-        .intervalMinute    = 30,
-        .intervalHour      = 2,
-    };
-
-    camera_settings_t CS = {
-        .resolution = 5,
-    };
-
-    if (wd_write_settings(&CPSettings, &CS) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__, 0);
-    }
-
-    camera_settings_t ncs;
-    capture_time_t nct;
-    wd_read_settings(&nct, &ncs);
-
-    log_usb_message("Start.Time.second %i\r\n", nct.Start.Time.second);
-    log_usb_message("Start.Time.minute %i\r\n", nct.Start.Time.minute);
-    log_usb_message("Start.Time.hour   %i\r\n", nct.Start.Time.hour);
-    log_usb_message("Start.Date.day    %i\r\n", nct.Start.Date.day);
-    log_usb_message("Start.Date.month  %i\r\n", nct.Start.Date.month);
-    log_usb_message("Start.Date.year   %i\r\n", nct.Start.Date.year);
-    log_usb_message("End.Time.second   %i\r\n", nct.End.Time.second);
-    log_usb_message("End.Time.minute   %i\r\n", nct.End.Time.minute);
-    log_usb_message("End.Time.hour     %i\r\n", nct.End.Time.hour);
-    log_usb_message("End.Date.day      %i\r\n", nct.End.Date.day);
-    log_usb_message("End.Date.month    %i\r\n", nct.End.Date.month);
-    log_usb_message("End.Date.year     %i\r\n", nct.End.Date.year);
-    log_usb_message("intervalDay       %i\r\n", nct.intervalDay);
-    log_usb_message("intervalSecond    %i\r\n", nct.intervalSecond);
-    log_usb_message("intervalMinute    %i\r\n", nct.intervalMinute);
-    log_usb_message("intervalHour      %i\r\n", nct.intervalHour);
-    log_usb_message("resolution        %i\r\n", ncs.resolution);
-
-    log_usb_message("Done\r\n");
-
-    while (1) {}
-}
-
 void wd_error_handler_2(char* format, ...) {
 
     static char msg[100];
@@ -231,29 +172,44 @@ void wd_error_handler_2(char* format, ...) {
     }
 }
 
+uint32_t pow1(uint8_t base, uint8_t exponent) {
+
+    if (exponent == 0) {
+        return 1;
+    }
+
+    return base * pow1(base, exponent - 1);
+}
+
 void wd_start(void) {
 
     // Initialise all the hardware
     hardware_config_init();
 
+    ds18b20_init();
+    // sensor id 2
+
+    ds18b20_t Ds18b20 = {
+        .rom  = DS18B20_ROM_1,
+        .temp = 0,
+    };
+
     /* Initialise software */
-    task_scheduler_init(); // Reset Recipes list
+    // TODO: Change the task scheduler timer. TIM15 is used for the ds18b20 so it cannot
+    // be used for the task scheduler. Will need to find a different one. Reenable timer
+    // in hardware config.c as I commented it out
+    // task_scheduler_init(); // Reset Recipes list
 
     if (rtc_init() != TRUE) {
         wd_error_handler(__FILE__, __LINE__, EC_RTC_INIT);
     }
 
+    // Read the watchdog settings from flash
+    wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
+
     // Initialise event groups
     event_group_clear(&gbl_EventsStm);
     event_group_clear(&gbl_EventsEsp);
-
-    /* Initialise the settings for watchdog (Capture time and camera settings) */
-    wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
-
-    // while (1) {
-    //     HAL_Delay(1000);
-    //     log_usb_message("Cam res: %i\r\n", lg_CameraSettings.resolution);
-    // }
 
     // TODO: Confirm the start, end and interval times just read are valid
 

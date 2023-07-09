@@ -29,24 +29,11 @@
 #include "log.h"
 #include "hardware_config.h"
 #include "utils.h"
+#include "log_usb.h"
+#include "gpio.h"
 
 /* Private Macros */
-#define SET_PIN_LOW(port, pin) (port->BSRR |= (0x01 << (pin + 16)))
-#define ID_INVALID(id)         ((id < DS18B20_ID_OFFSET) || (id > (NUM_SENSORS - 1 + DS18B20_ID_OFFSET)))
-
-/** This holds the required information for each sensor that is connected to the line.
- * Currently there is only need for the ROM code and the temperature of the sensor.
- * If additional features are added like settings for each sensor then this struct
- * may need to be expanded.
- *
- * The temperature received from the DS18B20 is always of the form +-XXXXXXX.XXXX thus
- * the decimal point is always 4 and does not need to be stored
- */
-typedef struct ds18b20_t {
-    uint8_t id;
-    uint64_t rom;
-    cdt_dbl_16_t Temperature;
-} ds18b20_t;
+#define ID_INVALID(id) ((id < DS18B20_ID_OFFSET) || (id > (NUM_SENSORS - 1 + DS18B20_ID_OFFSET)))
 
 /* Private Variable Declarations */
 ds18b20_t sensors[NUM_SENSORS];
@@ -54,17 +41,18 @@ ds18b20_t sensors[NUM_SENSORS];
 /* Private Function Declarations */
 void ds18b20_write_bit(uint8_t bit);
 void ds18b20_delay_us(uint16_t delay);
-void ds18b20_match_rom(ds18b20_t* ds18b20);
+void ds18b20_match_rom(ds18b20_t* Ds18b20);
 void ds18b20_print_temperature(uint8_t id);
 void ds18b20_send_command(uint8_t command);
 void print_64_bit(uint64_t number);
+void ds18b20_print_64_bit(uint64_t number);
 
 uint8_t ds18b20_convert_temperature(void);
 uint8_t ds18b20_reset(void);
 uint8_t ds18b20_read_bit(void);
-uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData);
+uint8_t ds18b20_process_raw_temp_data(ds18b20_t* Ds18b20, uint16_t rawTempData);
 uint32_t ds18b20_pow(uint8_t base, uint8_t exponent);
-uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20);
+uint8_t ds18b20_read_scratch_pad(ds18b20_t* Ds18b20);
 uint64_t ds18b20_read_rom(void);
 
 /* ****************************** PUBLIC FUNCTIONS ****************************** */
@@ -76,41 +64,20 @@ void ds18b20_init(void) {
     // Start the microsecond clock. The paramters for this clock are defined in the
     // hardware configuration file
     DS18B20_TIMER->CR1 |= TIM_CR1_CEN;
-
-    // Unique rom code for each temperature sensor
-    sensors[DS18B20_SENSOR_ID_1].rom = 0x3f3c01d607587728;
-    sensors[DS18B20_SENSOR_ID_2].rom = 0xa73c01d607368428;
 }
 
 void ds18b20_deinit(void) {
     DS18B20_TIMER->CR1 &= ~(TIM_CR1_CEN);
 }
 
-uint8_t ds18b20_copy_temperature(uint8_t id, cdt_dbl_16_t* temp) {
-
-    if (ID_INVALID(id) == TRUE) {
-        return FALSE;
-    }
-
-    temp->info    = sensors[id].Temperature.info;
-    temp->integer = sensors[id].Temperature.integer;
-    temp->decimal = sensors[id].Temperature.decimal;
-
-    return TRUE;
-}
-
-uint8_t ds18b20_read_temperature(uint8_t id) {
-
-    if (ID_INVALID(id) == TRUE) {
-        return FALSE;
-    }
+uint8_t ds18b20_read_temperature(ds18b20_t* Ds18b20) {
 
     if (ds18b20_convert_temperature() != TRUE) {
         log_error("Failed to convert temperature\r\n");
         return FALSE;
     }
 
-    if (ds18b20_read_scratch_pad(&sensors[id]) != TRUE) {
+    if (ds18b20_read_scratch_pad(Ds18b20) != TRUE) {
         log_error("Failed to read scratch pad\r\n");
         return FALSE;
     }
@@ -118,60 +85,34 @@ uint8_t ds18b20_read_temperature(uint8_t id) {
     return TRUE;
 }
 
-void ds18b20_print_temperatures(void) {
-
-    for (uint8_t i = 0; i < NUM_SENSORS; i++) {
-        log_message("%i: %s%i.%s%i\t", i + 1, sensors[i].Temperature.info == 1 ? "-" : "",
-                    sensors[i].Temperature.integer, sensors[i].Temperature.decimal < 1000 ? "0" : "",
-                    sensors[i].Temperature.decimal);
-    }
-
-    log_message("\r\n");
-}
-
-void ds18b20_print_temperature(uint8_t id) {
-    printf("Temp: %s%i.%s%i\r\n", (sensors[id].Temperature.info == 1) ? "-" : "", sensors[id].Temperature.integer,
-           sensors[id].Temperature.decimal < 100 ? "0" : "", sensors[id].Temperature.decimal);
-}
-
-void ds18b20_print_rom(uint8_t id) {
-    print_64_bit(sensors[id].rom);
-}
-
-void ds18b20_get_temperature(uint8_t id, char tempStr[30]) {
-    sprintf(tempStr, "Temp: %s%i.%s%i\r\n", sensors[id].Temperature.info == 1 ? "-" : "",
-            sensors[id].Temperature.integer, sensors[id].Temperature.decimal < 1000 ? "0" : "",
-            sensors[id].Temperature.decimal);
-}
-
 /**
  * @brief This function is a test function you can run to ensure hardware
  * is working correctly. It also provides an example of how to use this driver
  * to get the temperaure from connected sensors
  */
-void ds18b20_test(void) {
+// void ds18b20_test(void) {
 
-    // Intialise the driver
-    ds18b20_init();
+//     // Intialise the driver
+//     ds18b20_init();
 
-    while (1) {
+//     while (1) {
 
-        // Read the temperature of sensor 1 connected to the line
-        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_1) != TRUE) {
-            log_error("Error reading temperature from sensor 1\r\n");
-        }
+//         // Read the temperature of sensor 1 connected to the line
+//         if (ds18b20_read_temperature_dep(DS18B20_SENSOR_ID_1) != TRUE) {
+//             log_error("Error reading temperature from sensor 1\r\n");
+//         }
 
-        // Read the temperature of sensor 2 connected to the line
-        if (ds18b20_read_temperature(DS18B20_SENSOR_ID_2) != TRUE) {
-            log_error("Error reading temperature from sensor 2\r\n");
-        }
+//         // Read the temperature of sensor 2 connected to the line
+//         if (ds18b20_read_temperature_dep(DS18B20_SENSOR_ID_2) != TRUE) {
+//             log_error("Error reading temperature from sensor 2\r\n");
+//         }
 
-        // Print the temperatures of all the sensors to the console
-        ds18b20_print_temperatures();
+//         // Print the temperatures of all the sensors to the console
+//         ds18b20_print_temperatures();
 
-        HAL_Delay(1000);
-    }
-}
+//         HAL_Delay(1000);
+//     }
+// }
 
 /* ****************************** PRIVATE FUNCTIONS ****************************** */
 /* ******************************************************************************* */
@@ -183,13 +124,15 @@ void ds18b20_test(void) {
  *
  * @param ds18b20 A pointer to the struct of the given DS18B20 sensor to be selected
  */
-void ds18b20_match_rom(ds18b20_t* ds18b20) {
+void ds18b20_match_rom(ds18b20_t* Ds18b20) {
 
     ds18b20_send_command(DS18B20_COMMAND_MATCH_ROM);
 
+    ds18b20_print_64_bit(Ds18b20->rom);
+
     // Send ROM of the temperature sensor you want to speak to
     for (uint8_t i = 0; i < 64; i++) {
-        ds18b20_write_bit(((ds18b20->rom & ((uint64_t)0x01 << i)) != 0) ? 1 : 0);
+        ds18b20_write_bit(((Ds18b20->rom & ((uint64_t)0x01 << i)) != 0) ? 1 : 0);
     }
 }
 
@@ -209,7 +152,7 @@ void ds18b20_print_64_bit(uint64_t number) {
     uint16_t bytes56 = ((number >> 32) & 0xFFFF);
     uint16_t bytes78 = ((number >> 48) & 0xFFFF);
 
-    log_message("Num: %x %x %x %x\r\n", bytes78, bytes56, bytes34, bytes12);
+    log_usb_message("Num: %x %x %x %x\r\n", bytes78, bytes56, bytes34, bytes12);
 }
 
 /**
@@ -231,13 +174,13 @@ void ds18b20_print_64_bit(uint64_t number) {
  * list
  * @return uint8_t TRUE if no errors occured else FALSE
  */
-uint8_t ds18b20_update_rom(uint8_t id) {
+uint8_t ds18b20_update_rom(ds18b20_t* Ds18b20) {
 
     if (ds18b20_reset() != TRUE) {
         return FALSE;
     }
 
-    sensors[id].rom = ds18b20_read_rom();
+    Ds18b20->rom = ds18b20_read_rom();
 
     return TRUE;
 }
@@ -246,18 +189,18 @@ uint8_t ds18b20_update_rom(uint8_t id) {
  * @brief Changes the mode of the pin on the mcu that connects to the DS18B20
  * data line to output mode
  */
-void ds18b20_set_pin_output(void) {
-    DS18B20_PORT->MODER &= ~(0x3 << (DS18B20_PIN * 2));
-    DS18B20_PORT->MODER |= (0x01 << (DS18B20_PIN * 2));
-}
+// void ds18b20_set_pin_output(void) {
+//     DS18B20_PORT->MODER &= ~(0x3 << (DS18B20_PIN * 2));
+//     DS18B20_PORT->MODER |= (0x01 << (DS18B20_PIN * 2));
+// }
 
 /**
  * @brief Changes the mode of the pin on the mcu that connects to the DS18B20
  * data line to output input
  */
-void ds18b20_set_pin_input(void) {
-    DS18B20_PORT->MODER &= ~(0x11 << (DS18B20_PIN * 2));
-}
+// void ds18b20_set_pin_input(void) {
+//     DS18B20_PORT->MODER &= ~(0x11 << (DS18B20_PIN * 2));
+// }
 
 /**
  * @brief This function will delay for the specified number of microseconds
@@ -296,14 +239,14 @@ uint64_t ds18b20_read_rom(void) {
  * pad of
  * @return uint8_t TRUE if no errors occured else FALSE
  */
-uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
+uint8_t ds18b20_read_scratch_pad(ds18b20_t* Ds18b20) {
 
     if (ds18b20_reset() != TRUE) {
         return FALSE;
     }
 
     // Select the ds18b20 sensor to read the scratch pad of
-    ds18b20_match_rom(ds18b20);
+    ds18b20_match_rom(Ds18b20);
 
     // Tell sensor to send data when the next 64 read slots
     // are sent to it
@@ -318,7 +261,7 @@ uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
     // Extract the raw temperature data from the ds18b20 and process it. The temperature
     // data is in bytes 1 and 2 of the 8 bytes sent from the sensor
     uint16_t rawTemperatureData = data & 0xFFFF;
-    if (ds18b20_process_raw_temp_data(ds18b20, rawTemperatureData) != TRUE) {
+    if (ds18b20_process_raw_temp_data(Ds18b20, rawTemperatureData) != TRUE) {
         return FALSE;
     }
 
@@ -338,32 +281,30 @@ uint8_t ds18b20_read_scratch_pad(ds18b20_t* ds18b20) {
  * @param rawTempData The raw tempreature data sent from the DS18B20 sensor
  * @return uint8_t TRUE if no errors occured else FALSE
  */
-uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) {
+uint8_t ds18b20_process_raw_temp_data(ds18b20_t* Ds18b20, uint16_t rawTempData) {
 
     // Reset temperature value
-    ds18b20->Temperature.integer = 0;
-    ds18b20->Temperature.decimal = 0;
-    ds18b20->Temperature.info    = 0;
+    Ds18b20->temp    = 0.0;
+    uint8_t negative = FALSE;
 
     // Temperature data is stored in 2's complement. Convert if temperature is negative
     if ((rawTempData & (0x01 << 11)) != 0) {
-        ds18b20->Temperature.info = 1;
-
+        negative = TRUE;
         // Convert negative data to positive data
         rawTempData = (~rawTempData) + 1;
     }
 
-    // Extract decimal component
+    // Extract integer component
     for (uint8_t i = 4; i < 11; i++) {
         if ((rawTempData & (0x01 << i)) != 0) {
-            ds18b20->Temperature.integer += ds18b20_pow(2, i - 4);
+            Ds18b20->temp += (float)ds18b20_pow(2, i - 4);
         }
     }
 
     // Extract Fractional component
     for (uint8_t i = 0; i < 4; i++) {
         if ((rawTempData & (0x01 << i)) != 0) {
-            ds18b20->Temperature.decimal += 625 * ds18b20_pow(2, i);
+            Ds18b20->temp += 0.0625 * ds18b20_pow(2, i);
         }
     }
 
@@ -373,7 +314,10 @@ uint8_t ds18b20_process_raw_temp_data(ds18b20_t* ds18b20, uint16_t rawTempData) 
     }
 
     // Extract info bit
-    ds18b20->Temperature.info = ((rawTempData & (0x01 << 12)) != 0) ? 1 : 0;
+    if (negative == TRUE) {
+        Ds18b20->temp *= -1.0;
+    }
+
     return TRUE;
 }
 
@@ -399,7 +343,8 @@ uint8_t ds18b20_convert_temperature(void) {
 
     // Wait until the temperature conversion has finished or timeout
     // has occured
-    ds18b20_set_pin_input();
+    // ds18b20_set_pin_input();
+    GPIO_SET_MODE_INPUT(DS18B20_PORT, DS18B20_PIN);
 
     // Wait for DS18B20 to finish temperature conversion
     while (ds18b20_read_bit() == 0) {
@@ -458,15 +403,17 @@ uint32_t ds18b20_pow(uint8_t base, uint8_t exponent) {
 uint8_t ds18b20_read_bit(void) {
 
     // Initialise read by pulling data line low
-    ds18b20_set_pin_output();
-    SET_PIN_LOW(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_output();
+    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_LOW(DS18B20_PORT, DS18B20_PIN);
 
     // Wait for minimum of 1us
     DS18B20_TIMER->CNT = 0;
     while (DS18B20_TIMER->CNT < 1) {}
 
     // Set the pin to an input
-    ds18b20_set_pin_input();
+    GPIO_SET_MODE_INPUT(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_input();
 
     // Read the value of the line before 15us has occured since the
     // read was initialised
@@ -498,19 +445,22 @@ uint8_t ds18b20_read_bit(void) {
 void ds18b20_write_bit(uint8_t bit) {
 
     // Pull the bus low for 2us to ensure it goes low for at least a small period
-    ds18b20_set_pin_output();
-    SET_PIN_LOW(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_output();
+    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_LOW(DS18B20_PORT, DS18B20_PIN);
     ds18b20_delay_us(2);
 
     if (bit == 1) {
 
-        ds18b20_set_pin_input();
+        GPIO_SET_MODE_INPUT(DS18B20_PORT, DS18B20_PIN);
+        // ds18b20_set_pin_input();
         ds18b20_delay_us(60); // Wait maximum of 60us for ds18b20 to read logical 1
         return;
     }
 
     ds18b20_delay_us(60); // Keep the line low for 60us
-    ds18b20_set_pin_input();
+    GPIO_SET_MODE_INPUT(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_input();
 
     ds18b20_delay_us(5); // Wait additonal 5us for line to be pulled high by pull up resistor
 }
@@ -530,11 +480,13 @@ void ds18b20_write_bit(uint8_t bit) {
 uint8_t ds18b20_reset(void) {
 
     // Initialise reset by pulling the line low for at least 480us
-    ds18b20_set_pin_output();
-    SET_PIN_LOW(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_output();
+    GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
+    GPIO_SET_LOW(DS18B20_PORT, DS18B20_PIN);
     ds18b20_delay_us(500);
 
-    ds18b20_set_pin_input();
+    GPIO_SET_MODE_INPUT(DS18B20_PORT, DS18B20_PIN);
+    // ds18b20_set_pin_input();
 
     // Wait for at least 15us and for the pull up resistor to pull the line high
     DS18B20_TIMER->CNT = 0;
@@ -548,19 +500,15 @@ uint8_t ds18b20_reset(void) {
 
     // If the DS18B20 resets correctly, it will pull the line low as an ackowledgmennt.
     // At least 480us must pass after the DS18B20 has ackowledged before you can communicate
-    // with the sensor again
+    // with the sensor again. Waiting for 500us to be safe
     uint8_t ds18b20Responded = FALSE;
     DS18B20_TIMER->CNT       = 0;
-    while (DS18B20_TIMER->CNT < 480) {
+    while (DS18B20_TIMER->CNT < 500) {
 
         // Read the data line for response from the ds18b20 temperature sensor
         if ((DS18B20_PORT->IDR & (0x01 << DS18B20_PIN)) == 0) {
             ds18b20Responded = TRUE;
         }
-    }
-
-    if (ds18b20Responded == FALSE) {
-        log_error("Failed to reset\r\n");
     }
 
     return ds18b20Responded;

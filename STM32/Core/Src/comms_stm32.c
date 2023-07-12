@@ -12,7 +12,7 @@
 /* Personal Includes */
 #include "comms_stm32.h"
 #include "utils.h"
-#include "log.h"
+#include "log_usb.h"
 #include "watchdog_defines.h"
 #include "chars.h"
 #include "stm32_uart.h"
@@ -39,6 +39,9 @@ uint8_t rxBufNew[2][RX_BUFFER_SIZE] = {{0}, {0}};
 
 cbuffer_t ByteBuffer[2];
 uint8_t byteBuffer[8];
+
+uint16_t index = 0;
+uint8_t buffer[500];
 
 bpk_t ErrorPacket;
 bpk_buffer_t ErrorBuffer;

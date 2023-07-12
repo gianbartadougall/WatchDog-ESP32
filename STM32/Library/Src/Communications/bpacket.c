@@ -59,6 +59,7 @@ const bpk_request_t BPK_Req_Get_Datetime          = {.val = BPK_REQ_GET_DATETIME
 const bpk_request_t BPK_Req_Set_Datetime          = {.val = BPK_REQ_SET_DATETIME};
 const bpk_request_t BPK_Req_Get_Watchdog_Settings = {.val = BPK_REQ_GET_WATCHDOG_SETTINGS};
 const bpk_request_t BPK_Req_Set_Watchdog_Settings = {.val = BPK_REQ_SET_WATCHDOG_SETTINGS};
+const bpk_request_t BPK_Req_Get_Temperature       = {.val = BPK_REQ_GET_TEMPERATURE};
 const bpk_request_t BPK_Req_Stream_Images         = {.val = BPK_REQ_STREAM_IMAGE};
 const bpk_request_t BPK_Req_Esp32_On              = {.val = BPK_REQ_ESP32_ON};
 const bpk_request_t BPK_Req_Esp32_Off             = {.val = BPK_REQ_ESP32_OFF};
@@ -77,6 +78,11 @@ const bpk_error_code_t BPK_Err_Invalid_Date              = {.val = BPK_ERR_INVAL
 const bpk_error_code_t BPK_Err_Invalid_Year              = {.val = BPK_ERR_INVALID_YEAR};
 const bpk_error_code_t BPK_Err_Invalid_Bpacket_Size      = {.val = BPK_ERR_INVALID_PACKET_SIZE};
 const bpk_error_code_t BPK_Err_Invalid_Camera_Resolution = {.val = BPK_ERR_INVALID_CAMERA_RESOLUTION};
+
+// Testing out this type of error type with bpackets. Here instead of sending a message you can return data
+// with a length of 1 that contains an error code
+uint8_t bpkErrRecordTemp[1]   = {0};
+uint8_t bpkErrReadDatetime[1] = {1};
 
 /* Function Prototypes */
 void bp_erase_all_data(bpk_t* Bpacket);
@@ -158,6 +164,7 @@ uint8_t bpk_create_sp(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send
 
     if (chars_get_num_bytes(string) > BPACKET_MAX_NUM_DATA_BYTES) {
         Bpacket->ErrorCode = BPK_Err_Invalid_Data;
+        return FALSE;
     }
 
     Bpacket->Receiver      = Receiver;
@@ -308,6 +315,7 @@ uint8_t bpk_set_request(bpk_t* Bpacket, uint8_t request) {
         case BPK_REQ_SET_DATETIME:
         case BPK_REQ_GET_WATCHDOG_SETTINGS:
         case BPK_REQ_SET_WATCHDOG_SETTINGS:
+        case BPK_REQ_GET_TEMPERATURE:
         case BPK_REQ_STREAM_IMAGE:
         case BPK_REQ_ESP32_ON:
         case BPK_REQ_ESP32_OFF:

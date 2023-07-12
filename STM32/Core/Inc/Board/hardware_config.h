@@ -55,7 +55,7 @@
 
 /******** Macros for Power BJT **********/
 #define ESP32_POWER_PORT GPIOA
-#define ESP32_POWER_PIN  11
+#define ESP32_POWER_PIN  5
 /**************************************/
 
 /********** Marcos for hardware related to the DS18B20 Temperature Sensor ***********/
@@ -71,15 +71,15 @@
 /************************************************************************************/
 
 /********** Marcos for hardware related to the servo ***********/
-#define SERVO_PORT GPIOA
-#define SERVO_PIN  5
+// #define SERVO_PORT GPIOA
+// #define SERVO_PIN  5
 
-#define SERVO_TIMER              TIM2
-#define SERVO_TIMER_CLK_ENABLE() __HAL_RCC_TIM2_CLK_ENABLE()
-#define SERVO_TIMER_FREQUENCY    TIMER_FREQUENCY_100KHz
-#define SERVO_TIMER_MAX_COUNT    500
-#define SERVO_TIMER_IRQn         TIM2_IRQn
-#define SERVO_TIMER_ISR_PRIORITY TIM2_ISR_PRIORITY
+// #define SERVO_TIMER              TIM2
+// #define SERVO_TIMER_CLK_ENABLE() __HAL_RCC_TIM2_CLK_ENABLE()
+// #define SERVO_TIMER_FREQUENCY    TIMER_FREQUENCY_100KHz
+// #define SERVO_TIMER_MAX_COUNT    500
+// #define SERVO_TIMER_IRQn         TIM2_IRQn
+// #define SERVO_TIMER_ISR_PRIORITY TIM2_ISR_PRIORITY
 /***************************************************************/
 
 /********** Marcos for hardware related to USB C ***********/
@@ -95,9 +95,9 @@
 
 #define UART_ESP32           USART1
 #define UART_ESP32_IRQn      USART1_IRQn
-#define UART_ESP32_RX_PORT   GPIOB
+#define UART_ESP32_RX_PORT   GPIOA
 #define UART_ESP32_TX_PORT   GPIOA
-#define UART_ESP32_RX_PIN    7
+#define UART_ESP32_RX_PIN    10
 #define UART_ESP32_TX_PIN    9
 #define UART_ESP32_BUAD_RATE 115200
 /*******************************************************************/

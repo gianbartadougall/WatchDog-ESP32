@@ -20,7 +20,10 @@ Src/gui_utils.c \
 ../STM32/Library/Src/Utils/log.c \
 ../STM32/Library/Src/Utils/cbuffer.c \
 $(CPP_LIB_PATH)/Utils/Src/event_timeout.c \
-$(CPP_LIB_PATH)/Utils/Src/event_group.c
+$(CPP_LIB_PATH)/Utils/Src/event_group.c \
+$(CPP_LIB_PATH)/Utils/Src/event_scheduler.c \
+$(CPP_LIB_PATH)/DataTypes/Src/integer.c \
+$(CPP_LIB_PATH)/DataTypes/Src/float.c \
 
 C_INCLUDES = \
 -I../Drivers/Watchdog/Inc \
@@ -34,7 +37,8 @@ C_INCLUDES = \
 -I../STM32/Library/Inc \
 -I../Drivers/ESP32_Camera/driver/include \
 -IInc \
--I$(CPP_LIB_PATH)\Utils\Inc
+-I$(CPP_LIB_PATH)\Utils\Inc \
+-I$(CPP_LIB_PATH)\DataTypes\Inc
 
 STB_SOURCES = \
 ../Drivers/stb_image/Src/stb_image.c \

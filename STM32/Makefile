@@ -106,7 +106,9 @@ Library/Src/Peripherals/stm32_flash.c \
 Library/Src/Peripherals/rtc_mcp7940n.c
 
 EXTERN_LIB_SOURCES = \
-E:/Software_Libraries/Personal/C/Utils/Src/event_group.c
+E:/Software_Libraries/Personal/C/Utils/Src/event_group.c \
+E:/Software_Libraries/Personal/C/DataTypes/Src/integer.c \
+E:/Software_Libraries/Personal/C/DataTypes/Src/float.c
 
 # Add driver libraries to C sources
 C_SOURCES += $(BOARD_SOURCES)
@@ -187,7 +189,8 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
 -IDrivers/CMSIS/Include \
 -IDrivers/USB/Inc \
--IE:/Software_Libraries/Personal/C/Utils/Inc
+-IE:/Software_Libraries/Personal/C/Utils/Inc \
+-IE:/Software_Libraries/Personal/C/DataTypes/Inc
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
@@ -249,6 +252,12 @@ $(BUILD_DIR):
 
 E:/Software_Libraries/Personal/C/Utils/Src/event_group.c:
 	gcc -c -o $(BUILD_DIR)/event_group.o $@
+
+E:/Software_Libraries/Personal/C/DataTypes/Src/integer.c:
+	gcc -c -o $(BUILD_DIR)/integer.o $@
+
+E:/Software_Libraries/Personal/C/DataTypes/Src/float.c:
+	gcc -c -o $(BUILD_DIR)/float.o $@
 
 #######################################
 # clean up

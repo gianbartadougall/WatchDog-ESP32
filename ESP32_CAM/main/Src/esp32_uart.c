@@ -65,3 +65,14 @@ void esp32_uart_send_string(char* string) {
 int esp32_uart_read_bpacket(uint8_t bpacketBuffer[BPACKET_BUFFER_LENGTH_BYTES]) {
     return uart_read_bytes(UART_NUM, bpacketBuffer, BPACKET_BUFFER_LENGTH_BYTES, 50 / portTICK_RATE_MS);
 }
+
+uint8_t esp32_read_uart(bpk_t* Bpacket) {
+
+    bpk_buffer_t Buffer;
+
+    if (uart_read_bytes(UART_NUM, Buffer.buffer, BPACKET_BUFFER_LENGTH_BYTES, 50 / portTICK_RATE_MS) == 0) {
+        return FALSE;
+    }
+
+    return bpk_buffer_decode(Bpacket, Buffer.buffer);
+}

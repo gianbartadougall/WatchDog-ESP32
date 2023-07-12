@@ -57,7 +57,7 @@
 #define ERROR_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/logs/err.txt")
 
 // Deprecated and should no longer be used
-#define SYSTEM_LOG_FILE        ("logs.txt")
+#define LOG_FILE_NAME          ("logs.txt")
 #define IMAGE_DATA_FOLDER      ("watchdog/data")
 #define ROOT_IMAGE_DATA_FOLDER ("/sdcard/watchdog/data")
 // #define WATCHDOG_FOLDER_PATH      ("/sdcard/watchdog")

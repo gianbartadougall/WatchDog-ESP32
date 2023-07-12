@@ -36,4 +36,6 @@ uint8_t camera_set_resolution(uint8_t cam_res);
 
 void camera_stream_image(bpk_t* Bpacket);
 
+uint8_t camera_capture_and_save_image1(char* msg);
+
 #endif // CAMERA_H

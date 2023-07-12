@@ -136,6 +136,10 @@ void hardware_config_gpio_init(void) {
     GPIO_SET_MODE_OUTPUT(LED_RED_PORT, LED_RED_PIN);
     GPIO_SET_LOW(LED_RED_PORT, LED_RED_PIN);
 
+    /* Set up ESP control pin */
+    GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
+    GPIO_SET_HIGH(ESP32_POWER_PORT, ESP32_POWER_PIN);
+
     /* GPIO pin setup to trigger interrupt on rising and falling edge when USB C is connected */
     GPIO_SET_MODE_INPUT(USBC_CONN_PORT, USBC_CONN_PIN);
     SYSCFG->EXTICR[2] &= ~(0x07 << (4 * (USBC_CONN_PIN % 4)));
@@ -155,17 +159,6 @@ void hardware_config_gpio_init(void) {
     EXTI->IMR1 |= (0x01 << RTC_ALARM_PIN);                     // Enable interrupts
     HAL_NVIC_SetPriority(RTC_ALARM_IRQn, 10, 0);
     HAL_NVIC_EnableIRQ(RTC_ALARM_IRQn);
-
-    /* Setup GPIO for ESP32 Power */
-    // GPIO_SET_MODE_OUTPUT(ESP32_POWER_PORT, ESP32_POWER_PIN);
-
-    /****** START CODE BLOCK ******/
-    // Description: Configure servo
-    // GPIO_SET_MODE_ALTERNATE_FUNCTION(SERVO_PORT, SERVO_PIN, AF1);
-    // SERVO_PORT->AFR[0] &= ~(0x03 << ((SERVO_PIN % 8) * 4));
-    // SERVO_PORT->AFR[0] |= (0x01 << ((SERVO_PIN % 8) * 4));
-
-    /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
@@ -206,9 +199,9 @@ void hardware_config_gpio_init(void) {
     UART_ESP32_TX_PORT->OSPEEDR |= (0x02 << (UART_ESP32_TX_PIN * 2));
 
     // Connect pin to alternate function
-    UART_ESP32_RX_PORT->AFR[0] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_RX_PORT->AFR[1] &= ~(0x0F << ((UART_ESP32_RX_PIN % 8) * 4));
     UART_ESP32_TX_PORT->AFR[1] &= ~(0x0F << ((UART_ESP32_TX_PIN % 8) * 4));
-    UART_ESP32_RX_PORT->AFR[0] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
+    UART_ESP32_RX_PORT->AFR[1] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
     UART_ESP32_TX_PORT->AFR[1] |= (0x07 << ((UART_ESP32_TX_PIN % 8) * 4));
     HAL_NVIC_SetPriority(UART_ESP32_IRQn, 10, 0);
     HAL_NVIC_EnableIRQ(UART_ESP32_IRQn);
@@ -273,17 +266,18 @@ void hardware_config_timer_init(void) {
     // HAL_NVIC_EnableIRQ(HC_TS_TIMER_IRQn);
 
     /* Configure timer for DS18B20 Temperature Sensor*/
-#if ((SYSTEM_CLOCK_CORE / SERVO_TIMER_FREQUENCY) > SERVO_TIMER_MAX_COUNT)
-#    error System clock frequency is too high to generate the required timer frequnecy
-#endif
+    // #if ((SYSTEM_CLOCK_CORE / SERVO_TIMER_FREQUENCY) > SERVO_TIMER_MAX_COUNT)
+    // #    error System clock frequency is too high to generate the required timer frequnecy
+    // #endif
 
-    SERVO_TIMER_CLK_ENABLE();                                         // Enable the clock
-    SERVO_TIMER->CR1 &= ~(TIM_CR1_CEN);                               // Disable counter
-    SERVO_TIMER->PSC = (SystemCoreClock / SERVO_TIMER_FREQUENCY) - 1; // Set timer frequency
-    SERVO_TIMER->ARR = SERVO_TIMER_MAX_COUNT;                         // Set maximum count for timer
-    SERVO_TIMER->CNT = 0;                                             // Reset count to 0
-    SERVO_TIMER->DIER &= 0x00;                                        // Disable all interrupts by default
-    SERVO_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);         // Set CH1 capture compare to mode to frozen
+    //     SERVO_TIMER_CLK_ENABLE();                                         // Enable the clock
+    //     SERVO_TIMER->CR1 &= ~(TIM_CR1_CEN);                               // Disable counter
+    //     SERVO_TIMER->PSC = (SystemCoreClock / SERVO_TIMER_FREQUENCY) - 1; // Set timer frequency
+    //     SERVO_TIMER->ARR = SERVO_TIMER_MAX_COUNT;                         // Set maximum count for timer
+    //     SERVO_TIMER->CNT = 0;                                             // Reset count to 0
+    //     SERVO_TIMER->DIER &= 0x00;                                        // Disable all interrupts by default
+    //     SERVO_TIMER->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M);         // Set CH1 capture compare to mode to
+    //     frozen
 
     /* Enable interrupt handler */
     // HAL_NVIC_SetPriority(HC_TS_TIMER_IRQn, HC_TS_TIMER_ISR_PRIORITY, 0);

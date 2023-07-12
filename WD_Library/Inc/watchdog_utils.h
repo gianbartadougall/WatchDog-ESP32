@@ -71,6 +71,5 @@ typedef struct capture_time_t {
 
 void wd_utils_settings_to_array(uint8_t array[19], capture_time_t* CaptureTime, camera_settings_t* CameraSettings);
 void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_settings_t* CameraSettings);
-void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(float)], dt_datetime_t* Datetime,
-                                  float temperature);
+
 #endif // WATCHDOG_UTILS_H

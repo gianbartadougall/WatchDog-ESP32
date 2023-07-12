@@ -1,5 +1,7 @@
 /* Personal Includes */
 #include "watchdog_utils.h"
+#include "datetime.h"
+#include "float.h"
 
 void wd_utils_settings_to_array(uint8_t array[19], capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
 
@@ -47,4 +49,21 @@ void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_se
     CaptureTime->intervalDay       = Bpk->Data.bytes[17];
 
     CameraSettings->resolution = Bpk->Data.bytes[18];
+}
+
+void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(float)], dt_datetime_t* Datetime,
+                                  float temperature) {
+
+    data[0] = Datetime->Time.second;
+    data[1] = Datetime->Time.minute;
+    data[2] = Datetime->Time.hour;
+    data[3] = Datetime->Date.day;
+    data[4] = Datetime->Date.month;
+    data[5] = Datetime->Date.year >> 8;
+    data[6] = Datetime->Date.year & 0xFF;
+
+    uint8_t* ptr = (uint8_t*)&temperature;
+    for (uint8_t i = 0; i < sizeof(float); i++) {
+        data[7 + i] = ptr[i];
+    }
 }

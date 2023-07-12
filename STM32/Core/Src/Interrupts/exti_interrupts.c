@@ -135,6 +135,8 @@ void EXTI9_5_IRQHandler(void) {
         /* Call required functions */
 
         event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
+        event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
+        event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
 
         event_group_set_bit(&gbl_EventsStm, EVENT_STM_RTC_UPDATE_ALARM, EGT_ACTIVE);
     }

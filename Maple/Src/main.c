@@ -39,19 +39,17 @@
 #include "event_timeout.h"
 #include "event_group.h"
 #include "watchdog_utils.h"
+#include "event_scheduler.h"
+#include "float.h"
+#include "integer.h"
 
 #define WATCHDOG_DIRECTORY   "Watchdog"
 #define LOG_ERROR_CODE(code) (log_error("Error %s line %i. Code %i\r\n", __FILE__, __LINE__, code))
 #define LOG_ERROR_MSG(msg)   (log_message("Error %s line %i: \'%s\'\r\n", __FILE__, __LINE__, msg))
 
-char* minutes[50] = {"00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"};
-char* hours[50]   = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+char* minutes[50]     = {"00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"};
+char* hours[50]       = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
                    "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"};
-
-// char* minutes[50] = {"00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"};
-// char* hours[50]   = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
-//                       "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"};
-
 char* resolutions[50] = {"Very Low", "Low", "Medium", "High", "Very High"};
 
 #define PACKET_BUFFER_SIZE 50
@@ -59,6 +57,8 @@ char* resolutions[50] = {"Very Low", "Low", "Medium", "High", "Very High"};
 #define ET_TIMEOUT_SET_DATETIME    ET_TIMEOUT_ID_0
 #define ET_TIMEOUT_GET_WD_SETTINGS ET_TIMEOUT_ID_1
 #define ET_TIMEOUT_SET_WD_SETTINGS ET_TIMEOUT_ID_2
+#define ET_TIMEOUT_GET_TEMPERATURE ET_TIMEOUT_ID_3
+#define ET_TIMEOUT_TAKE_PHOTO      ET_TIMEOUT_ID_4
 
 /* Private Variables */
 cbuffer_t RxCbuffer;
@@ -67,7 +67,8 @@ uint8_t lg_WatchdogConnected = FALSE;
 uint8_t lg_GuiClosed         = FALSE;
 HWND GuiHandle;
 
-et_timeout_t MapleTimeouts;
+et_timeout_t lg_MapleTimeouts;
+es_scheduler_t lg_MapleScheduler;
 
 #define MAPLE_BUFFER_NUM_ELEMENTS 10
 #define MAPLE_BUFFER_NUM_BYTES    (sizeof(bpk_t) * MAPLE_BUFFER_NUM_ELEMENTS)
@@ -104,6 +105,10 @@ HWND btn_SaveSettings;
 
 HWND lbl_watchdogConnection;
 
+HWND lbl_watchdogTemperature;
+
+HWND btn_takePhoto;
+
 camera_settings_t lg_CameraSettings;
 capture_time_t lg_CaptureTime;
 
@@ -114,10 +119,14 @@ capture_time_t lg_CaptureTime;
 #define DD_INTERVAL_MINUTE_ID 24
 #define DD_INTERVAL_HOUR_ID   25
 #define DD_CAMERA_RESOLUTION  26
+#define BTN_SAVE_SETTINGS_ID  27
+#define BTN_TAKE_PHOTO_ID     28
 
 enum maple_event_e {
     EVENT_WRITE_WATCHDOG_SETTINGS = EGB_0,
     EVENT_READ_WATCHDOG_SETTINGS  = EGB_1,
+    EVENT_GET_TEMPERATURE         = EGB_2,
+    EVENT_TAKE_PHOTO              = EGB_3,
 };
 
 /* Function Prototypes */
@@ -131,6 +140,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket);
 LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lParam);
 void maple_populate_gui(HWND hwnd);
 void maple_handle_events(void);
+void maple_handle_timeouts(void);
+void maple_handle_scheduler(void);
 
 uint32_t packetBufferIndex  = 0;
 uint32_t packetPendingIndex = 0;
@@ -399,10 +410,12 @@ DWORD WINAPI maple_start(void* args) {
     bpk_t BpkWatchdogResponse;
     cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
 
-    et_clear_all_timeouts(&MapleTimeouts);
+    et_clear_all_timeouts(&lg_MapleTimeouts);
 
     event_group_clear(&lg_EventsMaple);
     char statusText[50];
+
+    es_add_task(&lg_MapleScheduler, EVENT_GET_TEMPERATURE, 1000);
 
     // Main loop
     while (lg_GuiClosed == FALSE) {
@@ -441,10 +454,12 @@ DWORD WINAPI maple_start(void* args) {
         /* Handle Events */
         maple_handle_events();
 
+        maple_handle_scheduler();
+
         /* Handle timeouts */
         for (uint8_t i = 0; i < ET_NUM_TIMEOUTS; i++) {
-            if (et_timeout_has_occured(&MapleTimeouts, i) == TRUE) {
-                et_clear_timeout(&MapleTimeouts, i);
+            if (et_timeout_has_occured(&lg_MapleTimeouts, i) == TRUE) {
+                et_clear_timeout(&lg_MapleTimeouts, i);
                 log_error("Timeout occured [id = %i]\r\n", i);
             }
         }
@@ -453,7 +468,29 @@ DWORD WINAPI maple_start(void* args) {
     return FALSE;
 }
 
+void maple_handle_scheduler(void) {
+
+    if (es_task_needs_to_run(&lg_MapleScheduler, EVENT_GET_TEMPERATURE) == TRUE) {
+        es_clear_task(&lg_MapleScheduler, EVENT_GET_TEMPERATURE);
+
+        event_group_set_bit(&lg_EventsMaple, EVENT_GET_TEMPERATURE, EGT_ACTIVE);
+    }
+}
+
 void maple_handle_events(void) {
+
+    if (event_group_poll_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE) == TRUE) {
+        event_group_clear_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE);
+
+        /* Request watchdog to take a photo */
+        bpk_t BpkTakePhoto;
+        bpk_create(&BpkTakePhoto, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Take_Photo,
+                   BPK_Code_Execute, 0, NULL);
+        maple_send_bpacket(&BpkTakePhoto);
+
+        // Set timeout
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_TAKE_PHOTO, 9000);
+    }
 
     /* If the Save settings button is pressed, this event group bit will be set */
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_WRITE_WATCHDOG_SETTINGS, EGT_ACTIVE) == TRUE) {
@@ -461,8 +498,8 @@ void maple_handle_events(void) {
 
         /* Store watchdog settings into a bpacket and send to the watchdog */
 
-        // The STM currently supports start dates and end dates as well but for the moment we will
-        // just make those dates always valid
+        // The STM currently supports start dates and end dates as well but for the moment we
+        // will just make those dates always valid
         uint8_t settingsData[19];
         wd_utils_settings_to_array(settingsData, &lg_CaptureTime, &lg_CameraSettings);
 
@@ -473,7 +510,7 @@ void maple_handle_events(void) {
         maple_send_bpacket(&BpkWdSettings);
 
         // Start timeout for response
-        et_set_timeout(&MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS, 1000);
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS, 1000);
     }
 
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_READ_WATCHDOG_SETTINGS, EGT_ACTIVE) == TRUE) {
@@ -486,11 +523,37 @@ void maple_handle_events(void) {
         maple_send_bpacket(&BpkReadSettings);
 
         // Create timeout
-        et_set_timeout(&MapleTimeouts, ET_TIMEOUT_GET_WD_SETTINGS, 1000);
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_WD_SETTINGS, 1000);
+    }
+
+    if (event_group_poll_bit(&lg_EventsMaple, EVENT_GET_TEMPERATURE, EGT_ACTIVE) == TRUE) {
+        event_group_clear_bit(&lg_EventsMaple, EVENT_GET_TEMPERATURE, EGT_ACTIVE);
+
+        /* Request temperature from watchdog */
+        bpk_t BpkGetTemp;
+        bpk_create(&BpkGetTemp, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                   BPK_Req_Get_Temperature, BPK_Code_Execute, 0, NULL);
+        maple_send_bpacket(&BpkGetTemp);
+
+        /* Create timeout */
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_TEMPERATURE, 3000);
     }
 }
 
 void maple_handle_watchdog_response(bpk_t* Bpacket) {
+
+    if (Bpacket->Request.val == BPK_REQ_TAKE_PHOTO) {
+
+        // Clear the timeout and confirm success
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_TAKE_PHOTO);
+
+        if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
+            log_error("Failed to take photo on watchdog\r\n");
+            return;
+        }
+
+        log_success("Watchdog took a photo!\r\n");
+    }
 
     if (Bpacket->Request.val == BPK_REQ_GET_DATETIME) {
 
@@ -547,8 +610,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
             maple_send_bpacket(&BpkDatetime);
 
             // Set timeout for this request
-            if (et_poll_timeout(&MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
-                et_set_timeout(&MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
+            if (et_poll_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
+                et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
             }
         }
     }
@@ -556,7 +619,7 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
     if (Bpacket->Request.val == BPK_REQ_SET_DATETIME) {
 
         // Clear the timeout
-        et_clear_timeout(&MapleTimeouts, ET_TIMEOUT_SET_DATETIME);
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME);
 
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
             log_error("Failed to set datetime on watchdog\r\n");
@@ -569,7 +632,7 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
     if (Bpacket->Request.val == BPK_REQ_GET_WATCHDOG_SETTINGS) {
 
         // Clear the timeout
-        et_clear_timeout(&MapleTimeouts, ET_TIMEOUT_SET_DATETIME);
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME);
 
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
             log_error("Failed to get settings on watchdog\r\n");
@@ -614,7 +677,7 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
     if (Bpacket->Request.val == BPK_REQ_SET_WATCHDOG_SETTINGS) {
 
         // Clear the timeout
-        et_clear_timeout(&MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS);
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS);
 
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
             log_error("Failed to save settings on watchdog\r\n");
@@ -622,6 +685,30 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         log_success("Watchdog settings saved\r\n");
         return;
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_GET_TEMPERATURE) {
+
+        // Clear the timeout
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_TEMPERATURE);
+
+        if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
+            log_error("Failed get temperature on watchdog\r\n");
+            SetWindowText(lbl_watchdogTemperature, "Temperature: -");
+            return;
+        }
+
+        // Extract the temperature data from the bpacket and update the temperature label
+        float temperature;
+        u8_to_float(Bpacket->Data.bytes, &temperature);
+
+        char tempText[30];
+        sprintf(tempText, "Temperature: %.3f %cC", temperature, 176);
+        SetWindowText(lbl_watchdogTemperature, tempText);
+        log_success("Got temp from watchdog!\r\n");
+
+        // Request temperature in 5 seconds
+        es_add_task(&lg_MapleScheduler, EVENT_GET_TEMPERATURE, 5000);
     }
 
     // TODO: Implement rest
@@ -636,9 +723,13 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
         (wmEvent == BN_CLICKED)) {
 
         // Toggle flag to update settings to Watchdog
-        printf("Button pressed\n");
         event_group_set_bit(&lg_EventsMaple, EVENT_WRITE_WATCHDOG_SETTINGS, EGT_ACTIVE);
-        // MessageBox(GuiHandle, "Button clicked!", "Button", MB_OK);
+    }
+
+    if ((msg == WM_COMMAND) && (wmId == GetDlgCtrlID(btn_takePhoto)) && (wmEvent == BN_CLICKED)) {
+
+        // Toggle flag to update settings to Watchdog
+        event_group_set_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE);
     }
 
     /* Handle changes to drop down boxes */
@@ -782,6 +873,14 @@ void maple_populate_gui(HWND hwnd) {
     /* Create peripheral for connection status */
     lbl_watchdogConnection = gui_utils_create_label("Not connected", 500, 10, 200, 30, hwnd, NULL);
 
+    /* Create peripheral for temperature value */
+    lbl_watchdogTemperature =
+        gui_utils_create_label("Temperature: -", 500, 40, 200, 30, hwnd, NULL);
+
+    /* Create peripheral for the take photo button */
+    btn_takePhoto =
+        gui_utils_create_button("Take Photo", 500, 80, 200, 30, hwnd, (HMENU)BTN_TAKE_PHOTO_ID);
+
     /* Create peripherals for the current datetime on the watchdog */
     lbl_TitleWatchdogDateTime =
         gui_utils_create_label("Watchdog Current Time", 10, 10, 250, 30, hwnd, NULL);
@@ -837,7 +936,8 @@ void maple_populate_gui(HWND hwnd) {
 
     /* Button for saving settings */
     const int bTy    = 280;
-    btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 200, 30, hwnd, NULL);
+    btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 200, 30, hwnd,
+                                               (HMENU)BTN_SAVE_SETTINGS_ID);
 }
 
 uint8_t maple_stream(char* cpyFileName) {

@@ -23,7 +23,6 @@
 
 /* Personal Includes */
 #include "uart_comms.h"
-#include "watchdog_defines.h"
 #include "bpacket.h"
 
 /* Public Macros */
@@ -91,7 +90,9 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_t* Bpacket);
  * may contain information about why it failed
  * @return uint8_t uint8_t WD_SUCCESS if there were no problems else WD_ERROR
  */
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, bpk_t* Bpacket);
+uint8_t sd_card_save_image1(uint8_t* imageData, int imageLength, bpk_t* Bpacket);
+
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, char* returnMsg);
 
 /**
  * @brief Finds all the images saved on the SD card in the image data folder and
@@ -119,7 +120,7 @@ uint8_t sd_card_search_num_images(uint16_t* numImages, bpk_t* Bpacket);
  */
 uint8_t sd_card_init(bpk_t* Bpacket);
 
-uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings);
+// uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings);
 
 uint8_t sd_card_format_sd_card(bpk_t* Bpacket);
 
@@ -137,9 +138,9 @@ uint8_t sd_card_open(void);
  */
 void sd_card_close(void);
 
-uint8_t sd_card_write_settings(bpk_t* Bpacket);
+// uint8_t sd_card_write_settings(bpk_t* Bpacket);
 
-uint8_t sd_card_read_settings(bpk_t* Bpacket);
+// uint8_t sd_card_read_settings(bpk_t* Bpacket);
 
 /**
  * @brief Mounts the SD card and writes a message to a given log file. If the

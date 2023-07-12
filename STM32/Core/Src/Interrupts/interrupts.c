@@ -13,7 +13,7 @@
 #include "stm32l432xx.h"
 
 /* Private Includes */
-#include "log.h"
+#include "log_usb.h"
 #include "comms_stm32.h"
 #include "watchdog.h"
 #include "hardware_config.h"
@@ -25,18 +25,18 @@ void USART1_IRQHandler(void) {
         char c = USART1->RDR;
         // uint8_t c = USART1->RDR;
         // log_send_data(&c, 1);
-        // log_message("got char\r\n");
+        // log_usb_message("got char\r\n");
         // Copy bit into buffer. Reading RDR automatically clears flag
         uart_append_to_buffer(BUFFER_1_ID, (uint8_t)c);
     }
 
     if ((USART1->ISR & USART_ISR_PE) != 0) {
-        log_message("Parity error UART 1\r\n");
+        log_usb_message("Parity error UART 1\r\n");
     }
 
     if ((USART1->ISR & USART_ISR_ORE) != 0) {
         USART1->ICR |= USART_ICR_ORECF; // Clear flag
-        log_error("USART1 overrun error\r\n");
+        log_usb_error("USART1 overrun error\r\n");
     }
 }
 
@@ -53,12 +53,12 @@ void USART2_IRQHandler(void) {
     }
 
     if ((USART2->ISR & USART_ISR_PE) != 0) {
-        log_message("Parity error UART 2\r\n");
+        log_usb_message("Parity error UART 2\r\n");
     }
 
     if ((USART2->ISR & USART_ISR_EOBF) != 0) {
         USART2->ICR |= USART_ICR_EOBCF;
-        log_error("USART 2 Full Block received\r\n");
+        log_usb_error("USART 2 Full Block received\r\n");
         return;
     }
 
@@ -66,13 +66,13 @@ void USART2_IRQHandler(void) {
     // UART sending to it is sending
     if ((USART2->ISR & USART_ISR_ORE) != 0) {
         USART2->ICR |= USART_ICR_ORECF;
-        log_error("USART 2 Overrun error\r\n");
+        log_usb_error("USART 2 Overrun error\r\n");
         return;
     }
 
     if ((USART2->ISR & USART_ISR_IDLE) != 0) {
         USART2->ICR |= USART_ICR_IDLECF;
-        log_error("USART 2 Idle error\r\n");
+        log_usb_error("USART 2 Idle error\r\n");
         return;
     }
 }
@@ -81,7 +81,7 @@ void RTC_Alarm_IRQHandler(void) {
 
     // Check if alarm A was triggered
     if ((STM32_RTC->ISR &= RTC_ISR_ALRAF) != 0) {
-        log_message("Triggered!\r\n");
+        log_usb_message("Triggered!\r\n");
 
         // Clear the EXTI interrupt flag
         EXTI->PR1 |= (0x01 << 18);
@@ -98,7 +98,7 @@ void RTC_Alarm_IRQHandler(void) {
     // Check if alarm B was triggered
     if ((STM32_RTC->ISR &= RTC_ISR_ALRBF) != 0) {
         STM32_RTC->ISR &= ~(RTC_ISR_ALRBF);
-        log_message("Alarm B triggered\r\n");
+        log_usb_message("Alarm B triggered\r\n");
         return;
     }
 }

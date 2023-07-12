@@ -77,8 +77,7 @@ enum bpk_request_e {
     BPK_REQ_SET_DATETIME,
     BPK_REQ_GET_WATCHDOG_SETTINGS,
     BPK_REQ_SET_WATCHDOG_SETTINGS,
-    BPK_REQ_GET_CAMERA_CAPTURE_TIMES,
-    BPK_REQ_SET_CAMERA_CAPTURE_TIMES,
+    BPK_REQ_GET_TEMPERATURE,
     BPK_REQ_STREAM_IMAGE,
     BPK_REQ_ESP32_ON,
     BPK_REQ_ESP32_OFF,
@@ -133,6 +132,9 @@ enum bpk_error_code_e {
     BPK_ERR_INVALID_PACKET_SIZE,
     BPK_ERR_INVALID_CAMERA_RESOLUTION,
 };
+
+extern uint8_t bpkErrRecordTemp[1];
+extern uint8_t bpkErrReadDatetime[1];
 
 typedef struct bpk_error_code_t {
     uint8_t val; // Value to store the error code
@@ -226,6 +228,7 @@ extern const bpk_request_t BPK_Req_Get_Datetime;
 extern const bpk_request_t BPK_Req_Set_Datetime;
 extern const bpk_request_t BPK_Req_Get_Watchdog_Settings;
 extern const bpk_request_t BPK_Req_Set_Watchdog_Settings;
+extern const bpk_request_t BPK_Req_Get_Temperature;
 extern const bpk_request_t BPK_Req_Stream_Images;
 extern const bpk_request_t BPK_Req_Esp32_On;
 extern const bpk_request_t BPK_Req_Esp32_Off;
@@ -264,8 +267,6 @@ uint8_t bpk_create_sp(bpk_t* Bpacket, bpk_addr_receive_t Receiver, bpk_addr_send
 void bpk_to_buffer(bpk_t* Bpacket, bpk_buffer_t* packetBuffer);
 
 void bpk_data_to_string(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
-
-void bpk_print_bytes(bpk_t* Bpacket);
 
 void bpk_get_info(bpk_t* Bpacket, char* string);
 

@@ -55,9 +55,23 @@
 #define ERROR_FILE_NAME_PATH          ("/err.txts")
 #define ERROR_FILE_PATH_START_AT_ROOT ("/sdcard/watchdog/logs/err.txt")
 
+// The values of the #defines here have been taken
+// from the enums of the framesizes defined in
+// sensors.h
+enum camera_framesize_e {
+    WD_CR_QVGA_320x240,
+    WD_CR_CIF_352x288,
+    WD_CR_VGA_640x480,
+    WD_CR_SVGA_800x600,
+    WD_CR_XGA_1024x768,
+    WD_CR_SXGA_1280x1024,
+    WD_CR_UXGA_1600x1200,
+};
+
 /* Public Enums and Structs */
 typedef struct camera_settings_t {
-    uint8_t resolution;
+    uint8_t frameSize;
+    uint8_t jpegCompression;
 } camera_settings_t;
 
 typedef struct capture_time_t {
@@ -69,7 +83,10 @@ typedef struct capture_time_t {
     uint8_t intervalDay;
 } capture_time_t;
 
-void wd_utils_settings_to_array(uint8_t array[19], capture_time_t* CaptureTime, camera_settings_t* CameraSettings);
+void wd_utils_settings_to_array(uint8_t array[20], capture_time_t* CaptureTime, camera_settings_t* CameraSettings);
 void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_settings_t* CameraSettings);
-
+void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(float)], dt_datetime_t* Datetime,
+                                  camera_settings_t* CameraSettings, float temperature);
+void wd_utils_array_to_photo_data(uint8_t data[BPACKET_MAX_NUM_DATA_BYTES], dt_datetime_t* Datetime,
+                                  camera_settings_t* CameraSettings, float* temperature);
 #endif // WATCHDOG_UTILS_H

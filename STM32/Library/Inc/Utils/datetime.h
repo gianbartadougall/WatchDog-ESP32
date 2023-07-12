@@ -35,6 +35,11 @@ typedef struct dt_datetime_t {
     dt_date_t Date;
 } dt_datetime_t;
 
+enum dt_format_e {
+    DT_FORMAT_FULL,
+    DT_FORMAT_YEAR_SHORT,
+};
+
 uint8_t dt_time_init(dt_time_t* Time, uint8_t second, uint8_t minute, uint8_t hour);
 
 uint8_t dt_date_init(dt_date_t* Date, uint8_t day, uint8_t month, uint16_t year);

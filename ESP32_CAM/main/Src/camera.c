@@ -20,6 +20,14 @@
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
 
+#define ESP_CR_QVGA_320x240   5  // FRAMESIZE_QVGA
+#define ESP_CR_CIF_352x288    6  // FRAMESIZE_CIF
+#define ESP_CR_VGA_640x480    8  // FRAMESIZE_VGA
+#define ESP_CR_SVGA_800x600   9  // FRAMESIZE_SVGA
+#define ESP_CR_XGA_1024x768   10 // FRAMESIZE_XGA
+#define ESP_CR_SXGA_1280x1024 12 // FRAMESIZE_SXGA
+#define ESP_CR_UXGA_1600x1200 13 // FRAMESIZE_UXGA
+
 // support IDF 5.x
 #ifndef portTICK_RATE_MS
     #define portTICK_RATE_MS portTICK_PERIOD_MS
@@ -74,10 +82,10 @@ static camera_config_t camera_config = {
     .ledc_timer   = LEDC_TIMER_0,
     .ledc_channel = LEDC_CHANNEL_0,
 
-    .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG - This was the deafultPIXFORMAT_RGB565
-    .frame_size =
-        FRAMESIZE_SVGA, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of
-                        // the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+    .pixel_format = PIXFORMAT_JPEG,      // YUV422,GRAYSCALE,RGB565,JPEG - This was the deafultPIXFORMAT_RGB565
+    .frame_size   = ESP_CR_QVGA_320x240, // QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The
+                                         // performance of the ESP32-S series has improved a lot, but JPEG mode always
+                                         // gives better frame rates. Last was svga
 
     .jpeg_quality = 8, // 0-63, for OV series camera sensors, lower number means higher quality
     .fb_count     = 1, // When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
@@ -113,37 +121,44 @@ uint8_t camera_get_resolution(void) {
     return camera_config.frame_size;
 }
 
-uint8_t camera_set_resolution(uint8_t camRes) {
+uint8_t camera_set_settings(camera_settings_t* CameraSettings, char* msg) {
 
-    // Update camera resolution settings
-    switch (camRes) {
-        case FRAMESIZE_QVGA:
-            camera_config.frame_size = FRAMESIZE_QVGA;
+    /* Update the cameras frame size */
+    switch (CameraSettings->frameSize) {
+        case WD_CR_QVGA_320x240:
+            camera_config.frame_size = ESP_CR_QVGA_320x240;
             break;
-        case FRAMESIZE_CIF:
-            camera_config.frame_size = FRAMESIZE_CIF;
+        case WD_CR_CIF_352x288:
+            camera_config.frame_size = ESP_CR_CIF_352x288;
             break;
-        case FRAMESIZE_VGA:
-            camera_config.frame_size = FRAMESIZE_VGA;
+        case WD_CR_VGA_640x480:
+            camera_config.frame_size = ESP_CR_VGA_640x480;
             break;
-        case FRAMESIZE_SVGA:
-            camera_config.frame_size = FRAMESIZE_SVGA;
+        case WD_CR_SVGA_800x600:
+            camera_config.frame_size = ESP_CR_SVGA_800x600;
             break;
-        case FRAMESIZE_XGA:
-            camera_config.frame_size = FRAMESIZE_XGA;
+        case WD_CR_XGA_1024x768:
+            camera_config.frame_size = ESP_CR_XGA_1024x768;
             break;
-        case FRAMESIZE_SXGA:
-            camera_config.frame_size = FRAMESIZE_SXGA;
+        case WD_CR_SXGA_1280x1024:
+            camera_config.frame_size = ESP_CR_SXGA_1280x1024;
             break;
-        case FRAMESIZE_UXGA:
-            camera_config.frame_size = FRAMESIZE_UXGA;
+        case WD_CR_UXGA_1600x1200:
+            camera_config.frame_size = ESP_CR_UXGA_1600x1200;
             break;
         default:
-            // Should never get here, should only ever recieve one of the above cases
+            sprintf(msg, "Invalid framesize");
             return FALSE;
     }
 
-    // Successfully changed the camera resolution
+    /* Update the JPEG quality */
+    if (CameraSettings->jpegCompression > 63) {
+        sprintf(msg, "Invalid jpeg compression");
+        return FALSE;
+    }
+
+    camera_config.jpeg_quality = CameraSettings->jpegCompression;
+
     return TRUE;
 }
 
@@ -169,7 +184,7 @@ void camera_stream_image(bpk_t* Bpacket) {
     esp_camera_fb_return(image);
 }
 
-uint8_t camera_capture_and_save_image1(char* msg) {
+uint8_t camera_capture_and_save_image1(dt_datetime_t* Datetime, float temperature, char* msg) {
 
     bpk_t Bpacket;
     // Confirm camera has been initialised
@@ -178,31 +193,21 @@ uint8_t camera_capture_and_save_image1(char* msg) {
         return FALSE;
     }
 
-    // Confirm the SD card can be mounted
-    // if (sd_card_open() != TRUE) {
-    //     sprintf(msg, "Error %s on line %i. SD card could not open", __FILE__, __LINE__);
-    //     return FALSE;
-    // }
-
     camera_fb_t* pic = esp_camera_fb_get();
 
     // Return error if picture could not be taken
     uint8_t success = FALSE;
     if (pic == NULL) {
         sprintf(msg, "Error %s on line %i. Failed to take a photo", __FILE__, __LINE__);
-        // sd_card_log(LOG_FILE_NAME, "Camera failed to take image");
-    } else if (sd_card_save_image(pic->buf, pic->len, msg) != TRUE) {
+    } else if (sd_card_save_image(pic->buf, pic->len, Datetime, temperature, msg) != TRUE) {
         sprintf(msg, "Error %s on line %i. Image could not be saved", __FILE__, __LINE__);
-        // sd_card_log(LOG_FILE_NAME, "Image could not be saved");
     } else {
         sprintf(msg, "Image was %zu bytes", pic->len);
-        // sd_card_log(LOG_FILE_NAME, msg);
         success = TRUE;
     }
 
     esp_camera_fb_return(pic);
 
-    // sd_card_close();
     camera_deinit();
 
     return success;

@@ -78,7 +78,7 @@ Core/Src/system_stm32l4xx.c \
 Core/Src/main.c \
 Core/Src/watchdog.c \
 Core/Src/comms_stm32.c \
-Core/Src/watchdog_utils.c
+../WD_Library/Src/watchdog_utils.c
 
 USB_SOURCES = \
 Drivers/USB/Src/usb_device.c \
@@ -101,6 +101,7 @@ Library/Src/Utils/datetime.c \
 Library/Src/Utils/log.c \
 Library/Src/Utils/log_usb.c \
 Library/Src/Utils/cbuffer.c \
+Library/Src/Utils/event_timeout_stm.c \
 Library/Src/Utils/task_scheduler.c \
 Library/Src/Peripherals/stm32_flash.c \
 Library/Src/Peripherals/rtc_mcp7940n.c
@@ -182,7 +183,6 @@ C_INCLUDES =  \
 -ILibrary/Inc/DataTypes \
 -ILibrary/Inc/Sensors \
 -ILibrary/Inc/Utils \
--I../ESP32_CAM/main/Inc \
 -I../Drivers/Watchdog/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc/Legacy \
@@ -190,7 +190,8 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Include \
 -IDrivers/USB/Inc \
 -IE:/Software_Libraries/Personal/C/Utils/Inc \
--IE:/Software_Libraries/Personal/C/DataTypes/Inc
+-IE:/Software_Libraries/Personal/C/DataTypes/Inc \
+-I../WD_Library/Inc
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections

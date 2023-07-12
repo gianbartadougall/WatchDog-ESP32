@@ -3,7 +3,7 @@
 #include "datetime.h"
 #include "float.h"
 
-void wd_utils_settings_to_array(uint8_t array[19], capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
+void wd_utils_settings_to_array(uint8_t array[20], capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
 
     array[0] = CaptureTime->Start.Time.second;
     array[1] = CaptureTime->Start.Time.minute;
@@ -26,7 +26,8 @@ void wd_utils_settings_to_array(uint8_t array[19], capture_time_t* CaptureTime, 
     array[16] = CaptureTime->intervalHour;
     array[17] = CaptureTime->intervalDay;
 
-    array[18] = CameraSettings->resolution;
+    array[18] = CameraSettings->frameSize;
+    array[19] = CameraSettings->jpegCompression;
 }
 
 void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
@@ -48,12 +49,14 @@ void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_se
     CaptureTime->intervalHour      = Bpk->Data.bytes[16];
     CaptureTime->intervalDay       = Bpk->Data.bytes[17];
 
-    CameraSettings->resolution = Bpk->Data.bytes[18];
+    CameraSettings->frameSize       = Bpk->Data.bytes[18];
+    CameraSettings->jpegCompression = Bpk->Data.bytes[19];
 }
 
 void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(float)], dt_datetime_t* Datetime,
-                                  float temperature) {
+                                  camera_settings_t* CameraSettings, float temperature) {
 
+    /* Store datetime */
     data[0] = Datetime->Time.second;
     data[1] = Datetime->Time.minute;
     data[2] = Datetime->Time.hour;
@@ -62,8 +65,35 @@ void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(fl
     data[5] = Datetime->Date.year >> 8;
     data[6] = Datetime->Date.year & 0xFF;
 
+    /* Store camera settings */
+    data[7] = CameraSettings->frameSize;
+    data[8] = CameraSettings->jpegCompression;
+
+    /* Store the temperature */
     uint8_t* ptr = (uint8_t*)&temperature;
     for (uint8_t i = 0; i < sizeof(float); i++) {
-        data[7 + i] = ptr[i];
+        data[9 + i] = ptr[i];
+    }
+}
+
+void wd_utils_array_to_photo_data(uint8_t data[BPACKET_MAX_NUM_DATA_BYTES], dt_datetime_t* Datetime,
+                                  camera_settings_t* CameraSettings, float* temperature) {
+
+    /* Get the datetime */
+    Datetime->Time.second = data[0];
+    Datetime->Time.minute = data[1];
+    Datetime->Time.hour   = data[2];
+    Datetime->Date.day    = data[3];
+    Datetime->Date.month  = data[4];
+    Datetime->Date.year   = (data[5] << 8) | data[6];
+
+    /* Get the camera settings */
+    CameraSettings->frameSize       = data[7];
+    CameraSettings->jpegCompression = data[8];
+
+    /* Get the temperature */
+    uint8_t* ptr = (uint8_t*)temperature;
+    for (uint8_t i = 0; i < sizeof(float); i++) {
+        ptr[i] = data[i + 9];
     }
 }

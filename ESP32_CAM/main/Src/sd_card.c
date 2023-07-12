@@ -39,22 +39,6 @@
 
 static const char* SD_CARD_TAG = "SD CARD:";
 
-// wd_camera_settings_t deafultCameraSettings = {
-//     .resolution = WD_CAM_RES_800x600,
-// };
-
-// wd_camera_capture_time_settings_t defaultCaptureTimeSettings = {
-//     .startTime.second    = 0,
-//     .startTime.minute    = 0,
-//     .startTime.hour      = 9,
-//     .endTime.second      = 0,
-//     .endTime.minute      = 0,
-//     .endTime.hour        = 18,
-//     .intervalTime.second = 0,
-//     .intervalTime.minute = 0,
-//     .intervalTime.hour   = 2,
-// };
-
 /* Private Variables */
 int mounted          = FALSE;
 uint16_t imageNumber = 0;
@@ -178,6 +162,65 @@ uint8_t sd_card_create_path(char* folderPath, bpk_t* Bpacket) {
             path[i] = '/';
         }
     }
+
+    return TRUE;
+}
+
+uint8_t sd_card_list_dir(char* msg) {
+
+    // Try open the SD card
+    if (sd_card_open() != TRUE) {
+        sprintf(msg, "SD card could not open");
+        return FALSE;
+    }
+
+    DIR* directory;
+    directory = opendir(DATA_FOLDER_PATH_START_AT_ROOT);
+    if (directory == NULL) {
+        sprintf(msg, "Dir %s could not be opened", DATA_FOLDER_PATH_START_AT_ROOT);
+        return FALSE;
+    }
+
+    // Loop through directory
+    bpk_t Bpacket;
+    Bpacket.Receiver = BPK_Addr_Receive_Stm32;
+    Bpacket.Sender   = BPK_Addr_Send_Esp32;
+    Bpacket.Request  = BPK_Req_List_Dir;
+    Bpacket.Code     = BPK_Code_In_Progress;
+
+    uint8_t index = 0;
+    struct dirent* dirPtr;
+    while ((dirPtr = readdir(directory)) != NULL) {
+
+        // Copy the name of the folder into the folder structure string
+        int k = 0;
+        while (dirPtr->d_name[k] != '\0') {
+            Bpacket.Data.bytes[index++] = dirPtr->d_name[k++];
+
+            if (index == BPACKET_MAX_NUM_DATA_BYTES) {
+                Bpacket.Data.numBytes = index;
+                esp32_uart_send_bpacket(&Bpacket);
+                index = 0;
+            }
+        }
+
+        // Add a seperator
+        Bpacket.Data.bytes[index++] = ':';
+
+        if (index == BPACKET_MAX_NUM_DATA_BYTES) {
+            Bpacket.Data.numBytes = index;
+            esp32_uart_send_bpacket(&Bpacket);
+            index = 0;
+        }
+    }
+
+    // Send success bpacket with any remaining data
+    Bpacket.Data.numBytes = index;
+    Bpacket.Code          = BPK_Code_Success;
+    esp32_uart_send_bpacket(&Bpacket);
+
+    closedir(directory);
+    sd_card_close();
 
     return TRUE;
 }
@@ -387,27 +430,8 @@ uint8_t sd_card_add_temp_to_csv(dt_datetime_t Datetime, float temp1, float temp2
     return TRUE;
 }
 
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, char* returnMsg) {
-
-    // Extract the RTC and temperatre data from the Bpacket
-    // cdt_dbl_16_t Temp1, Temp2;
-    dt_datetime_t DateTime = {
-        .Date.day    = 1,
-        .Date.month  = 2,
-        .Date.year   = 3,
-        .Time.second = 1,
-        .Time.minute = 1,
-        .Time.hour   = 1,
-    };
-    // uint8_t result = wd_bpacket_to_photo_data(Bpacket, &DateTime, &Temp1, &Temp2);
-
-    // if (result != TRUE) {
-    //     char err[50];
-    //     wd_get_error(result, err);
-    //     bpk_create_string_response(Bpacket, BPK_Code_Error, err);
-    //     esp32_uart_send_bpacket(Bpacket);
-    //     return FALSE;
-    // }
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, dt_datetime_t* Datetime, float temperature,
+                           char* returnMsg) {
 
     // Try open the SD card
     if (sd_card_open() != TRUE) {
@@ -415,24 +439,16 @@ uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, char* returnMsg)
         return FALSE;
     }
 
-    // // Create the data folder path if required
-    // if (sd_card_create_path(DATA_FOLDER_PATH, Bpacket) != TRUE) {
-    //     bpk_create_sp(Bpacket, sender, Receiver, Request, BPK_Code_Error,
-    //                       "Could not create path to data folder\0");
-    //     esp32_uart_send_bpacket(Bpacket);
-    //     return FALSE;
-    // }
-
     // Create formatted image number in the format of xxx
     char imgNumString[8];
     sprintf(imgNumString, "%s%s%i", (imageNumber < 100) ? "0" : "", (imageNumber < 10) ? "0" : "", imageNumber);
 
     // Create formatted date time in the format yymmdd_hhmm
     char datetimeString[40];
-    sprintf(datetimeString, "%i%s%i%s%i_%s%i%s%i", DateTime.Date.year - 2000, DateTime.Date.month < 10 ? "0" : "",
-            DateTime.Date.month, DateTime.Date.day < 10 ? "0" : "", DateTime.Date.day,
-            DateTime.Time.hour < 10 ? "0" : "", DateTime.Time.hour, DateTime.Time.minute < 10 ? "0" : "",
-            DateTime.Time.minute);
+    sprintf(datetimeString, "%i%s%i%s%i_%s%i%s%i", Datetime->Date.year - 2000, Datetime->Date.month < 10 ? "0" : "",
+            Datetime->Date.month, Datetime->Date.day < 10 ? "0" : "", Datetime->Date.day,
+            Datetime->Time.hour < 10 ? "0" : "", Datetime->Time.hour, Datetime->Time.minute < 10 ? "0" : "",
+            Datetime->Time.minute);
 
     // Create path for image
     char filePath[80];
@@ -663,7 +679,7 @@ void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
 //             }
 
 //             fseek(file, 0L, SEEK_SET); // Ensure the file is pointing to first byte
-//             fputc(cameraSettings.resolution, file);
+//             fputc(cameraSettings.frameSize, file);
 
 //             break;
 
@@ -903,7 +919,7 @@ uint8_t sd_card_format_sd_card(bpk_t* Bpacket) {
 //     if (Bpacket->Request.val == BPK_Req_Get_Camera_Settings.val) {
 
 //         wd_camera_settings_t cameraSettings;
-//         cameraSettings.resolution = (uint8_t)fgetc(file);
+//         cameraSettings.frameSize = (uint8_t)fgetc(file);
 
 //         if (wd_camera_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
 //                                           BPK_Code_Success, &cameraSettings) != TRUE) {

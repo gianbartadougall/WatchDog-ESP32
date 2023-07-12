@@ -128,8 +128,6 @@ void ds18b20_match_rom(ds18b20_t* Ds18b20) {
 
     ds18b20_send_command(DS18B20_COMMAND_MATCH_ROM);
 
-    ds18b20_print_64_bit(Ds18b20->rom);
-
     // Send ROM of the temperature sensor you want to speak to
     for (uint8_t i = 0; i < 64; i++) {
         ds18b20_write_bit(((Ds18b20->rom & ((uint64_t)0x01 << i)) != 0) ? 1 : 0);

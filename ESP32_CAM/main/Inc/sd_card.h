@@ -11,19 +11,22 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
-/* Public Includes */
+/* C Library Includes */
 #include <string.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
+#include <stdlib.h>
+#include <errno.h>
+
+/* ESP Includes */
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
-#include <stdlib.h>
-#include <errno.h>
 
 /* Personal Includes */
 #include "uart_comms.h"
 #include "bpacket.h"
+#include "datetime.h"
 
 /* Public Macros */
 
@@ -65,6 +68,8 @@ uint8_t sd_card_create_path(char* folderPath, bpk_t* Bpacket);
  */
 uint8_t sd_card_list_directory(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
 
+uint8_t sd_card_list_dir(char* msg);
+
 /**
  * @brief Appends a string to the given file
  *
@@ -92,7 +97,8 @@ uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_t* Bpacket);
  */
 uint8_t sd_card_save_image1(uint8_t* imageData, int imageLength, bpk_t* Bpacket);
 
-uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, char* returnMsg);
+uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, dt_datetime_t* Datetime, float temperature,
+                           char* returnMsg);
 
 /**
  * @brief Finds all the images saved on the SD card in the image data folder and

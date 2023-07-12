@@ -47,10 +47,11 @@
 #define LOG_ERROR_CODE(code) (log_error("Error %s line %i. Code %i\r\n", __FILE__, __LINE__, code))
 #define LOG_ERROR_MSG(msg)   (log_message("Error %s line %i: \'%s\'\r\n", __FILE__, __LINE__, msg))
 
-char* minutes[50]     = {"00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"};
-char* hours[50]       = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+char* minutes[50]      = {"00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"};
+char* hours[50]        = {"00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
                    "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"};
-char* resolutions[50] = {"Very Low", "Low", "Medium", "High", "Very High"};
+char* resolutions[50]  = {"Very Low", "Low", "Medium", "High", "Very High"};
+char* compressions[50] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
 
 #define PACKET_BUFFER_SIZE 50
 
@@ -100,8 +101,11 @@ HWND lbl_intervalTimeHours;
 
 HWND lbl_camResolution;
 HWND db_camResolution;
+HWND lbl_camQuality;
+HWND db_camQuality;
 
 HWND btn_SaveSettings;
+HWND btn_ListDir;
 
 HWND lbl_watchdogConnection;
 
@@ -121,12 +125,15 @@ capture_time_t lg_CaptureTime;
 #define DD_CAMERA_RESOLUTION  26
 #define BTN_SAVE_SETTINGS_ID  27
 #define BTN_TAKE_PHOTO_ID     28
+#define DD_CAMERA_COMPRESSION 29
+#define BTN_LIST_DIR_ID       30
 
 enum maple_event_e {
     EVENT_WRITE_WATCHDOG_SETTINGS = EGB_0,
     EVENT_READ_WATCHDOG_SETTINGS  = EGB_1,
     EVENT_GET_TEMPERATURE         = EGB_2,
     EVENT_TAKE_PHOTO              = EGB_3,
+    EVENT_LIST_DIR                = EGB_4,
 };
 
 /* Function Prototypes */
@@ -479,9 +486,11 @@ void maple_handle_scheduler(void) {
 
 void maple_handle_events(void) {
 
+    bpk_t BpkMapleRequest;
+
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE) == TRUE) {
         event_group_clear_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE);
-
+        log_message("Maple trying to take a photo\r\n");
         /* Request watchdog to take a photo */
         bpk_t BpkTakePhoto;
         bpk_create(&BpkTakePhoto, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_Take_Photo,
@@ -500,17 +509,24 @@ void maple_handle_events(void) {
 
         // The STM currently supports start dates and end dates as well but for the moment we
         // will just make those dates always valid
-        uint8_t settingsData[19];
+        uint8_t settingsData[20];
         wd_utils_settings_to_array(settingsData, &lg_CaptureTime, &lg_CameraSettings);
 
         /* Update settings on watchdog */
         bpk_t BpkWdSettings;
         bpk_create(&BpkWdSettings, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                   BPK_Req_Set_Watchdog_Settings, BPK_Code_Execute, 19, settingsData);
+                   BPK_Req_Set_Watchdog_Settings, BPK_Code_Execute, 20, settingsData);
         maple_send_bpacket(&BpkWdSettings);
 
         // Start timeout for response
         et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS, 1000);
+    }
+
+    if (event_group_poll_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE) == TRUE) {
+        bpk_create(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_List_Dir,
+                   BPK_Code_Execute, 0, NULL);
+        maple_send_bpacket(&BpkMapleRequest);
+        return;
     }
 
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_READ_WATCHDOG_SETTINGS, EGT_ACTIVE) == TRUE) {
@@ -523,7 +539,7 @@ void maple_handle_events(void) {
         maple_send_bpacket(&BpkReadSettings);
 
         // Create timeout
-        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_WD_SETTINGS, 1000);
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_WD_SETTINGS, 2000);
     }
 
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_GET_TEMPERATURE, EGT_ACTIVE) == TRUE) {
@@ -553,6 +569,20 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         }
 
         log_success("Watchdog took a photo!\r\n");
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
+
+        for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+            if (Bpacket->Data.bytes[i] == ':') {
+                printf("\r\n");
+                continue;
+            }
+
+            printf("%c", Bpacket->Data.bytes[i]);
+        }
+        printf("\r\n");
+        return;
     }
 
     if (Bpacket->Request.val == BPK_REQ_GET_DATETIME) {
@@ -591,28 +621,32 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         /* Update the datetime on the watchdog if the time is incorrect */
         if (dt_datetimes_are_equal(&ComputerDt, &WatchdogDt) != TRUE) {
-            log_warning("Watchdog datetime incorrect. Watchdog Datetime: %i:%i:%i %i/%i/%i. "
-                        "Computer datetime: %i:%i:%i %i/%i/%i\r\n",
-                        WatchdogDt.Time.second, WatchdogDt.Time.minute, WatchdogDt.Time.hour,
-                        WatchdogDt.Date.day, WatchdogDt.Date.month, WatchdogDt.Date.year,
-                        ComputerDt.Time.second, ComputerDt.Time.minute, ComputerDt.Time.hour,
-                        ComputerDt.Date.day, ComputerDt.Date.month, ComputerDt.Date.year);
 
-            uint8_t datetimeData[7] = {
-                ComputerDt.Time.second,      ComputerDt.Time.minute, ComputerDt.Time.hour,
-                ComputerDt.Date.day,         ComputerDt.Date.month,  ComputerDt.Date.year >> 8,
-                ComputerDt.Date.year & 0xFF,
-            };
+            /* Just commented this stuff out for the moment to reduce print statements in debug
+             * window. */
 
-            bpk_t BpkDatetime;
-            bpk_create(&BpkDatetime, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                       BPK_Req_Set_Datetime, BPK_Code_Execute, 7, datetimeData);
-            maple_send_bpacket(&BpkDatetime);
+            // log_warning("Watchdog datetime incorrect. Watchdog Datetime: %i:%i:%i %i/%i/%i. "
+            //             "Computer datetime: %i:%i:%i %i/%i/%i\r\n",
+            //             WatchdogDt.Time.second, WatchdogDt.Time.minute, WatchdogDt.Time.hour,
+            //             WatchdogDt.Date.day, WatchdogDt.Date.month, WatchdogDt.Date.year,
+            //             ComputerDt.Time.second, ComputerDt.Time.minute, ComputerDt.Time.hour,
+            //             ComputerDt.Date.day, ComputerDt.Date.month, ComputerDt.Date.year);
 
-            // Set timeout for this request
-            if (et_poll_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
-                et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
-            }
+            // uint8_t datetimeData[7] = {
+            //     ComputerDt.Time.second,      ComputerDt.Time.minute, ComputerDt.Time.hour,
+            //     ComputerDt.Date.day,         ComputerDt.Date.month,  ComputerDt.Date.year >> 8,
+            //     ComputerDt.Date.year & 0xFF,
+            // };
+
+            // bpk_t BpkDatetime;
+            // bpk_create(&BpkDatetime, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+            //            BPK_Req_Set_Datetime, BPK_Code_Execute, 7, datetimeData);
+            // maple_send_bpacket(&BpkDatetime);
+
+            // // Set timeout for this request
+            // if (et_poll_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
+            //     et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
+            // }
         }
     }
 
@@ -632,7 +666,7 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
     if (Bpacket->Request.val == BPK_REQ_GET_WATCHDOG_SETTINGS) {
 
         // Clear the timeout
-        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME);
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_WD_SETTINGS);
 
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
             log_error("Failed to get settings on watchdog\r\n");
@@ -659,7 +693,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         lg_CaptureTime.intervalHour   = Bpacket->Data.bytes[16];
         // Skipping interval days as we are not currently using it
 
-        lg_CameraSettings.resolution = Bpacket->Data.bytes[18];
+        lg_CameraSettings.frameSize       = Bpacket->Data.bytes[18];
+        lg_CameraSettings.jpegCompression = Bpacket->Data.bytes[19];
 
         /* Update the dropboxes */
         SendMessage(db_startTimeMinutes, CB_SETCURSEL, lg_CaptureTime.Start.Time.minute / 5, 0);
@@ -671,7 +706,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         SendMessage(db_intervalTimeMinutes, CB_SETCURSEL, lg_CaptureTime.intervalMinute / 5, 0);
         SendMessage(db_intervalTimeHours, CB_SETCURSEL, lg_CaptureTime.intervalHour, 0);
 
-        SendMessage(db_camResolution, CB_SETCURSEL, lg_CameraSettings.resolution, 0);
+        SendMessage(db_camResolution, CB_SETCURSEL, lg_CameraSettings.frameSize, 0);
+        SendMessage(db_camQuality, CB_SETCURSEL, lg_CameraSettings.jpegCompression, 0);
     }
 
     if (Bpacket->Request.val == BPK_REQ_SET_WATCHDOG_SETTINGS) {
@@ -705,7 +741,6 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         char tempText[30];
         sprintf(tempText, "Temperature: %.3f %cC", temperature, 176);
         SetWindowText(lbl_watchdogTemperature, tempText);
-        log_success("Got temp from watchdog!\r\n");
 
         // Request temperature in 5 seconds
         es_add_task(&lg_MapleScheduler, EVENT_GET_TEMPERATURE, 5000);
@@ -730,6 +765,12 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
 
         // Toggle flag to update settings to Watchdog
         event_group_set_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE);
+    }
+
+    if ((msg == WM_COMMAND) && (wmId == BTN_LIST_DIR_ID) && (wmEvent == BN_CLICKED)) {
+
+        // Toggle flag to update settings to Watchdog
+        event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
     }
 
     /* Handle changes to drop down boxes */
@@ -778,7 +819,13 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
     if (wmId == DD_CAMERA_RESOLUTION && wmEvent == CBN_SELCHANGE) {
         uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 
-        lg_CameraSettings.resolution = index;
+        lg_CameraSettings.frameSize = index;
+    }
+
+    if (wmId == DD_CAMERA_COMPRESSION && wmEvent == CBN_SELCHANGE) {
+        uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+
+        lg_CameraSettings.jpegCompression = index;
     }
 
     /* Handle 'Connection Status label' */
@@ -927,17 +974,27 @@ void maple_populate_gui(HWND hwnd) {
     lbl_intervalTimeMinutes =
         gui_utils_create_label("min", xVals[4], iTy, lblTw, lblTh, hwnd, NULL);
 
-    /* Camera resolution */
-    const int cTy = 230;
+    /* Create peripherals for image quality */
+    const int cTy1 = 230;
     lbl_camResolution =
-        gui_utils_create_label("Resolution: ", xVals[0], cTy, lblTw2, lblTh, hwnd, NULL);
-    db_camResolution = gui_utils_create_dropbox("Title", xVals[1], cTy, 120, ddHeight, hwnd,
+        gui_utils_create_label("Frame Size: ", xVals[0], cTy1, lblTw2, lblTh, hwnd, NULL);
+    db_camResolution = gui_utils_create_dropbox("Title", xVals[1], cTy1, 120, ddHeight, hwnd,
                                                 (HMENU)DD_CAMERA_RESOLUTION, 5, resolutions);
+    const int cTy2   = 270;
+    lbl_camQuality =
+        gui_utils_create_label("Compression: ", xVals[0], cTy2, lblTw2, lblTh, hwnd, NULL);
+    db_camQuality = gui_utils_create_dropbox("Title", xVals[1], cTy2, 120, ddHeight, hwnd,
+                                             (HMENU)DD_CAMERA_COMPRESSION, 10, compressions);
 
     /* Button for saving settings */
-    const int bTy    = 280;
+    const int bTy    = 310;
     btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 200, 30, hwnd,
                                                (HMENU)BTN_SAVE_SETTINGS_ID);
+
+    /* Button for listing the directory */
+    const int lTy = 350;
+    btn_ListDir   = gui_utils_create_button("Print SD Card Data", xVals[0], lTy, 200, 30, hwnd,
+                                          (HMENU)BTN_LIST_DIR_ID);
 }
 
 uint8_t maple_stream(char* cpyFileName) {

@@ -30,3 +30,9 @@ HWND gui_utils_create_button(char* title, int startX, int startY, int width, int
     return CreateWindow("BUTTON", title, WS_VISIBLE | WS_CHILD, startX, startY, width, height, hwnd,
                         handle, NULL, NULL);
 }
+
+HWND gui_utils_create_textbox(char* text, int startX, int startY, int width, int height, HWND hwnd,
+                              HMENU handle) {
+    return CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", text, WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
+                          startX, startY, width, height, hwnd, handle, GetModuleHandle(NULL), NULL);
+}

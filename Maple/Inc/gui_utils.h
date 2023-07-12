@@ -16,4 +16,7 @@ HWND gui_utils_create_dropbox(char* title, int startX, int startY, int width, in
 HWND gui_utils_create_button(char* title, int startX, int startY, int width, int height, HWND hwnd,
                              HMENU handle);
 
+HWND gui_utils_create_textbox(char* text, int startX, int startY, int width, int height, HWND hwnd,
+                              HMENU handle);
+
 #endif // GUI_UTILS

@@ -395,6 +395,19 @@ void dt_time_to_string(char* timeString, dt_time_t timeStruct, uint8_t hasPeriod
     }
 }
 
+// void dt_datetime_to_string(dt_datetime_t* Datetime, char string[40], enum dt_format_e format) {
+
+//     if (format == DT_FORMAT_FULL) {
+//         sprintf(datetimeString, "%i%s%i%s%i_%s%i%s%i", DateTime.Date.year - 2000, DateTime.Date.month < 10 ? "0" :
+//         "",
+//                 DateTime.Date.month, DateTime.Date.day < 10 ? "0" : "", DateTime.Date.day,
+//                 DateTime.Time.hour < 10 ? "0" : "", DateTime.Time.hour, DateTime.Time.minute < 10 ? "0" : "",
+//                 DateTime.Time.minute);
+//         return;
+//     }
+
+// }
+
 uint8_t dt_calculate_day_of_week(dt_date_t* Date) {
 
     // Copy values across so the date data is not altered

@@ -34,6 +34,7 @@
 #include "ds18b20.h"
 #include "integer.h"
 #include "float.h"
+#include "event_timeout_stm.h"
 
 /* Private Enums */
 
@@ -43,6 +44,7 @@
 
 /* Public Variables */
 event_group_t gbl_EventsStm, gbl_EventsEsp;
+et_timeout_t lg_Timeouts;
 
 /* Private Variables */
 capture_time_t gbl_CaptureTime;
@@ -165,6 +167,78 @@ void i2c_test(void) {
     }
 }
 
+void wd_handle_timeouts(void) {
+
+    bpk_t BpkStm32Response;
+
+    if (et_timeout_has_occured(&lg_Timeouts, EVENT_ESP_TAKE_PHOTO) == TRUE) {
+
+        if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) == FALSE) {
+            bpk_create_sp(&BpkStm32Response, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                          BPK_Code_Success, "ESP Take photo Timed out");
+            wd_write_bpacket_maple(&BpkStm32Response);
+        } else {
+            log_usb_error("ESP Take photo timeout occured!\r\n");
+        }
+
+        // Clear all necessary event bits
+        et_clear_timeout(&lg_Timeouts, EVENT_ESP_TAKE_PHOTO);
+        event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
+        event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
+        event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
+    }
+}
+
+void photo_test(void) {
+
+    event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
+
+    lg_CameraSettings.frameSize = WD_CR_QVGA_320x240;
+    bpk_t bpk3;
+
+    while (1) {
+
+        if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE) == TRUE) {
+            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING) == FALSE) {
+                // Update the resolution
+                lg_CameraSettings.frameSize++;
+                if (lg_CameraSettings.frameSize > WD_CR_UXGA_1600x1200) {
+                    lg_CameraSettings.frameSize = WD_CR_QVGA_320x240;
+                }
+
+                uint8_t errorCode[1];
+                if (wd_request_photo_capture(errorCode) != TRUE) {
+                    log_usb_error("Failed to request photo. Error %i\r\n", errorCode[0]);
+                } else {
+                    log_usb_message("Requesting another photo\r\n");
+                }
+            }
+        }
+
+        if (uart_read_bpacket(0, &bpk3) == TRUE) {
+            wd_handle_esp_response(&bpk3);
+        }
+
+        wd_handle_timeouts();
+
+        // if (usb_read_packet(&bpk2) == TRUE) {
+        //     if (bpk2.Request.val == BPK_REQUEST_PING) {
+        //         // Create response
+        //         static uint8_t stmPingCode = 47;
+        //         if (bpk_create(&bpk3, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Ping,
+        //         BPK_Code_Success,
+        //                        1, &stmPingCode) != TRUE) {
+        //             wd_error_handler(__FILE__, __LINE__);
+        //             break;
+        //         }
+
+        //         // Send bpacket to Maple
+        //         wd_write_bpacket_maple(&bpk3);
+        //     }
+        // }
+    }
+}
+
 void wd_error_handler_2(char* format, ...) {
 
     static char msg[100];
@@ -183,6 +257,9 @@ void wd_error_handler_2(char* format, ...) {
 void wd_esp_turn_on(void) {
     GPIO_SET_LOW(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
+    // Set the event bit to signify the ESP now has power
+    event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE);
+
     /* Start timeout for ping */
 }
 
@@ -199,65 +276,10 @@ void wd_start(void) {
     // Initialise all the hardware
     hardware_config_init();
 
-    // Initialise the uart comms with ESP32
-    uart_init();
-
-    bpk_t bpk1, bpk2, bpk3;
-    bpk_create(&bpk1, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Take_Photo, BPK_Code_Error, 0, NULL);
-    bpk_create(&bpk2, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Led_Red_Off, BPK_Code_Execute, 0, NULL);
-
-    /* Disable interrupt on uart so you don't have to read all the garbage that the ESP spits out on startup*/
-
-    char i = 'A';
-    while (1) {
-
-        if (i == 0) {
-            i = 1;
-            wd_write_bpacket_esp(&bpk1);
-            log_usb_message("led on\r\n");
-        } else {
-            i = 0;
-            log_usb_message("led off\r\n");
-            wd_write_bpacket_esp(&bpk2);
-        }
-
-        if (uart_read_bpacket(0, &bpk3) == TRUE) {
-            log_usb_success("Rec: %i Send: %i Request: %i Code: %i Len: %i\r\n", bpk3.Receiver.val, bpk3.Sender.val,
-                            bpk3.Request.val, bpk3.Code.val, bpk3.Data.numBytes);
-
-            if (bpk3.Code.val != BPK_CODE_SUCCESS) {
-                // Print the msg
-                for (int i = 0; i < bpk3.Data.numBytes; i++) {
-                    log_usb_error("%c", bpk3.Data.bytes[i]);
-                }
-                log_usb_message("\r\n");
-            }
-
-            wd_handle_esp_response(&bpk3);
-        }
-
-        // if (usb_read_packet(&bpk2) == TRUE) {
-        //     if (bpk2.Request.val == BPK_REQUEST_PING) {
-        //         // Create response
-        //         static uint8_t stmPingCode = 47;
-        //         if (bpk_create(&bpk3, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Ping,
-        //         BPK_Code_Success,
-        //                        1, &stmPingCode) != TRUE) {
-        //             wd_error_handler(__FILE__, __LINE__);
-        //             break;
-        //         }
-
-        //         // Send bpacket to Maple
-        //         wd_write_bpacket_maple(&bpk3);
-        //     }
-        // }
-
-        HAL_Delay(5000);
-    }
-
-    ds18b20_init();
-
     /* Initialise software */
+    uart_init();    // Initialise COMMS with the esp32
+    ds18b20_init(); // Initialise the temperature sensor
+
     // TODO: Change the task scheduler timer. TIM15 is used for the ds18b20 so it cannot
     // be used for the task scheduler. Will need to find a different one. Reenable timer
     // in hardware config.c as I commented it out
@@ -269,6 +291,11 @@ void wd_start(void) {
 
     // Read the watchdog settings from flash
     wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
+
+    /****** START CODE BLOCK ******/
+    // Description: Debugging. Remove when uneeded
+    // photo_test();
+    /****** END CODE BLOCK ******/
 
     // Initialise event groups
     event_group_clear(&gbl_EventsStm);
@@ -310,9 +337,12 @@ void wd_start(void) {
             }
         } else {
 
-            // There are no pending esp events. Turn the ESP off if it is not already off
-            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == TRUE) {
-                wd_esp_turn_off();
+            // Only turn the ESP off is the USB is not connected
+            if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN) == FALSE) {
+                // There are no pending esp events. Turn the ESP off if it is not already off
+                if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == TRUE) {
+                    wd_esp_turn_off();
+                }
             }
         }
 
@@ -327,9 +357,6 @@ void wd_start(void) {
         if ((event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE) == TRUE) &&
             (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING) == FALSE)) {
 
-            // Set the event running trait to signify this event is currently running
-            event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
-
             // Don't request a photo until the ESP is in the ready state. The ESP takes
             // a second or two to startup after it has been turned on. The ESP_READY flag
             // will be set automatically by the STM when the ESP is ready to receive commands
@@ -340,17 +367,6 @@ void wd_start(void) {
                 if (wd_request_photo_capture(errorCode) != TRUE) {
                     wd_error_handler_2("Error %s on line %i. Code %i\r\n", __FILE__, __LINE__, errorCode[0]);
                 }
-
-                /****** START CODE BLOCK ******/
-                // Description: Debugging. Can delete when not needed
-                dt_datetime_t Dt;
-                if (rtc_read_datetime(&Dt) != TRUE) {
-                    wd_error_handler(__FILE__, __LINE__);
-                }
-
-                log_usb_success("Photo Requested [%i:%i:%i %i/%i/%i]\r\n", Dt.Time.hour, Dt.Time.minute, Dt.Time.second,
-                                Dt.Date.day, Dt.Date.month, Dt.Date.year);
-                /****** END CODE BLOCK ******/
             }
         }
 
@@ -390,6 +406,26 @@ void wd_start(void) {
         // is powered, it will always know if the USBC is connected or not
         if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN)) {
             GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
+
+            /* When the USB is connected, the ESP32 should turn on and be ready for any commands
+                request by the computer */
+            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == FALSE) {
+
+                // Turn the ESP on. This will also set the EVENT_ESP_ON flag
+                wd_esp_turn_on();
+
+                /****** START CODE BLOCK ******/
+                // Description: For the moment, the ESP is always on because the PCB for the ESP
+                // doesn't work. Given this, we will send a ping request instead of turning the
+                // esp on (as it is always on). The response from the ping request will be the
+                // same as if the ESP has just turned on and the EVENT_ESP_ON and EVENT_ESP_READY
+                // flags should be set
+                bpk_t PingRequest;
+                bpk_create(&PingRequest, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Request_Ping,
+                           BPK_Code_Execute, 0, NULL);
+                wd_write_bpacket_esp(&PingRequest);
+                /****** END CODE BLOCK ******/
+            }
 
             // USBC is connected, check for any incoming bpackets and process them if any come
             if (usb_read_packet(&MapleBpacket) == TRUE) {
@@ -447,37 +483,40 @@ void wd_handle_maple_request(bpk_t* Bpacket) {
 
             break;
 
+        case BPK_REQ_LIST_DIR:
+
+            // Forward request to ESP32
+            Bpacket->Receiver = BPK_Addr_Receive_Esp32;
+            wd_write_bpacket_esp(Bpacket);
+
         case BPK_REQ_TAKE_PHOTO:;
 
+            /****** START CODE BLOCK ******/
+            // Description: Testing this bit of code. Can delete if necessary
+            uint8_t occured = FALSE;
+            bpk_t debugMessage;
+            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == FALSE) {
+                bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                              BPK_Code_Success, "Maple request but ESP is not on");
+                wd_write_bpacket_maple(&debugMessage);
+                occured = TRUE;
+            }
+            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE) == FALSE) {
+                bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                              BPK_Code_Success, "Maple request but ESP is not ready");
+                wd_write_bpacket_maple(&debugMessage);
+                occured = TRUE;
+            }
+
+            if (occured == TRUE) {
+                return;
+            }
+            /****** END CODE BLOCK ******/
+
+            /* Set the required event group bits */
             event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
             event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
             event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
-
-            // uint8_t errorCode[1];
-            // if (wd_request_photo_capture(errorCode) != TRUE) {
-
-            //     // Check whether the take photo request was from the stm32 or maple
-            //     if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) != TRUE) {
-            //         bpk_create(&BpkStmResponse, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Req_Take_Photo,
-            //                    BPK_Code_Error, 1, errorCode);
-            //         wd_write_bpacket_maple(&BpkStmResponse);
-
-            //         // Clear event group bits
-            //         event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
-            //         event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
-            //         event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
-
-            //         break;
-            //     }
-
-            //     wd_error_handler(__FILE__, __LINE__);
-            // }
-
-            // // Set the event running trait to signify this event is currently running
-            // event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
-
-            // // Clear the stm request trait to signify that stm did not trigger this event
-            // event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
 
             break;
 
@@ -529,12 +568,12 @@ void wd_handle_maple_request(bpk_t* Bpacket) {
         case BPK_REQ_GET_WATCHDOG_SETTINGS:;
 
             /* Store current watchdog settings into bpacket and send to computer */
-            uint8_t settingsData[19];
+            uint8_t settingsData[20];
             wd_utils_settings_to_array(settingsData, &gbl_CaptureTime, &lg_CameraSettings);
 
             /* Create bpacket and send to computer */
             bpk_create(&BpkStmResponse, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Req_Get_Watchdog_Settings,
-                       BPK_Code_Success, 19, settingsData);
+                       BPK_Code_Success, 20, settingsData);
             wd_write_bpacket_maple(&BpkStmResponse);
 
             break;
@@ -581,15 +620,29 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
 
         /* Clear timeout */
 
-        // Ping from ESP received => ESP ready to take requests
+        // Ping from ESP received => ESP ready to take requests. Settings both event
+        // bits just incase ESP_ON hasn't been set for some reason
+        event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE);
         event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE);
 
-        log_usb_message("Received ESP ping!\r\n");
+        /****** START CODE BLOCK ******/
+        // Description: Debugging purposes. Can delete when not required
+        bpk_t debugMessage;
+        bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "ESP is ready");
+        wd_write_bpacket_maple(&debugMessage);
+        /****** END CODE BLOCK ******/
+
+        log_usb_success("Received ESP ping!\r\n");
     }
 
     if (Bpacket->Request.val == BPK_REQ_TAKE_PHOTO) {
 
-        /* TODO: Clear timeout */
+        // Clear the timeout as a response has been received
+        et_clear_timeout(&lg_Timeouts, EVENT_ESP_TAKE_PHOTO);
+
+        // Clear necessary event bits
+        event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
 
         // Determine whether the STM triggered the request or not
         if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) == FALSE) {
@@ -607,11 +660,34 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
         }
 
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
+            /****** START CODE BLOCK ******/
+            // Description: Debug. Can delete when done
+            for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+                log_usb_success("%c", Bpacket->Data.bytes[i]);
+            }
+            log_usb_message("\r\n");
+            /****** END CODE BLOCK ******/
+
             wd_error_handler(__FILE__, __LINE__);
         }
 
-        log_usb_message("Took a photo\r\n!");
+        /****** START CODE BLOCK ******/
+        // Description: Debug messaging. Can delete when confident everything is working correctly
+        log_usb_success("Took a photo\r\n!");
+        for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+            log_usb_success("%c", Bpacket->Data.bytes[i]);
+        }
+        log_usb_message("\r\n");
 
+        /****** END CODE BLOCK ******/
+
+        return;
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
+        // Forward the bpacket to maple
+        Bpacket->Receiver = BPK_Addr_Receive_Maple;
+        wd_write_bpacket_maple(Bpacket);
         return;
     }
 }
@@ -631,8 +707,6 @@ void wd_error_handler(char* fileName, uint16_t lineNumber) {
 
 uint8_t wd_request_photo_capture(uint8_t errorCode[1]) {
 
-    bpk_t BpkStmResponse;
-
     if (ds18b20_read_temperature(&Ds18b20) != TRUE) {
         errorCode[0] = bpkErrRecordTemp[0];
         return FALSE;
@@ -646,14 +720,31 @@ uint8_t wd_request_photo_capture(uint8_t errorCode[1]) {
 
     /* Store temperature and datetime into bpacket and send request to the ESP */
     uint8_t data[sizeof(dt_datetime_t) + sizeof(float)];
-    wd_utils_photo_data_to_array(data, &Datetime, Ds18b20.temp);
+    wd_utils_photo_data_to_array(data, &Datetime, &lg_CameraSettings, Ds18b20.temp);
 
     bpk_t BpkTakePhoto;
     bpk_create(&BpkTakePhoto, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Take_Photo, BPK_Code_Execute,
                sizeof(dt_datetime_t) + sizeof(float), data);
     wd_write_bpacket_esp(&BpkTakePhoto);
 
-    /* TODO: Implement timeout */
+    // Set the appropriate event bits
+    event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
+
+    // Start timeout
+    et_set_timeout(&lg_Timeouts, EVENT_ESP_TAKE_PHOTO, 6000);
+
+    /****** START CODE BLOCK ******/
+    // Description: Debugging. Can remove when not needed
+    bpk_t debugMessage;
+    if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) == FALSE) {
+        bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "STM32 Requesting photo");
+    } else {
+        bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "Maple Requesting photo");
+    }
+    wd_write_bpacket_maple(&debugMessage);
+    /****** END CODE BLOCK ******/
 
     return TRUE;
 }
@@ -680,7 +771,8 @@ uint8_t wd_write_settings(capture_time_t* CaptureTime, camera_settings_t* Camera
             (((uint64_t)CaptureTime->End.Date.month) << 24) | (((uint64_t)CaptureTime->End.Date.year) << 8),
         (((uint64_t)CaptureTime->intervalSecond) << 48) | (((uint64_t)CaptureTime->intervalMinute) << 32) |
             (((uint64_t)CaptureTime->intervalHour) << 16) | (((uint64_t)CaptureTime->intervalSecond) << 0),
-        ((uint64_t)0xFFFFFFFF << 32) | (((uint64_t)CameraSettings->resolution) << 24) | 0x00FFFFFF,
+        ((uint64_t)0xFFFFFFFF << 32) | (((uint64_t)CameraSettings->frameSize) << 24) |
+            (((uint64_t)CameraSettings->jpegCompression) << 16) | 0x0000FFFF,
     };
 
     // Check whether data has already been written to the page or not
@@ -791,7 +883,8 @@ void wd_read_settings(capture_time_t* CaptureTime, camera_settings_t* CameraSett
         CaptureTime->intervalHour   = 2;
         CaptureTime->intervalDay    = 0;
 
-        CameraSettings->resolution = 5;
+        CameraSettings->frameSize       = WD_CR_UXGA_1600x1200;
+        CameraSettings->jpegCompression = 0;
 
         /* These are now the default settings. Write them to the flash */
         if (wd_write_settings(CaptureTime, CameraSettings) != TRUE) {
@@ -836,5 +929,6 @@ void wd_read_settings(capture_time_t* CaptureTime, camera_settings_t* CameraSett
     CaptureTime->intervalHour   = (uint16_t)((flashRead[2] >> 16) & 0xFFFF);
     CaptureTime->intervalDay    = (uint16_t)(flashRead[2] & 0xFFFF);
 
-    CameraSettings->resolution = (uint8_t)((flashRead[3] >> 24) & 0xFF);
+    CameraSettings->frameSize       = (uint8_t)((flashRead[3] >> 24) & 0xFF);
+    CameraSettings->jpegCompression = (uint8_t)((flashRead[3] >> 16) & 0xFF);
 }

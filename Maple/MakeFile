@@ -11,8 +11,7 @@ CPP_LIB_PATH=E:\Software_Libraries\Personal\C
 C_SOURCES = \
 Src/main.c \
 Src/gui_utils.c \
-../STM32/Core/Src/watchdog_defines.c \
-../STM32/Core/Src/watchdog_utils.c \
+../WD_Library/Src/watchdog_utils.c \
 ../STM32/Library/Src/DataTypes/chars.c \
 ../STM32/Library/Src/Communications/bpacket.c \
 ../STM32/Library/Src/Communications/bpacket_utils.c \
@@ -35,6 +34,7 @@ C_INCLUDES = \
 -I../STM32/Core/Inc/Board \
 -I../STM32/Core/Inc \
 -I../STM32/Library/Inc \
+-I../WD_Library/Inc \
 -I../Drivers/ESP32_Camera/driver/include \
 -IInc \
 -I$(CPP_LIB_PATH)\Utils\Inc \

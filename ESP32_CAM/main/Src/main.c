@@ -71,11 +71,26 @@ void esp_handle_request(bpk_t* Bpacket) {
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        // bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, BPK_Req_List_Dir, BPK_Code_Success,
+        //               "Starting!");
+        // esp32_uart_send_bpacket(&BpkEspResponse);
+        /****** END CODE BLOCK ******/
+
         if (sd_card_list_dir(msg) != TRUE) {
             bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request, BPK_Code_Error, msg);
             esp32_uart_send_bpacket(&BpkEspResponse);
             return;
         }
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        // bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, BPK_Req_List_Dir, BPK_Code_Success,
+        //               "img1:img2:img3");
+        // esp32_uart_send_bpacket(&BpkEspResponse);
+        /****** END CODE BLOCK ******/
 
         /* No need to send Success code as this will be done by the SD card function */
         return;

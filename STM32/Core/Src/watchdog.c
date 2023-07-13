@@ -311,6 +311,7 @@ void wd_start(void) {
     // take a photo if this flag has been set. Getting ESP32 to take a photo on
     // startup to ensure the system is working correctly
     event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
+    event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
 
     // Set flag 'system initialising' flag. In main loop where stm32 waits for
     // responses back from the ESP, if it gets a response saying a photo was taken
@@ -483,11 +484,20 @@ void wd_handle_maple_request(bpk_t* Bpacket) {
 
             break;
 
-        case BPK_REQ_LIST_DIR:
+        case BPK_REQ_LIST_DIR:;
 
-            // Forward request to ESP32
-            Bpacket->Receiver = BPK_Addr_Receive_Esp32;
-            wd_write_bpacket_esp(Bpacket);
+            /****** START CODE BLOCK ******/
+            // Description: Debugging. Can delete whenever
+            bpk_t DebugMessage;
+            bpk_create_sp(&DebugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                          BPK_Code_Success, "STM ack Maple req list dir");
+            wd_write_bpacket_maple(&DebugMessage);
+            /****** END CODE BLOCK ******/
+
+            bpk_create(&BpkStmResponse, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_List_Dir, BPK_Code_Execute,
+                       0, NULL);
+            wd_write_bpacket_esp(&BpkStmResponse);
+            break;
 
         case BPK_REQ_TAKE_PHOTO:;
 
@@ -685,6 +695,15 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        bpk_t DebugMessage;
+        bpk_create_sp(&DebugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "STM received dir list back");
+        wd_write_bpacket_maple(&DebugMessage);
+        /****** END CODE BLOCK ******/
+
         // Forward the bpacket to maple
         Bpacket->Receiver = BPK_Addr_Receive_Maple;
         wd_write_bpacket_maple(Bpacket);
@@ -736,7 +755,7 @@ uint8_t wd_request_photo_capture(uint8_t errorCode[1]) {
     /****** START CODE BLOCK ******/
     // Description: Debugging. Can remove when not needed
     bpk_t debugMessage;
-    if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) == FALSE) {
+    if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST) == TRUE) {
         bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
                       "STM32 Requesting photo");
     } else {

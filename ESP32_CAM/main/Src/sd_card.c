@@ -188,6 +188,12 @@ uint8_t sd_card_list_dir(char* msg) {
     Bpacket.Request  = BPK_Req_List_Dir;
     Bpacket.Code     = BPK_Code_In_Progress;
 
+    /****** START CODE BLOCK ******/
+    // Description: Debugging!
+    // bpk_create_sp(&Bpacket, Bpacket.Receiver, Bpacket.Sender, BPK_Req_List_Dir, BPK_Code_Success, "img4:img5:img6");
+    // esp32_uart_send_bpacket(&Bpacket);
+    /****** END CODE BLOCK ******/
+
     uint8_t index = 0;
     struct dirent* dirPtr;
     while ((dirPtr = readdir(directory)) != NULL) {

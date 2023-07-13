@@ -60,6 +60,7 @@ char* compressions[50] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
 #define ET_TIMEOUT_SET_WD_SETTINGS ET_TIMEOUT_ID_2
 #define ET_TIMEOUT_GET_TEMPERATURE ET_TIMEOUT_ID_3
 #define ET_TIMEOUT_TAKE_PHOTO      ET_TIMEOUT_ID_4
+#define ET_TIMEOUT_LIST_DIR        ET_TIMEOUT_ID_5
 
 /* Private Variables */
 cbuffer_t RxCbuffer;
@@ -105,7 +106,6 @@ HWND lbl_camQuality;
 HWND db_camQuality;
 
 HWND btn_SaveSettings;
-HWND btn_ListDir;
 
 HWND lbl_watchdogConnection;
 
@@ -113,8 +113,18 @@ HWND lbl_watchdogTemperature;
 
 HWND btn_takePhoto;
 
+HWND db_images;
+HWND btn_listDir;
+HWND btn_deleteFile;
+HWND btn_copyFile;
+
 camera_settings_t lg_CameraSettings;
 capture_time_t lg_CaptureTime;
+
+char lg_sdCardData[50][50];
+char* lg_selectedFile = NULL;
+uint8_t lg_imageNum   = 0;
+uint16_t wdDirIndex   = 0;
 
 #define DD_START_MINUTE_ID    20
 #define DD_START_HOUR_ID      21
@@ -127,6 +137,10 @@ capture_time_t lg_CaptureTime;
 #define BTN_TAKE_PHOTO_ID     28
 #define DD_CAMERA_COMPRESSION 29
 #define BTN_LIST_DIR_ID       30
+#define DD_IMAGE_DATA_ID      31
+#define BTN_COPY_FILE_ID      32
+#define BTN_DELETE_FILE_ID    33
+#define DD_FILE_SELECTOR      34
 
 enum maple_event_e {
     EVENT_WRITE_WATCHDOG_SETTINGS = EGB_0,
@@ -134,6 +148,8 @@ enum maple_event_e {
     EVENT_GET_TEMPERATURE         = EGB_2,
     EVENT_TAKE_PHOTO              = EGB_3,
     EVENT_LIST_DIR                = EGB_4,
+    EVENT_COPY_FILE               = EGB_5,
+    EVENT_DELETE_FILE             = EGB_6,
 };
 
 /* Function Prototypes */
@@ -498,7 +514,7 @@ void maple_handle_events(void) {
         maple_send_bpacket(&BpkTakePhoto);
 
         // Set timeout
-        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_TAKE_PHOTO, 9000);
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_TAKE_PHOTO, 10000);
     }
 
     /* If the Save settings button is pressed, this event group bit will be set */
@@ -523,10 +539,37 @@ void maple_handle_events(void) {
     }
 
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE) == TRUE) {
+        event_group_clear_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
+
         bpk_create(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple, BPK_Req_List_Dir,
                    BPK_Code_Execute, 0, NULL);
         maple_send_bpacket(&BpkMapleRequest);
+
+        // Set timeout
+        et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_LIST_DIR, 4000);
         return;
+    }
+
+    if (event_group_poll_bit(&lg_EventsMaple, EVENT_COPY_FILE, EGT_ACTIVE) == TRUE) {
+        event_group_clear_bit(&lg_EventsMaple, EVENT_COPY_FILE, EGT_ACTIVE);
+
+        // Confirm that a file has been selected
+        if (lg_selectedFile == NULL) {
+            log_warning("No file has been selected\r\n");
+        } else {
+            log_message("Copying file %s\r\n", lg_selectedFile);
+        }
+    }
+
+    if (event_group_poll_bit(&lg_EventsMaple, EVENT_DELETE_FILE, EGT_ACTIVE) == TRUE) {
+        event_group_clear_bit(&lg_EventsMaple, EVENT_DELETE_FILE, EGT_ACTIVE);
+
+        // Confirm that a file has been selected
+        if (lg_selectedFile == NULL) {
+            log_warning("No file has been selected\r\n");
+        } else {
+            log_message("Deleting file %s\r\n", lg_selectedFile);
+        }
     }
 
     if (event_group_poll_bit(&lg_EventsMaple, EVENT_READ_WATCHDOG_SETTINGS, EGT_ACTIVE) == TRUE) {
@@ -551,7 +594,7 @@ void maple_handle_events(void) {
                    BPK_Req_Get_Temperature, BPK_Code_Execute, 0, NULL);
         maple_send_bpacket(&BpkGetTemp);
 
-        /* Create timeout */
+        // Set timeout.
         et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_GET_TEMPERATURE, 3000);
     }
 }
@@ -573,15 +616,44 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
 
+        if (Bpacket->Code.val == BPK_CODE_ERROR) {
+            log_error("Failed to list the SD card directory");
+            wdDirIndex = 0;
+            return;
+        }
+
+        /* Bpacket contains direcotry data. Add it to the list */
         for (int i = 0; i < Bpacket->Data.numBytes; i++) {
             if (Bpacket->Data.bytes[i] == ':') {
-                printf("\r\n");
+                lg_imageNum++;
+                wdDirIndex = 0;
                 continue;
             }
-
-            printf("%c", Bpacket->Data.bytes[i]);
+            lg_sdCardData[lg_imageNum][wdDirIndex++] = (char)Bpacket->Data.bytes[i];
         }
-        printf("\r\n");
+
+        /* Bpacket was either part of the directory or contains the last section of the
+            directory to be sent across. If its the last section than the code will be
+            success. If this is the case then print out the directory */
+        if (Bpacket->Code.val == BPK_CODE_SUCCESS) {
+            // Clear the timeout
+            et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_LIST_DIR);
+
+            /* Update the drop down with the new image data */
+            SendMessage(db_images, CB_RESETCONTENT, 0, 0);
+            for (int i = 0; i < lg_imageNum; i++) {
+                SendMessage(db_images, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)lg_sdCardData[i]);
+            }
+
+            // Set the drop down to select the first image in the list
+            SendMessage(db_images, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+            lg_selectedFile = lg_sdCardData[0];
+
+            // Reset the index
+            lg_imageNum = 0;
+            wdDirIndex  = 0;
+        }
+
         return;
     }
 
@@ -762,15 +834,19 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
     }
 
     if ((msg == WM_COMMAND) && (wmId == GetDlgCtrlID(btn_takePhoto)) && (wmEvent == BN_CLICKED)) {
-
-        // Toggle flag to update settings to Watchdog
         event_group_set_bit(&lg_EventsMaple, EVENT_TAKE_PHOTO, EGT_ACTIVE);
     }
 
     if ((msg == WM_COMMAND) && (wmId == BTN_LIST_DIR_ID) && (wmEvent == BN_CLICKED)) {
-
-        // Toggle flag to update settings to Watchdog
         event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
+    }
+
+    if ((msg == WM_COMMAND) && (wmId == BTN_COPY_FILE_ID) && (wmEvent == BN_CLICKED)) {
+        event_group_set_bit(&lg_EventsMaple, EVENT_COPY_FILE, EGT_ACTIVE);
+    }
+
+    if ((msg == WM_COMMAND) && (wmId == BTN_DELETE_FILE_ID) && (wmEvent == BN_CLICKED)) {
+        event_group_set_bit(&lg_EventsMaple, EVENT_DELETE_FILE, EGT_ACTIVE);
     }
 
     /* Handle changes to drop down boxes */
@@ -826,6 +902,12 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
         uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 
         lg_CameraSettings.jpegCompression = index;
+    }
+
+    if (wmId == DD_FILE_SELECTOR && wmEvent == CBN_SELCHANGE) {
+        uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+
+        lg_selectedFile = lg_sdCardData[index];
     }
 
     /* Handle 'Connection Status label' */
@@ -934,12 +1016,12 @@ void maple_populate_gui(HWND hwnd) {
     lbl_WatchdogDateTime = gui_utils_create_label("00:00:00", 260, 10, 150, 30, hwnd, NULL);
 
     /* Create peripherals for start, end and interval times */
-    const int lblTw    = 30;
-    const int lblTw2   = 100;
-    const int lblTh    = 30;
-    const int ddWidth  = 50;
-    const int ddHeight = 500;
-    const int xVals[5] = {10, 110, 170, 210, 270};
+    const int lblTw     = 30;
+    const int lblTw2    = 100;
+    const int lblTh     = 30;
+    const int ddWidth   = 50;
+    const int ddHeight  = 500;
+    const int xVals[10] = {10, 110, 170, 210, 270, 370, 470, 570, 670, 770};
 
     /* Start time */
     const int stY = 50;
@@ -988,13 +1070,20 @@ void maple_populate_gui(HWND hwnd) {
 
     /* Button for saving settings */
     const int bTy    = 310;
-    btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 200, 30, hwnd,
+    btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 180, 30, hwnd,
                                                (HMENU)BTN_SAVE_SETTINGS_ID);
 
-    /* Button for listing the directory */
-    const int lTy = 350;
-    btn_ListDir   = gui_utils_create_button("Print SD Card Data", xVals[0], lTy, 200, 30, hwnd,
+    /* Button for interacing with the SD card */
+    const int lTy  = 350;
+    btn_listDir    = gui_utils_create_button("List Image Data", xVals[0], lTy, 180, 30, hwnd,
                                           (HMENU)BTN_LIST_DIR_ID);
+    btn_deleteFile = gui_utils_create_button("Delete Selected Image", xVals[3], lTy, 180, 30, hwnd,
+                                             (HMENU)BTN_DELETE_FILE_ID);
+    btn_copyFile   = gui_utils_create_button("Copy Selected Image", xVals[6], lTy, 180, 30, hwnd,
+                                           (HMENU)BTN_COPY_FILE_ID);
+
+    db_images = gui_utils_create_dropbox("Title", xVals[8], lTy, 300, ddHeight, hwnd,
+                                         (HMENU)DD_FILE_SELECTOR, 0, NULL);
 }
 
 uint8_t maple_stream(char* cpyFileName) {
@@ -1228,136 +1317,3 @@ void maple_test(void) {
     //     printf("%sAll tests passed%s\n", ASCII_COLOR_GREEN, ASCII_COLOR_WHITE);
     // }
 }
-
-/* GARBAGE CODE */
-// // Initialise rx and tx buffers
-// cbuffer_init(&RxCbuffer, rxCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
-// cbuffer_init(&TxCbuffer, txCbufferBytes, sizeof(bpk_t), MAPLE_BUFFER_NUM_ELEMENTS);
-// while (1) {}
-
-// int i = 0;
-// while (1) {
-
-//     if (i == 0) {
-//         maple_create_and_send_bpacket(BPK_Req_Led_Red_On, BPK_Addr_Receive_Esp32, 0, NULL);
-//         i = 1;
-//     } else {
-//         maple_create_and_send_bpacket(BPK_Req_Led_Red_Off, BPK_Addr_Receive_Esp32, 0, NULL);
-//         i = 0;
-//     }
-
-//     Sleep(2000);
-// }
-
-// maple_test();
-
-// /* This code currently does nothing as there is an infinite while loop in there! */
-// HANDLE guiThread = CreateThread(NULL, 0, gui, NULL, 0, NULL);
-
-// if (!guiThread) {
-//     printf("Thread failed\n");
-//     return 0;
-// }
-
-// while (1) {}
-
-// return 0;
-
-// uint8_t maple_response_is_valid(bpk_request_t ExpectedRequest, uint16_t timeout) {
-
-//     // Print response
-//     clock_t startTime = clock();
-//     bpk_t Bpacket;
-//     while ((clock() - startTime) < timeout) {
-
-//         // Wait for next response
-//         while (cbuffer_read_next_element(&RxCbuffer, (void*)&Bpacket) != TRUE) {}
-
-//         // Skip if the Bpacket is just a message
-//         if (Bpacket.Request.val == BPK_Request_Message.val) {
-//             continue;
-//         }
-
-//         // Confirm the received Bpacket matches the correct request and code
-//         if (Bpacket.Request.val != ExpectedRequest.val) {
-//             return FALSE;
-//         }
-
-//         if (Bpacket.Code.val != BPK_Code_Success.val) {
-//             printf("Expected code %i but got %i\n", BPK_Code_Success.val, Bpacket.Request.val);
-//             return FALSE;
-//         }
-
-//         return TRUE;
-//     }
-
-//     printf("Failed to get response\n");
-//     return FALSE;
-// }
-
-// uint8_t maple_get_response(bpk_t* Bpacket, bpk_request_t Request, uint16_t timeout) {
-
-//     // Print response
-//     clock_t startTime = clock();
-//     while ((clock() - startTime) < timeout) {
-
-//         while (cbuffer_read_next_element(&RxCbuffer, (void*)Bpacket) != TRUE) {}
-
-//         // If there is next response yet then skip
-//         if (Bpacket->Request.val == Request.val) {
-//             return TRUE;
-//         }
-
-//         char info[80];
-//         bpk_get_info(Bpacket, info);
-//         printf(info);
-//     }
-
-//     return FALSE;
-// }
-
-// uint8_t maple_restart_esp32(void) {
-
-//     // Turn the ESP32 off. Wait for 200ms. Turn the ESP32 back on. Wait for 1000ms. This ensures
-//     // that when we get the capture time settings from the esp32 we can know whether the capture
-//     // time settings set above were saved to the SD card or not
-//     bpk_t stateBpacket;
-//     maple_create_and_send_bpacket(BPK_Req_Esp32_Off, BPK_Addr_Receive_Stm32, 0, NULL);
-//     if (maple_get_response(&stateBpacket, BPK_Req_Esp32_Off, 1000) != TRUE) {
-//         printf("%sTurning the ESP32 off failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-//         return FALSE;
-//     }
-
-//     clock_t time = clock();
-//     while ((clock() - time) < 200) {}
-
-//     // Delay of 1500ms because the STM32 will automatically delay for 1s when turning the esp32
-//     // so it has enough time to boot up
-//     maple_create_and_send_bpacket(BPK_Req_Esp32_On, BPK_Addr_Receive_Stm32, 0, NULL);
-//     if (maple_get_response(&stateBpacket, BPK_Req_Esp32_On, 2000) != TRUE) {
-//         printf("%sTurning the ESP32 on failed%s\n", ASCII_COLOR_RED, ASCII_COLOR_WHITE);
-//         return FALSE;
-//     }
-
-//     return TRUE;
-// }
-
-// void maple_print_uart_response(void) {
-
-//     int packetsFinished = FALSE;
-//     bpk_t Bpacket;
-//     while (packetsFinished == FALSE) {
-
-//         // Wait until the packet is ready
-//         while (cbuffer_read_next_element(&RxCbuffer, (void*)&Bpacket) != TRUE) {}
-
-//         // Packet ready. Print its contents
-//         for (int i = 0; i < Bpacket.Data.numBytes; i++) {
-//             log_message("%c", Bpacket.Data.bytes[i]);
-//         }
-
-//         if (Bpacket.Request.val == BPK_Code_Success.val) {
-//             packetsFinished = TRUE;
-//         }
-//     }
-// }

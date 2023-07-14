@@ -55,6 +55,8 @@
  */
 uint8_t sd_card_create_path(char* folderPath, bpk_t* Bpacket);
 
+uint8_t sd_card_delete_file(char* fileName, char* msg);
+
 /**
  * @brief Lists all folders and files in a given directory
  *

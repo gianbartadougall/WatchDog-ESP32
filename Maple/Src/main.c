@@ -26,6 +26,10 @@
 /* C Library Includes for COM Port Interfacing */
 #include <libserialport.h>
 
+/* C Library for loading images */
+#include "stb_image.h"
+#include "stb_image_resize.h"
+
 /* Personal Includes */
 #include "chars.h"
 #include "watchdog_defines.h"
@@ -61,6 +65,7 @@ char* compressions[50] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
 #define ET_TIMEOUT_GET_TEMPERATURE ET_TIMEOUT_ID_3
 #define ET_TIMEOUT_TAKE_PHOTO      ET_TIMEOUT_ID_4
 #define ET_TIMEOUT_LIST_DIR        ET_TIMEOUT_ID_5
+#define ET_TIMEOUT_DELETE_FILE     ET_TIMEOUT_ID_6
 
 /* Private Variables */
 cbuffer_t RxCbuffer;
@@ -118,6 +123,20 @@ HWND btn_listDir;
 HWND btn_deleteFile;
 HWND btn_copyFile;
 
+typedef struct rectangle_t {
+    int startX;
+    int startY;
+    int width;
+    int height;
+} rectangle_t;
+
+rectangle_t LiveStreamImageFrame = {
+    .startX = 600,
+    .startY = 200,
+    .width  = 640,
+    .height = 480,
+};
+
 camera_settings_t lg_CameraSettings;
 capture_time_t lg_CaptureTime;
 
@@ -169,6 +188,8 @@ void maple_populate_gui(HWND hwnd);
 void maple_handle_events(void);
 void maple_handle_timeouts(void);
 void maple_handle_scheduler(void);
+void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b);
+uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position);
 
 uint32_t packetBufferIndex  = 0;
 uint32_t packetPendingIndex = 0;
@@ -533,10 +554,9 @@ void maple_handle_events(void) {
         wd_utils_settings_to_array(settingsData, &lg_CaptureTime, &lg_CameraSettings);
 
         /* Update settings on watchdog */
-        bpk_t BpkWdSettings;
-        bpk_create(&BpkWdSettings, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+        bpk_create(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
                    BPK_Req_Set_Watchdog_Settings, BPK_Code_Execute, 20, settingsData);
-        maple_send_bpacket(&BpkWdSettings);
+        maple_send_bpacket(&BpkMapleRequest);
 
         // Start timeout for response
         et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_WD_SETTINGS, 1000);
@@ -577,6 +597,15 @@ void maple_handle_events(void) {
             log_warning("No file has been selected\r\n");
         } else {
             log_message("Deleting file %s\r\n", lg_selectedFile);
+
+            /* Send request to STM32 */
+            bpk_t BpkWdSettings;
+            bpk_create_sp(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                          BPK_Req_Delete_File, BPK_Code_Execute, lg_selectedFile);
+            maple_send_bpacket(&BpkMapleRequest);
+
+            // Start timeout for response
+            et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_DELETE_FILE, 2000);
         }
     }
 
@@ -656,9 +685,38 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
             log_success("Finished copying file\r\n");
             fclose(file);
             file = NULL;
+
+            // Update the image on the GUI
+            draw_rectangle(GuiHandle, &LiveStreamImageFrame, 255, 255, 255);
+            draw_image(GuiHandle, lg_selectedFile, &LiveStreamImageFrame);
+            UpdateWindow(GuiHandle);
         }
 
         return;
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_DELETE_FILE) {
+
+        // Clear timeout
+        et_clear_timeout(&lg_MapleTimeouts, ET_TIMEOUT_DELETE_FILE);
+
+        if (Bpacket->Code.val == BPK_CODE_ERROR) {
+
+            // Print error
+            for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+                printf("%c", Bpacket->Data.bytes[i]);
+            }
+            printf("\r\n");
+            return;
+        }
+
+        log_success("%s deleted\r\n", lg_selectedFile);
+
+        // Read directory again from watchdog to update the file list. Although this
+        // is slower than just deleting the item from the list here, this will ensure
+        // the user knows exactly what is on the SD card incase the are any bugs or
+        // something
+        event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
@@ -1120,17 +1178,137 @@ void maple_populate_gui(HWND hwnd) {
     btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 180, 30, hwnd,
                                                (HMENU)BTN_SAVE_SETTINGS_ID);
 
-    /* Button for interacing with the SD card */
-    const int lTy  = 350;
-    btn_listDir    = gui_utils_create_button("List Image Data", xVals[0], lTy, 180, 30, hwnd,
-                                          (HMENU)BTN_LIST_DIR_ID);
-    btn_deleteFile = gui_utils_create_button("Delete Selected Image", xVals[3], lTy, 180, 30, hwnd,
-                                             (HMENU)BTN_DELETE_FILE_ID);
-    btn_copyFile   = gui_utils_create_button("Copy Selected Image", xVals[6], lTy, 180, 30, hwnd,
-                                           (HMENU)BTN_COPY_FILE_ID);
-
-    db_images = gui_utils_create_dropbox("Title", xVals[8], lTy, 300, ddHeight, hwnd,
+    /* Peripherals for interacing with the SD card */
+    const int fTy = 350;
+    db_images     = gui_utils_create_dropbox("Title", xVals[0], fTy, 300, ddHeight, hwnd,
                                          (HMENU)DD_FILE_SELECTOR, 0, NULL);
+
+    const int lTy1 = 390;
+    btn_listDir    = gui_utils_create_button("List Image Data", xVals[0], lTy1, 180, 30, hwnd,
+                                          (HMENU)BTN_LIST_DIR_ID);
+    btn_deleteFile = gui_utils_create_button("Delete Selected Image", xVals[3], lTy1, 180, 30, hwnd,
+                                             (HMENU)BTN_DELETE_FILE_ID);
+    const int lTy2 = 430;
+    btn_copyFile   = gui_utils_create_button("Copy Selected Image", xVals[0], lTy2, 180, 30, hwnd,
+                                           (HMENU)BTN_COPY_FILE_ID);
+}
+
+uint8_t draw_image(HWND hwnd, char* filePath, rectangle_t* position) {
+
+    /* Try to load images using stb libary. Only jpg images have been tested */
+
+    // Variables to store image data. n represents number of colour channels.
+    // For jpg RGB images n = 3 (R, G, B)
+    int width, height, n;
+    unsigned char* imageData = stbi_load(filePath, &width, &height, &n, 0);
+
+    // Confirm file data was able to be opened
+    if (imageData == NULL) {
+        printf("Image failed to load\n");
+        stbi_image_free(imageData);
+        return FALSE;
+    }
+
+    // Confirm image was RGB
+    if (n != 3) {
+        printf("Image was not RGB image");
+        stbi_image_free(imageData);
+        return FALSE;
+    }
+
+    unsigned char* pixelData;
+
+    // Resize the image if the desired size does not meet the image size
+    int resizeImage = (position->width != width || position->height != height) ? TRUE : FALSE;
+    if (resizeImage == TRUE) {
+
+        // Allocate space for resized image data
+        pixelData = malloc(sizeof(unsigned char) * position->width * position->height * n);
+
+        // Confirm the space could be allocated
+        if (pixelData == NULL) {
+            printf("Unable to allocate space to draw image\n");
+            return FALSE;
+        }
+
+        // Resize the image using stb library
+        if (stbir_resize_uint8(imageData, width, height, 0, pixelData, position->width,
+                               position->height, 0, n) != TRUE) {
+            printf("Error resizing image\n");
+            stbi_image_free(imageData);
+            free(pixelData);
+            return FALSE;
+        }
+
+        // Free the image data
+        stbi_image_free(imageData);
+    } else {
+        pixelData = imageData;
+        printf("%p %p\n", pixelData, imageData);
+    }
+
+    // Invalidate the window. This will tell windows that the window needs to be redrawn
+    // so the painting below will render
+    InvalidateRect(hwnd, NULL, TRUE);
+
+    // Convert pixel data to a bit map
+    BITMAPINFO bmi;
+    memset(&bmi, 0, sizeof(bmi));
+    bmi.bmiHeader.biSize  = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = position->width;
+    bmi.bmiHeader.biHeight =
+        -position->height; // Negative to ensure picture is drawn vertical correctly
+    bmi.bmiHeader.biPlanes      = 1;
+    bmi.bmiHeader.biBitCount    = 24;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    // // Being painting
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+
+    // Render image onto window
+    if (StretchDIBits(hdc, position->startX, position->startY, position->width, position->height, 0,
+                      0, position->width, position->height, pixelData, &bmi, DIB_RGB_COLORS,
+                      SRCCOPY) == FALSE) {
+        printf("Failed to render image\n");
+        return FALSE;
+    }
+
+    // End painting
+    EndPaint(hwnd, &ps);
+
+    // Free used resources
+    if (resizeImage == TRUE) {
+        free(pixelData);
+    } else {
+        stbi_image_free(pixelData);
+    }
+
+    return TRUE;
+}
+
+void draw_rectangle(HWND hwnd, rectangle_t* rectangle, uint8_t r, uint8_t g, uint8_t b) {
+
+    // Invalidate the window. This will tell windows that the window needs to be redrawn
+    // so the painting below will render
+    InvalidateRect(hwnd, NULL, TRUE);
+
+    // Create a paint struct so the window can be painted on
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(hwnd, &ps);
+
+    // Create a rectangle
+    RECT rect = {rectangle->startX, rectangle->startY, rectangle->width, rectangle->width};
+
+    // Create a colour for the rectangle
+    HBRUSH hBrush = CreateSolidBrush(RGB(r, g, b));
+
+    // Apply colour to the rectangle
+    FillRect(hdc, &rect, hBrush);
+
+    // Clean up
+    DeleteObject(hBrush);
+    EndPaint(hwnd, &ps);
 }
 
 uint8_t maple_stream(char* cpyFileName) {

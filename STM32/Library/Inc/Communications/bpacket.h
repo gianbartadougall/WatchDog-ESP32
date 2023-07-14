@@ -69,6 +69,7 @@ enum bpk_request_e {
     BPK_REQ_COPY_FILE,
     BPK_REQ_TAKE_PHOTO,
     BPK_REQ_WRITE_TO_FILE,
+    BPK_REQ_DELETE_FILE,
     BPK_REQ_RECORD_DATA,
     BPK_REQ_LED_RED_ON,
     BPK_REQ_LED_RED_OFF,
@@ -218,6 +219,7 @@ extern const bpk_request_t BPK_Request_Message;
 
 extern const bpk_request_t BPK_Req_List_Dir;
 extern const bpk_request_t BPK_Req_Copy_File;
+extern const bpk_request_t BPK_Req_Delete_File;
 extern const bpk_request_t BPK_Req_Take_Photo;
 extern const bpk_request_t BPK_Req_Write_To_File;
 extern const bpk_request_t BPK_Req_Record_Data;

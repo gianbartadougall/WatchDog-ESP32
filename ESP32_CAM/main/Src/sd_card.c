@@ -471,6 +471,30 @@ uint8_t sd_card_init(bpk_t* Bpacket) {
     return TRUE;
 }
 
+uint8_t sd_card_delete_file(char* fileName, char* msg) {
+
+    // Return error message if the SD card cannot be opened
+    if (sd_card_open() != TRUE) {
+        sprintf(msg, "SD Card could not open");
+        return FALSE;
+    }
+
+    // Max file length is 50
+    uint16_t filePathNameSize = chars_get_num_bytes(fileName);
+    char filePath[filePathNameSize + 30]; // add one for null pointer!
+    sprintf(filePath, "%s/%s", DATA_FOLDER_PATH_START_AT_ROOT, fileName);
+
+    if (remove(filePath) != 0) {
+        sprintf(msg, "File %s could not be deleted", filePath);
+        sd_card_close();
+        return FALSE;
+    }
+
+    sd_card_close();
+
+    return TRUE;
+}
+
 uint8_t sd_card_copy_file(char* fileName, char* msg) {
 
     // Return error message if the SD card cannot be opened
@@ -481,7 +505,7 @@ uint8_t sd_card_copy_file(char* fileName, char* msg) {
 
     // Max file length is 50
     uint16_t filePathNameSize = chars_get_num_bytes(fileName);
-    char filePath[filePathNameSize + 1]; // add one for null pointer!
+    char filePath[filePathNameSize + 30]; // add extra for mount point and null pointer!
     sprintf(filePath, "%s/%s", DATA_FOLDER_PATH_START_AT_ROOT, fileName);
 
     FILE* file;
@@ -524,87 +548,6 @@ uint8_t sd_card_copy_file(char* fileName, char* msg) {
 
     return TRUE;
 }
-
-// void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
-
-//     // Return error message if the SD card cannot be opened
-//     if (sd_card_open() != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\0");
-//         esp32_uart_send_bpacket(Bpacket);
-//         return;
-//     }
-
-//     // Return an error if there was no specified file
-//     if (bpacketCharArray->string[0] == '\0') {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, "No file was specified\0");
-//         esp32_uart_send_bpacket(Bpacket);
-//         return;
-//     }
-
-//     // Max file length is 50
-//     uint16_t filePathNameSize = chars_get_num_bytes(bpacketCharArray->string);
-
-//     if (filePathNameSize > (57)) { // including mount point which is current 7 bytes
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, "File path > 50\0");
-//         esp32_uart_send_bpacket(Bpacket);
-//         return;
-//     }
-
-//     char filePath[filePathNameSize + 1]; // add one for null pointer!
-//     sprintf(filePath, "%s%s", MOUNT_POINT_PATH, bpacketCharArray->string);
-//     int i = 0;
-//     for (i = 0; i < filePathNameSize; i++) {
-//         filePath[i + 8] = bpacketCharArray->string[i];
-//     }
-//     filePath[i + 8] = '\0'; // Add null terminator
-
-//     // Get the length of the file
-//     uint32_t fileNumBytes;
-//     char errMsg[50];
-//     if (sd_card_get_file_size(filePath, &fileNumBytes, errMsg) != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-//         esp32_uart_send_bpacket(Bpacket);
-//         sd_card_close();
-//         return;
-//     }
-
-//     FILE* file;
-//     if (sd_card_open_file(&file, filePath, SD_CARD_FILE_READ, errMsg) != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-//         esp32_uart_send_bpacket(Bpacket);
-//         sd_card_close();
-//         return;
-//     }
-
-//     // Change the values of the Bpacket so they get sent to Maple
-//     bpk_swap_address(Bpacket);
-//     Bpacket->Code          = BPK_Code_In_Progress;
-//     Bpacket->Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
-//     int pi                 = 0;
-
-//     for (uint32_t i = 0; i < fileNumBytes; i++) {
-
-//         Bpacket->Data.bytes[pi++] = fgetc(file);
-
-//         if (pi < BPACKET_MAX_NUM_DATA_BYTES && (i + 1) != fileNumBytes) {
-//             continue;
-//         }
-
-//         if ((i + 1) == fileNumBytes) {
-//             Bpacket->Code          = BPK_Code_Success;
-//             Bpacket->Data.numBytes = pi--;
-//         }
-
-//         esp32_uart_send_bpacket(Bpacket);
-
-//         pi = 0;
-//     }
-
-//     fclose(file);
-
-//     // Close the SD card
-//     sd_card_close();
-// }
 
 uint8_t sd_card_format_sd_card(bpk_t* Bpacket) {
 

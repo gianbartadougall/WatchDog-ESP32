@@ -55,6 +55,8 @@ ds18b20_t Ds18b20 = {
     .temp = 0,
 };
 
+char errorMsg[150];
+
 /* Function Prototypes */
 uint8_t usb_read_packet(bpk_t* Bpacket);
 uint8_t wd_request_photo_capture(uint8_t errorCode[1]);
@@ -189,56 +191,6 @@ void wd_handle_timeouts(void) {
     }
 }
 
-void photo_test(void) {
-
-    event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_STM_REQUEST);
-
-    lg_CameraSettings.frameSize = WD_CR_QVGA_320x240;
-    bpk_t bpk3;
-
-    while (1) {
-
-        if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE) == TRUE) {
-            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING) == FALSE) {
-                // Update the resolution
-                lg_CameraSettings.frameSize++;
-                if (lg_CameraSettings.frameSize > WD_CR_UXGA_1600x1200) {
-                    lg_CameraSettings.frameSize = WD_CR_QVGA_320x240;
-                }
-
-                uint8_t errorCode[1];
-                if (wd_request_photo_capture(errorCode) != TRUE) {
-                    log_usb_error("Failed to request photo. Error %i\r\n", errorCode[0]);
-                } else {
-                    log_usb_message("Requesting another photo\r\n");
-                }
-            }
-        }
-
-        if (uart_read_bpacket(0, &bpk3) == TRUE) {
-            wd_handle_esp_response(&bpk3);
-        }
-
-        wd_handle_timeouts();
-
-        // if (usb_read_packet(&bpk2) == TRUE) {
-        //     if (bpk2.Request.val == BPK_REQUEST_PING) {
-        //         // Create response
-        //         static uint8_t stmPingCode = 47;
-        //         if (bpk_create(&bpk3, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Ping,
-        //         BPK_Code_Success,
-        //                        1, &stmPingCode) != TRUE) {
-        //             wd_error_handler(__FILE__, __LINE__);
-        //             break;
-        //         }
-
-        //         // Send bpacket to Maple
-        //         wd_write_bpacket_maple(&bpk3);
-        //     }
-        // }
-    }
-}
-
 void wd_error_handler_2(char* format, ...) {
 
     static char msg[100];
@@ -302,11 +254,6 @@ void wd_start(void) {
     // Read the watchdog settings from flash
     wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
 
-    /****** START CODE BLOCK ******/
-    // Description: Debugging. Remove when uneeded
-    // photo_test();
-    /****** END CODE BLOCK ******/
-
     // Initialise event groups
     event_group_clear(&gbl_EventsStm);
     event_group_clear(&gbl_EventsEsp);
@@ -315,7 +262,23 @@ void wd_start(void) {
 
     // TODO: Calcaulte when the next alarm should be and set the RTC alarm for that
 
-    // TODO: Confirm the camera settings are valid
+    /* Confirm the settings are valid */
+    uint8_t errorFound = FALSE;
+    /* TODO: Check the rest of the values */
+
+    if (lg_CameraSettings.frameSize > WD_CR_UXGA_1600x1200) {
+        lg_CameraSettings.frameSize = WD_CR_UXGA_1600x1200;
+        errorFound                  = TRUE;
+    }
+
+    if (lg_CameraSettings.jpegCompression > 63) {
+        lg_CameraSettings.jpegCompression = 8;
+        errorFound                        = TRUE;
+    }
+
+    if (errorFound) {
+        wd_write_settings(&gbl_CaptureTime, &lg_CameraSettings);
+    }
 
     // Set flag 'take photo' flag. In main loop below, STM32 will request ESP to
     // take a photo if this flag has been set. Getting ESP32 to take a photo on
@@ -488,6 +451,23 @@ void wd_handle_maple_request(bpk_t* Bpacket) {
 
         // Forward message to ESP32
         bpk_create(&BpkStmResponse, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Copy_File, BPK_Code_Execute,
+                   Bpacket->Data.numBytes, Bpacket->Data.bytes);
+        wd_write_bpacket_esp(&BpkStmResponse);
+
+        return;
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_DELETE_FILE) {
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        bpk_t DebugMessage;
+        bpk_create_sp(&DebugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "STM ack Maple req delete file");
+        wd_write_bpacket_maple(&DebugMessage);
+        /****** END CODE BLOCK ******/
+
+        // Forward message to ESP32
+        bpk_create(&BpkStmResponse, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Delete_File, BPK_Code_Execute,
                    Bpacket->Data.numBytes, Bpacket->Data.bytes);
         wd_write_bpacket_esp(&BpkStmResponse);
 
@@ -673,6 +653,14 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
         log_usb_success("Received ESP ping!\r\n");
     }
 
+    if (Bpacket->Request.val == BPK_REQ_DELETE_FILE) {
+        // Forward the bpacket to maple
+        Bpacket->Receiver = BPK_Addr_Receive_Maple;
+        wd_write_bpacket_maple(Bpacket);
+
+        return;
+    }
+
     if (Bpacket->Request.val == BPK_REQ_COPY_FILE) {
         /****** START CODE BLOCK ******/
         // Description: Debugging. Can delete whenever
@@ -715,13 +703,16 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
         if (Bpacket->Code.val != BPK_CODE_SUCCESS) {
             /****** START CODE BLOCK ******/
             // Description: Debug. Can delete when done
-            for (int i = 0; i < Bpacket->Data.numBytes; i++) {
-                log_usb_success("%c", Bpacket->Data.bytes[i]);
+            while (1) {
+                for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+                    log_usb_error("%c", Bpacket->Data.bytes[i]);
+                }
+                log_usb_message("\r\n");
+                HAL_Delay(1000);
+                GPIO_TOGGLE(LED_RED_PORT, LED_RED_PIN);
             }
-            log_usb_message("\r\n");
             /****** END CODE BLOCK ******/
-
-            wd_error_handler(__FILE__, __LINE__);
+            wd_error_handler_2(__FILE__, __LINE__);
         }
 
         /****** START CODE BLOCK ******/

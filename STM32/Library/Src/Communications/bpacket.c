@@ -51,6 +51,7 @@ const bpk_request_t BPK_Req_List_Dir              = {.val = BPK_REQ_LIST_DIR};
 const bpk_request_t BPK_Req_Copy_File             = {.val = BPK_REQ_COPY_FILE};
 const bpk_request_t BPK_Req_Take_Photo            = {.val = BPK_REQ_TAKE_PHOTO};
 const bpk_request_t BPK_Req_Write_To_File         = {.val = BPK_REQ_WRITE_TO_FILE};
+const bpk_request_t BPK_Req_Delete_File           = {.val = BPK_REQ_DELETE_FILE};
 const bpk_request_t BPK_Req_Record_Data           = {.val = BPK_REQ_RECORD_DATA};
 const bpk_request_t BPK_Req_Led_Red_On            = {.val = BPK_REQ_LED_RED_ON};
 const bpk_request_t BPK_Req_Led_Red_Off           = {.val = BPK_REQ_LED_RED_OFF};
@@ -305,6 +306,7 @@ uint8_t bpk_set_request(bpk_t* Bpacket, uint8_t request) {
         case BPK_REQUEST_MESSAGE:
         case BPK_REQ_LIST_DIR:
         case BPK_REQ_COPY_FILE:
+        case BPK_REQ_DELETE_FILE:
         case BPK_REQ_TAKE_PHOTO:
         case BPK_REQ_WRITE_TO_FILE:
         case BPK_REQ_RECORD_DATA:

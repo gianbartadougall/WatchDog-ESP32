@@ -15,6 +15,7 @@
 /* Personal Includes */
 #include "rtc_mcp7940n.h"
 #include "hardware_config.h"
+#include "utils.h"
 
 /* Private Macros */
 #define RTC_I2C_ADDRESS (0x6F << 1)
@@ -63,24 +64,14 @@
 
 /* Function Prototypes */
 uint8_t rtc_set_alarm_settings(void);
+uint8_t rtc_enable_ext_oscillator(void);
+uint8_t rtc_disable_ext_oscillator(void);
 
 uint8_t rtc_init(void) {
 
-    // The start oscillator bit is in the seconds register. Reading the seconds register to keep
-    // their values the same and then writing a 1 in the ST bit to enable the oscillator
-    uint8_t secondAddr = RTC_ADDR_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
-    }
-
-    uint8_t secondsRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
-    }
-
-    uint8_t secondsWrite[2] = {secondAddr, secondsRead | (0x01 << 7)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
+    // The external oscillator needs to be enabled for the rtc to run
+    if (rtc_enable_ext_oscillator() != TRUE) {
+        return EXIT_CODE_2;
     }
 
     /* Set the RTC to 24 hr format */
@@ -89,39 +80,22 @@ uint8_t rtc_init(void) {
     // bit to 24hr mode so none of the hour values are changed
     uint8_t hoursAddr = RTC_ADDR_HOURS;
     if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &hoursAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
+        return EXIT_CODE_5;
     }
 
     uint8_t hoursRead;
     if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &hoursRead, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
+        return EXIT_CODE_6;
     }
 
     uint8_t hoursWrite[2] = {hoursAddr, hoursRead & 0x3F};
     if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, hoursWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
-    }
-
-    /* Confirm the oscillator is running */
-    // The oscillator running bit is in the weekday register
-    uint8_t weekDaysAddr = RTC_ADDR_WEEK_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
-    }
-
-    uint8_t weekDaysRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
-        return FALSE;
-    }
-
-    // Check that the oscillator running bit is set
-    if ((weekDaysRead & (0x01 << 5)) == 0) {
-        return FALSE;
+        return EXIT_CODE_7;
     }
 
     /* Set the alarm mode to trigger on the every register. Only need one alarm. Using alarm 0 */
     if (rtc_set_alarm_settings() != TRUE) {
-        return FALSE;
+        return EXIT_CODE_3;
     }
 
     return TRUE;
@@ -308,11 +282,21 @@ uint8_t rtc_read_alarm_date(dt_date_t* Date) {
 
 uint8_t rtc_write_datetime(dt_datetime_t* Datetime) {
 
+    /* Disable the oscillator (datasheet reccommends this to avoid rollover issues ) */
+    if (rtc_disable_ext_oscillator() != TRUE) {
+        return FALSE;
+    }
+
     if (rtc_write_time(&Datetime->Time) != TRUE) {
         return FALSE;
     }
 
     if (rtc_write_date(&Datetime->Date) != TRUE) {
+        return FALSE;
+    }
+
+    // Reenable oscillator
+    if (rtc_enable_ext_oscillator() != TRUE) {
         return FALSE;
     }
 
@@ -427,4 +411,58 @@ uint8_t rtc_read_date(dt_date_t* Date) {
     Date->year  = RTC_REGISTER_TO_YEARS(buffer[2]);
 
     return TRUE;
+}
+
+uint8_t rtc_enable_ext_oscillator(void) {
+
+    // Enable the oscillator
+    uint8_t secondAddr = RTC_ADDR_SECONDS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t secondsRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t secondsWrite[2] = {secondAddr, secondsRead | (0x01 << 7)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t weekDaysAddr = RTC_ADDR_WEEK_DAYS;
+    uint8_t weekDaysRead = 0;
+
+    // Wait for the oscillator to start
+    while ((weekDaysRead & (0x01 << 5)) == 0) {
+
+        if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+            return FALSE;
+        }
+
+        if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_disable_ext_oscillator(void) {
+
+    uint8_t secondAddr = RTC_ADDR_SECONDS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t secondsRead;
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
+
+    uint8_t secondsWrite[2] = {secondAddr, secondsRead & ~(0x01 << 7)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+        return FALSE;
+    }
 }

@@ -70,6 +70,40 @@ void esp_handle_request(bpk_t* Bpacket) {
         return;
     }
 
+    if (Bpacket->Request.val == BPK_REQ_COPY_FILE) {
+
+        /* Extract the file name from the bpacket */
+        char fileName[100];
+        uint8_t i;
+        for (i = 0; i < Bpacket->Data.numBytes; i++) {
+            fileName[i] = Bpacket->Data.bytes[i];
+        }
+        fileName[i] = '\0';
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        // bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, BPK_Req_Copy_File, BPK_Code_Success,
+        //               "ESP copying file!");
+        // esp32_uart_send_bpacket(&BpkEspResponse);
+        /****** END CODE BLOCK ******/
+
+        if (sd_card_copy_file(fileName, msg) != TRUE) {
+            bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request, BPK_Code_Error, msg);
+            esp32_uart_send_bpacket(&BpkEspResponse);
+            return;
+        }
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        // bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, BPK_Req_Copy_File, BPK_Code_Success,
+        //               "ESP has copied file!");
+        // esp32_uart_send_bpacket(&BpkEspResponse);
+        /****** END CODE BLOCK ******/
+
+        /* No need to send Success code as this will be done by the SD card function */
+        return;
+    }
+
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
 
         /****** START CODE BLOCK ******/

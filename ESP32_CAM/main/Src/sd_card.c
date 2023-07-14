@@ -61,9 +61,7 @@ uint8_t sd_card_check_directory_exists(char* directory);
 
 uint8_t sd_card_open_file(FILE** file, char* filePath, uint8_t sdCardCode, char* errMsg) {
 
-    char* settings = (sdCardCode == SD_CARD_FILE_READ) ? "rb\0" : "r+b\0";
-
-    if ((*file = fopen(filePath, settings)) != NULL) {
+    if ((*file = fopen(filePath, "rb")) != NULL) {
         return TRUE;
     }
 
@@ -188,12 +186,6 @@ uint8_t sd_card_list_dir(char* msg) {
     Bpacket.Request  = BPK_Req_List_Dir;
     Bpacket.Code     = BPK_Code_In_Progress;
 
-    /****** START CODE BLOCK ******/
-    // Description: Debugging!
-    // bpk_create_sp(&Bpacket, Bpacket.Receiver, Bpacket.Sender, BPK_Req_List_Dir, BPK_Code_Success, "img4:img5:img6");
-    // esp32_uart_send_bpacket(&Bpacket);
-    /****** END CODE BLOCK ******/
-
     uint8_t index = 0;
     struct dirent* dirPtr;
     while ((dirPtr = readdir(directory)) != NULL) {
@@ -224,98 +216,6 @@ uint8_t sd_card_list_dir(char* msg) {
     Bpacket.Data.numBytes = index;
     Bpacket.Code          = BPK_Code_Success;
     esp32_uart_send_bpacket(&Bpacket);
-
-    closedir(directory);
-    sd_card_close();
-
-    return TRUE;
-}
-
-uint8_t sd_card_list_directory(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
-
-    char* folderPath = bpacketCharArray->string;
-
-    // Try open the SD card
-    if (sd_card_open() != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card could not open\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return FALSE;
-    }
-
-    // Validate the path length
-    if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "Folder path > 50 chars\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return FALSE;
-    }
-
-    // Append the mounting point of the SD card to the folder path
-    char path[MAX_PATH_LENGTH + 9];
-    sprintf(path, "%s%s%s", MOUNT_POINT_PATH, folderPath[0] == '\0' ? "" : "/", folderPath);
-
-    DIR* directory;
-    directory = opendir(path);
-    if (directory == NULL) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "Filepath could not open\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return FALSE;
-    }
-
-    // Calculate number of characters in all folder names combined
-    uint16_t numChars = 0;
-    struct dirent* dirPtr;
-    while ((dirPtr = readdir(directory)) != NULL) {
-        numChars += strlen(dirPtr->d_name) + 2; // Adding 2 chars for \r\n
-    }
-
-    // Go back to the start of the directory
-    rewinddir(directory);
-
-    int i = 0;
-    bpk_swap_address(Bpacket);
-    Bpacket->Code          = BPK_Code_In_Progress;
-    Bpacket->Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
-    int in                 = FALSE; // Variable just to know whether there was anything or not
-    while ((dirPtr = readdir(directory)) != NULL) {
-        in = 1;
-        // Copy the name of the folder into the folder structure string
-        int k = 0;
-        while (dirPtr->d_name[k] != '\0') {
-            Bpacket->Data.bytes[i++] = dirPtr->d_name[k];
-
-            if (i == BPACKET_MAX_NUM_DATA_BYTES) {
-                esp32_uart_send_bpacket(Bpacket);
-                i = 0;
-            }
-
-            k++;
-        }
-
-        Bpacket->Data.bytes[i++] = '\r';
-
-        if (i == BPACKET_MAX_NUM_DATA_BYTES) {
-            esp32_uart_send_bpacket(Bpacket);
-            i = 0;
-        }
-
-        Bpacket->Data.bytes[i++] = '\n';
-
-        if (i == BPACKET_MAX_NUM_DATA_BYTES) {
-            esp32_uart_send_bpacket(Bpacket);
-            i = 0;
-        }
-    }
-
-    if (i != 0) {
-        Bpacket->Code          = BPK_Code_Success;
-        Bpacket->Data.numBytes = i;
-        esp32_uart_send_bpacket(Bpacket);
-    }
-
-    if (in == FALSE) {
-        bpk_convert_to_response(Bpacket, BPK_Code_Success, 0, NULL);
-        esp32_uart_send_bpacket(Bpacket);
-    }
 
     closedir(directory);
     sd_card_close();
@@ -571,159 +471,139 @@ uint8_t sd_card_init(bpk_t* Bpacket) {
     return TRUE;
 }
 
-void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
+uint8_t sd_card_copy_file(char* fileName, char* msg) {
 
     // Return error message if the SD card cannot be opened
     if (sd_card_open() != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return;
-    }
-
-    // Return an error if there was no specified file
-    if (bpacketCharArray->string[0] == '\0') {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "No file was specified\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return;
+        sprintf(msg, "SD Card could not open");
+        return FALSE;
     }
 
     // Max file length is 50
-    uint16_t filePathNameSize = chars_get_num_bytes(bpacketCharArray->string);
-
-    if (filePathNameSize > (57)) { // including mount point which is current 7 bytes
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "File path > 50\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return;
-    }
-
+    uint16_t filePathNameSize = chars_get_num_bytes(fileName);
     char filePath[filePathNameSize + 1]; // add one for null pointer!
-    sprintf(filePath, "%s%s", MOUNT_POINT_PATH, bpacketCharArray->string);
-    int i = 0;
-    for (i = 0; i < filePathNameSize; i++) {
-        filePath[i + 8] = bpacketCharArray->string[i];
-    }
-    filePath[i + 8] = '\0'; // Add null terminator
-
-    // Get the length of the file
-    uint32_t fileNumBytes;
-    char errMsg[50];
-    if (sd_card_get_file_size(filePath, &fileNumBytes, errMsg) != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-        esp32_uart_send_bpacket(Bpacket);
-        sd_card_close();
-        return;
-    }
+    sprintf(filePath, "%s/%s", DATA_FOLDER_PATH_START_AT_ROOT, fileName);
 
     FILE* file;
-    if (sd_card_open_file(&file, filePath, SD_CARD_FILE_READ, errMsg) != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-        esp32_uart_send_bpacket(Bpacket);
+    if (sd_card_open_file(&file, filePath, SD_CARD_FILE_READ, msg) != TRUE) {
         sd_card_close();
-        return;
+        return FALSE;
     }
 
-    // Change the values of the Bpacket so they get sent to Maple
-    bpk_swap_address(Bpacket);
-    Bpacket->Code          = BPK_Code_In_Progress;
-    Bpacket->Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
-    int pi                 = 0;
+    bpk_t Bpacket;
+    bpk_create(&Bpacket, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Esp32, BPK_Req_Copy_File, BPK_Code_In_Progress, 0, NULL);
+    int index = 0;
 
-    for (uint32_t i = 0; i < fileNumBytes; i++) {
+    int c;
+    while ((c = fgetc(file)) != EOF) {
+        Bpacket.Data.bytes[index++] = (uint8_t)c;
 
-        Bpacket->Data.bytes[pi++] = fgetc(file);
-
-        if (pi < BPACKET_MAX_NUM_DATA_BYTES && (i + 1) != fileNumBytes) {
+        if (index < BPACKET_MAX_NUM_DATA_BYTES) {
+            // index++;
             continue;
         }
 
-        if ((i + 1) == fileNumBytes) {
-            Bpacket->Code          = BPK_Code_Success;
-            Bpacket->Data.numBytes = pi--;
-        }
+        /* Send bpacket to STM32 */
+        Bpacket.Data.numBytes = index;
+        esp32_uart_send_bpacket(&Bpacket);
+        index = 0;
 
-        esp32_uart_send_bpacket(Bpacket);
-
-        pi = 0;
+        /* Wait for 100ms to give time for STM to do its thing */
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+
+    // Send any remaining data
+    Bpacket.Data.numBytes = index;
+    Bpacket.Code          = BPK_Code_Success;
+    esp32_uart_send_bpacket(&Bpacket);
 
     fclose(file);
 
     // Close the SD card
     sd_card_close();
+
+    return TRUE;
 }
 
-// uint8_t sd_card_write_settings(bpk_t* Bpacket) {
+// void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
 
 //     // Return error message if the SD card cannot be opened
 //     if (sd_card_open() != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\0");
 //         esp32_uart_send_bpacket(Bpacket);
-//         return FALSE;
+//         return;
 //     }
 
-//     FILE* file;
+//     // Return an error if there was no specified file
+//     if (bpacketCharArray->string[0] == '\0') {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "No file was specified\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return;
+//     }
+
+//     // Max file length is 50
+//     uint16_t filePathNameSize = chars_get_num_bytes(bpacketCharArray->string);
+
+//     if (filePathNameSize > (57)) { // including mount point which is current 7 bytes
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "File path > 50\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return;
+//     }
+
+//     char filePath[filePathNameSize + 1]; // add one for null pointer!
+//     sprintf(filePath, "%s%s", MOUNT_POINT_PATH, bpacketCharArray->string);
+//     int i = 0;
+//     for (i = 0; i < filePathNameSize; i++) {
+//         filePath[i + 8] = bpacketCharArray->string[i];
+//     }
+//     filePath[i + 8] = '\0'; // Add null terminator
+
+//     // Get the length of the file
+//     uint32_t fileNumBytes;
 //     char errMsg[50];
-//     if (sd_card_open_file(&file, SETTINGS_FILE_PATH_START_AT_ROOT, SD_CARD_FILE_WRITE, errMsg) != TRUE) {
+//     if (sd_card_get_file_size(filePath, &fileNumBytes, errMsg) != TRUE) {
 //         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
 //         esp32_uart_send_bpacket(Bpacket);
 //         sd_card_close();
-//         return FALSE;
+//         return;
 //     }
 
-//     switch (Bpacket->Request.val) {
-
-//         case BPK_REQ_SET_CAMERA_SETTINGS:;
-
-//             wd_camera_settings_t cameraSettings;
-//             if (wd_bpacket_to_camera_settings(Bpacket, &cameraSettings) != TRUE) {
-//                 bpk_create_string_response(Bpacket, BPK_Code_Error, "Bpacket to camera settings failed\0");
-//                 esp32_uart_send_bpacket(Bpacket);
-//                 // Clean up
-//                 fclose(file);
-//                 sd_card_close();
-//                 return FALSE;
-//             }
-
-//             fseek(file, 0L, SEEK_SET); // Ensure the file is pointing to first byte
-//             fputc(cameraSettings.frameSize, file);
-
-//             break;
-
-//         case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:;
-
-//             wd_camera_capture_time_settings_t captureTime;
-//             if (wd_bpacket_to_capture_time_settings(Bpacket, &captureTime) != TRUE) {
-//                 bpk_create_string_response(Bpacket, BPK_Code_Error,
-//                                            "Bpacket to capture time settings failed. SD Card write attempt\r\n\0");
-//                 // Clean up
-//                 fclose(file);
-//                 sd_card_close();
-//                 return FALSE;
-//             }
-
-//             // Skip the first byte as this is where the camera resolution is stored
-//             fseek(file, 1, SEEK_CUR);
-//             fputc(captureTime.startTime.minute, file);
-//             fputc(captureTime.startTime.hour, file);
-//             fputc(captureTime.endTime.minute, file);
-//             fputc(captureTime.endTime.hour, file);
-//             fputc(captureTime.intervalTime.minute, file);
-//             fputc(captureTime.intervalTime.hour, file);
-
-//             break;
-
-//         default:;
-
-//             bpk_create_string_response(Bpacket, BPK_Code_Error, "WF: Invalid Request!\r\n\0");
-//             esp32_uart_send_bpacket(Bpacket);
-//             return FALSE;
+//     FILE* file;
+//     if (sd_card_open_file(&file, filePath, SD_CARD_FILE_READ, errMsg) != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
+//         esp32_uart_send_bpacket(Bpacket);
+//         sd_card_close();
+//         return;
 //     }
 
-//     // Clean up
+//     // Change the values of the Bpacket so they get sent to Maple
+//     bpk_swap_address(Bpacket);
+//     Bpacket->Code          = BPK_Code_In_Progress;
+//     Bpacket->Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+//     int pi                 = 0;
+
+//     for (uint32_t i = 0; i < fileNumBytes; i++) {
+
+//         Bpacket->Data.bytes[pi++] = fgetc(file);
+
+//         if (pi < BPACKET_MAX_NUM_DATA_BYTES && (i + 1) != fileNumBytes) {
+//             continue;
+//         }
+
+//         if ((i + 1) == fileNumBytes) {
+//             Bpacket->Code          = BPK_Code_Success;
+//             Bpacket->Data.numBytes = pi--;
+//         }
+
+//         esp32_uart_send_bpacket(Bpacket);
+
+//         pi = 0;
+//     }
+
 //     fclose(file);
-//     sd_card_close();
 
-//     return TRUE;
+//     // Close the SD card
+//     sd_card_close();
 // }
 
 uint8_t sd_card_format_sd_card(bpk_t* Bpacket) {
@@ -841,164 +721,6 @@ uint8_t sd_card_format_sd_card(bpk_t* Bpacket) {
 
     return TRUE;
 }
-
-// uint8_t sd_card_read_settings(bpk_t* Bpacket) {
-
-//     // Return error message if the SD card cannot be opened
-//     if (sd_card_open() != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
-//         return FALSE;
-//     }
-
-//     // Confirm the file path to the settings exists
-//     if (sd_card_create_path(SETTINGS_FOLDER_PATH, Bpacket) != TRUE) {
-//         sd_card_close();
-//         return FALSE;
-//     }
-
-//     // Get the file size of the settings file. This needs to be done first because the file
-//     // needs to be opened in read mode
-//     uint32_t fileNumBytes = 0;
-//     char errMsg[50];
-//     if (sd_card_get_file_size(SETTINGS_FILE_PATH_START_AT_ROOT, &fileNumBytes, errMsg) != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-//         esp32_uart_send_bpacket(Bpacket);
-//         return FALSE;
-//     }
-
-//     if (fileNumBytes == 0) {
-
-//         switch (Bpacket->Request.val) {
-
-//             case BPK_REQ_GET_CAMERA_SETTINGS:;
-
-//                 bpk_t camSettingsBpacket;
-//                 if (wd_camera_settings_to_bpacket(&camSettingsBpacket, Bpacket->Receiver, Bpacket->Sender,
-//                                                   BPK_Req_Set_Camera_Settings, BPK_Code_Execute,
-//                                                   &deafultCameraSettings) != TRUE) {
-//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Setting deafult camera settings
-//                     failed\r\n\0"); esp32_uart_send_bpacket(Bpacket); return FALSE;
-//                 }
-
-//                 if (sd_card_write_settings(&camSettingsBpacket) != TRUE) {
-//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Failed to write settings\r\n\0");
-//                     esp32_uart_send_bpacket(Bpacket);
-//                 }
-//                 break;
-
-//             case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:;
-
-//                 bpk_t deafultCaptureTimeSettingsBpacket;
-
-//                 if (wd_capture_time_settings_to_bpacket(&deafultCaptureTimeSettingsBpacket, Bpacket->Receiver,
-//                                                         Bpacket->Sender, Bpacket->Request, BPK_Code_Execute,
-//                                                         &defaultCaptureTimeSettings) != TRUE) {
-//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Setting deafult camera settings
-//                     failed\r\n\0"); esp32_uart_send_bpacket(Bpacket); return FALSE;
-//                 }
-
-//                 sd_card_write_settings(&deafultCaptureTimeSettingsBpacket);
-
-//                 break;
-
-//             default:;
-
-//                 bpk_create_string_response(Bpacket, BPK_Code_Error, "RF: Invalid Request!\r\n\0");
-//                 esp32_uart_send_bpacket(Bpacket);
-//                 return FALSE;
-//         }
-
-//         // Open the SD card again
-//         if (sd_card_open() != TRUE) {
-//             bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
-//             return FALSE;
-//         }
-//     }
-
-//     FILE* file;
-//     if (sd_card_open_file(&file, SETTINGS_FILE_PATH_START_AT_ROOT, SD_CARD_FILE_READ, errMsg) != TRUE) {
-//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
-//         esp32_uart_send_bpacket(Bpacket);
-//         return FALSE;
-//     }
-
-//     if (Bpacket->Request.val == BPK_Req_Get_Camera_Settings.val) {
-
-//         wd_camera_settings_t cameraSettings;
-//         cameraSettings.frameSize = (uint8_t)fgetc(file);
-
-//         if (wd_camera_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
-//                                           BPK_Code_Success, &cameraSettings) != TRUE) {
-//             esp32_uart_send_bpacket(Bpacket); // Send error back
-//             // Clean up
-//             fclose(file);
-//             sd_card_close();
-//             return FALSE;
-//         }
-//     }
-
-//     if (Bpacket->Request.val == BPK_Req_Get_Camera_Capture_Times.val) {
-
-//         // Set the cursor to the 1st index to skip the camera settings
-//         fseek(file, 1, SEEK_CUR);
-//         wd_camera_capture_time_settings_t captureTime;
-//         // Seconds are required to be set to default otherwise they will assume
-//         // the values of whatever is stored in that memory and will fail when
-//         // being converted from a capture time to Bpacket
-//         captureTime.startTime.second    = 0;
-//         captureTime.startTime.minute    = fgetc(file);
-//         captureTime.startTime.hour      = fgetc(file);
-//         captureTime.endTime.second      = 0;
-//         captureTime.endTime.minute      = fgetc(file);
-//         captureTime.endTime.hour        = fgetc(file);
-//         captureTime.intervalTime.second = 0;
-//         captureTime.intervalTime.minute = fgetc(file);
-//         captureTime.intervalTime.hour   = fgetc(file);
-
-//         if (wd_capture_time_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
-//                                                 BPK_Code_Success, &captureTime) != TRUE) {
-//             bpk_create_string_response(Bpacket, BPK_Code_Error,
-//                                        "Capture time settings to Bpacket failed. SD Card read\r\n\0");
-
-//             // Clean up
-//             fclose(file);
-//             sd_card_close();
-//             return FALSE;
-//         }
-//     }
-
-//     // Clean up
-//     fclose(file);
-//     sd_card_close();
-
-//     return TRUE;
-// }
-
-// uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings) {
-
-//     // Create a Bpacket with the correct information to read camera settings
-//     bpk_t Bpacket;
-//     bpk_create(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Req_Get_Camera_Settings, BPK_Code_Execute,
-//     0,
-//                NULL);
-
-//     if (sd_card_read_settings(&Bpacket) != TRUE) {
-//         bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Error,
-//                       "CS: Failed to read camera settings\r\n\0");
-//         esp32_uart_send_bpacket(&Bpacket);
-//         return FALSE;
-//     }
-
-//     // Convert the Bpacket to camera settings
-//     if (wd_bpacket_to_camera_settings(&Bpacket, cameraSettings) != TRUE) {
-//         bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Error,
-//                       "CS: Failed to parse camera settings\r\n\0");
-//         esp32_uart_send_bpacket(&Bpacket);
-//         return FALSE;
-//     }
-
-//     return TRUE;
-// }
 
 /* GOOD FUNCTIONS */
 
@@ -1180,3 +902,329 @@ uint8_t sd_card_log(char* fileName, char* message) {
     sprintf(name, "%s", fileName); // Doing this so \0 is added to the end
     return sd_card_write(LOG_FOLDER_PATH_START_AT_ROOT, name, message);
 }
+
+/* GARBAGE CODE */
+
+// uint8_t sd_card_list_directory(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray) {
+
+//     char* folderPath = bpacketCharArray->string;
+
+//     // Try open the SD card
+//     if (sd_card_open() != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card could not open\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     // Validate the path length
+//     if (chars_get_num_bytes(folderPath) > MAX_PATH_LENGTH) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "Folder path > 50 chars\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     // Append the mounting point of the SD card to the folder path
+//     char path[MAX_PATH_LENGTH + 9];
+//     sprintf(path, "%s%s%s", MOUNT_POINT_PATH, folderPath[0] == '\0' ? "" : "/", folderPath);
+
+//     DIR* directory;
+//     directory = opendir(path);
+//     if (directory == NULL) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "Filepath could not open\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     // Calculate number of characters in all folder names combined
+//     uint16_t numChars = 0;
+//     struct dirent* dirPtr;
+//     while ((dirPtr = readdir(directory)) != NULL) {
+//         numChars += strlen(dirPtr->d_name) + 2; // Adding 2 chars for \r\n
+//     }
+
+//     // Go back to the start of the directory
+//     rewinddir(directory);
+
+//     int i = 0;
+//     bpk_swap_address(Bpacket);
+//     Bpacket->Code          = BPK_Code_In_Progress;
+//     Bpacket->Data.numBytes = BPACKET_MAX_NUM_DATA_BYTES;
+//     int in                 = FALSE; // Variable just to know whether there was anything or not
+//     while ((dirPtr = readdir(directory)) != NULL) {
+//         in = 1;
+//         // Copy the name of the folder into the folder structure string
+//         int k = 0;
+//         while (dirPtr->d_name[k] != '\0') {
+//             Bpacket->Data.bytes[i++] = dirPtr->d_name[k];
+
+//             if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+//                 esp32_uart_send_bpacket(Bpacket);
+//                 i = 0;
+//             }
+
+//             k++;
+//         }
+
+//         Bpacket->Data.bytes[i++] = '\r';
+
+//         if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+//             esp32_uart_send_bpacket(Bpacket);
+//             i = 0;
+//         }
+
+//         Bpacket->Data.bytes[i++] = '\n';
+
+//         if (i == BPACKET_MAX_NUM_DATA_BYTES) {
+//             esp32_uart_send_bpacket(Bpacket);
+//             i = 0;
+//         }
+//     }
+
+//     if (i != 0) {
+//         Bpacket->Code          = BPK_Code_Success;
+//         Bpacket->Data.numBytes = i;
+//         esp32_uart_send_bpacket(Bpacket);
+//     }
+
+//     if (in == FALSE) {
+//         bpk_convert_to_response(Bpacket, BPK_Code_Success, 0, NULL);
+//         esp32_uart_send_bpacket(Bpacket);
+//     }
+
+//     closedir(directory);
+//     sd_card_close();
+
+//     return TRUE;
+// }
+
+// uint8_t sd_card_read_settings(bpk_t* Bpacket) {
+
+//     // Return error message if the SD card cannot be opened
+//     if (sd_card_open() != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
+//         return FALSE;
+//     }
+
+//     // Confirm the file path to the settings exists
+//     if (sd_card_create_path(SETTINGS_FOLDER_PATH, Bpacket) != TRUE) {
+//         sd_card_close();
+//         return FALSE;
+//     }
+
+//     // Get the file size of the settings file. This needs to be done first because the file
+//     // needs to be opened in read mode
+//     uint32_t fileNumBytes = 0;
+//     char errMsg[50];
+//     if (sd_card_get_file_size(SETTINGS_FILE_PATH_START_AT_ROOT, &fileNumBytes, errMsg) != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     if (fileNumBytes == 0) {
+
+//         switch (Bpacket->Request.val) {
+
+//             case BPK_REQ_GET_CAMERA_SETTINGS:;
+
+//                 bpk_t camSettingsBpacket;
+//                 if (wd_camera_settings_to_bpacket(&camSettingsBpacket, Bpacket->Receiver, Bpacket->Sender,
+//                                                   BPK_Req_Set_Camera_Settings, BPK_Code_Execute,
+//                                                   &deafultCameraSettings) != TRUE) {
+//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Setting deafult camera settings
+//                     failed\r\n\0"); esp32_uart_send_bpacket(Bpacket); return FALSE;
+//                 }
+
+//                 if (sd_card_write_settings(&camSettingsBpacket) != TRUE) {
+//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Failed to write settings\r\n\0");
+//                     esp32_uart_send_bpacket(Bpacket);
+//                 }
+//                 break;
+
+//             case BPK_REQ_GET_CAMERA_CAPTURE_TIMES:;
+
+//                 bpk_t deafultCaptureTimeSettingsBpacket;
+
+//                 if (wd_capture_time_settings_to_bpacket(&deafultCaptureTimeSettingsBpacket, Bpacket->Receiver,
+//                                                         Bpacket->Sender, Bpacket->Request, BPK_Code_Execute,
+//                                                         &defaultCaptureTimeSettings) != TRUE) {
+//                     bpk_create_string_response(Bpacket, BPK_Code_Error, "Setting deafult camera settings
+//                     failed\r\n\0"); esp32_uart_send_bpacket(Bpacket); return FALSE;
+//                 }
+
+//                 sd_card_write_settings(&deafultCaptureTimeSettingsBpacket);
+
+//                 break;
+
+//             default:;
+
+//                 bpk_create_string_response(Bpacket, BPK_Code_Error, "RF: Invalid Request!\r\n\0");
+//                 esp32_uart_send_bpacket(Bpacket);
+//                 return FALSE;
+//         }
+
+//         // Open the SD card again
+//         if (sd_card_open() != TRUE) {
+//             bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
+//             return FALSE;
+//         }
+//     }
+
+//     FILE* file;
+//     if (sd_card_open_file(&file, SETTINGS_FILE_PATH_START_AT_ROOT, SD_CARD_FILE_READ, errMsg) != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     if (Bpacket->Request.val == BPK_Req_Get_Camera_Settings.val) {
+
+//         wd_camera_settings_t cameraSettings;
+//         cameraSettings.frameSize = (uint8_t)fgetc(file);
+
+//         if (wd_camera_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
+//                                           BPK_Code_Success, &cameraSettings) != TRUE) {
+//             esp32_uart_send_bpacket(Bpacket); // Send error back
+//             // Clean up
+//             fclose(file);
+//             sd_card_close();
+//             return FALSE;
+//         }
+//     }
+
+//     if (Bpacket->Request.val == BPK_Req_Get_Camera_Capture_Times.val) {
+
+//         // Set the cursor to the 1st index to skip the camera settings
+//         fseek(file, 1, SEEK_CUR);
+//         wd_camera_capture_time_settings_t captureTime;
+//         // Seconds are required to be set to default otherwise they will assume
+//         // the values of whatever is stored in that memory and will fail when
+//         // being converted from a capture time to Bpacket
+//         captureTime.startTime.second    = 0;
+//         captureTime.startTime.minute    = fgetc(file);
+//         captureTime.startTime.hour      = fgetc(file);
+//         captureTime.endTime.second      = 0;
+//         captureTime.endTime.minute      = fgetc(file);
+//         captureTime.endTime.hour        = fgetc(file);
+//         captureTime.intervalTime.second = 0;
+//         captureTime.intervalTime.minute = fgetc(file);
+//         captureTime.intervalTime.hour   = fgetc(file);
+
+//         if (wd_capture_time_settings_to_bpacket(Bpacket, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request,
+//                                                 BPK_Code_Success, &captureTime) != TRUE) {
+//             bpk_create_string_response(Bpacket, BPK_Code_Error,
+//                                        "Capture time settings to Bpacket failed. SD Card read\r\n\0");
+
+//             // Clean up
+//             fclose(file);
+//             sd_card_close();
+//             return FALSE;
+//         }
+//     }
+
+//     // Clean up
+//     fclose(file);
+//     sd_card_close();
+
+//     return TRUE;
+// }
+
+// uint8_t sd_card_get_camera_settings(wd_camera_settings_t* cameraSettings) {
+
+//     // Create a Bpacket with the correct information to read camera settings
+//     bpk_t Bpacket;
+//     bpk_create(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Req_Get_Camera_Settings, BPK_Code_Execute,
+//     0,
+//                NULL);
+
+//     if (sd_card_read_settings(&Bpacket) != TRUE) {
+//         bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Error,
+//                       "CS: Failed to read camera settings\r\n\0");
+//         esp32_uart_send_bpacket(&Bpacket);
+//         return FALSE;
+//     }
+
+//     // Convert the Bpacket to camera settings
+//     if (wd_bpacket_to_camera_settings(&Bpacket, cameraSettings) != TRUE) {
+//         bpk_create_sp(&Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Error,
+//                       "CS: Failed to parse camera settings\r\n\0");
+//         esp32_uart_send_bpacket(&Bpacket);
+//         return FALSE;
+//     }
+
+//     return TRUE;
+// }
+
+// uint8_t sd_card_write_settings(bpk_t* Bpacket) {
+
+//     // Return error message if the SD card cannot be opened
+//     if (sd_card_open() != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card failed to open\r\n\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return FALSE;
+//     }
+
+//     FILE* file;
+//     char errMsg[50];
+//     if (sd_card_open_file(&file, SETTINGS_FILE_PATH_START_AT_ROOT, SD_CARD_FILE_WRITE, errMsg) != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, errMsg);
+//         esp32_uart_send_bpacket(Bpacket);
+//         sd_card_close();
+//         return FALSE;
+//     }
+
+//     switch (Bpacket->Request.val) {
+
+//         case BPK_REQ_SET_CAMERA_SETTINGS:;
+
+//             wd_camera_settings_t cameraSettings;
+//             if (wd_bpacket_to_camera_settings(Bpacket, &cameraSettings) != TRUE) {
+//                 bpk_create_string_response(Bpacket, BPK_Code_Error, "Bpacket to camera settings failed\0");
+//                 esp32_uart_send_bpacket(Bpacket);
+//                 // Clean up
+//                 fclose(file);
+//                 sd_card_close();
+//                 return FALSE;
+//             }
+
+//             fseek(file, 0L, SEEK_SET); // Ensure the file is pointing to first byte
+//             fputc(cameraSettings.frameSize, file);
+
+//             break;
+
+//         case BPK_REQ_SET_CAMERA_CAPTURE_TIMES:;
+
+//             wd_camera_capture_time_settings_t captureTime;
+//             if (wd_bpacket_to_capture_time_settings(Bpacket, &captureTime) != TRUE) {
+//                 bpk_create_string_response(Bpacket, BPK_Code_Error,
+//                                            "Bpacket to capture time settings failed. SD Card write attempt\r\n\0");
+//                 // Clean up
+//                 fclose(file);
+//                 sd_card_close();
+//                 return FALSE;
+//             }
+
+//             // Skip the first byte as this is where the camera resolution is stored
+//             fseek(file, 1, SEEK_CUR);
+//             fputc(captureTime.startTime.minute, file);
+//             fputc(captureTime.startTime.hour, file);
+//             fputc(captureTime.endTime.minute, file);
+//             fputc(captureTime.endTime.hour, file);
+//             fputc(captureTime.intervalTime.minute, file);
+//             fputc(captureTime.intervalTime.hour, file);
+
+//             break;
+
+//         default:;
+
+//             bpk_create_string_response(Bpacket, BPK_Code_Error, "WF: Invalid Request!\r\n\0");
+//             esp32_uart_send_bpacket(Bpacket);
+//             return FALSE;
+//     }
+
+//     // Clean up
+//     fclose(file);
+//     sd_card_close();
+
+//     return TRUE;
+// }

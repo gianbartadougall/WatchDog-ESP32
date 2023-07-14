@@ -254,6 +254,15 @@ void wd_error_handler_2(char* format, ...) {
     }
 }
 
+void wd_error_handler1(char* fileName, uint32_t lineNumber, uint8_t code) {
+
+    while (1) {
+        GPIO_TOGGLE(LED_RED_PORT, LED_RED_PIN);
+        log_usb_error("Error in %s on line %i. Code: %i\r\n", fileName, lineNumber, code);
+        HAL_Delay(1000);
+    }
+}
+
 void wd_esp_turn_on(void) {
     GPIO_SET_LOW(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
@@ -285,8 +294,9 @@ void wd_start(void) {
     // in hardware config.c as I commented it out
     // task_scheduler_init(); // Reset Recipes list
 
-    if (rtc_init() != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
+    uint8_t code = rtc_init();
+    if (code != TRUE) {
+        wd_error_handler1(__FILE__, __LINE__, code);
     }
 
     // Read the watchdog settings from flash
@@ -467,6 +477,23 @@ void wd_handle_maple_request(bpk_t* Bpacket) {
     // Create a bpacket to store the response to send back to Maple
     static bpk_t BpkStmResponse;
 
+    if (Bpacket->Request.val == BPK_REQ_COPY_FILE) {
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        bpk_t DebugMessage;
+        bpk_create_sp(&DebugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
+                      "STM ack Maple req Copy file");
+        wd_write_bpacket_maple(&DebugMessage);
+        /****** END CODE BLOCK ******/
+
+        // Forward message to ESP32
+        bpk_create(&BpkStmResponse, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Req_Copy_File, BPK_Code_Execute,
+                   Bpacket->Data.numBytes, Bpacket->Data.bytes);
+        wd_write_bpacket_esp(&BpkStmResponse);
+
+        return;
+    }
+
     switch (Bpacket->Request.val) {
 
         case BPK_REQUEST_PING:;
@@ -644,6 +671,22 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
         /****** END CODE BLOCK ******/
 
         log_usb_success("Received ESP ping!\r\n");
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_COPY_FILE) {
+        /****** START CODE BLOCK ******/
+        // Description: Debugging. Can delete whenever
+        // bpk_t DebugMessage;
+        // bpk_create_sp(&DebugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+        // BPK_Code_Success,
+        //               "STM received copy file data back");
+        // wd_write_bpacket_maple(&DebugMessage);
+        /****** END CODE BLOCK ******/
+
+        // Forward the bpacket to maple
+        Bpacket->Receiver = BPK_Addr_Receive_Maple;
+        wd_write_bpacket_maple(Bpacket);
+        return;
     }
 
     if (Bpacket->Request.val == BPK_REQ_TAKE_PHOTO) {

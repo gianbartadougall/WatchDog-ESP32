@@ -130,7 +130,7 @@ uint8_t sd_card_init(bpk_t* Bpacket);
 
 uint8_t sd_card_format_sd_card(bpk_t* Bpacket);
 
-void sd_card_copy_file(bpk_t* Bpacket, bpacket_char_array_t* bpacketCharArray);
+uint8_t sd_card_copy_file(char* fileName, char* msg);
 
 /**
  * @brief Mounts the SD Card for reading and writing

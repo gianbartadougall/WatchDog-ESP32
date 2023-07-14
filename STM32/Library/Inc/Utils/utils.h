@@ -26,4 +26,15 @@
 #define UINT_16_BIT_MAX_VALUE 65535
 #define UINT_32_BIT_MAX_VALUE 4294967295
 
+enum exit_code_e {
+    EXIT_CODE_2 = 2,
+    EXIT_CODE_3,
+    EXIT_CODE_4,
+    EXIT_CODE_5,
+    EXIT_CODE_6,
+    EXIT_CODE_7,
+    EXIT_CODE_8,
+    EXIT_CODE_9,
+};
+
 #endif // UTILS_H

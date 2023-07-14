@@ -125,6 +125,10 @@ char lg_sdCardData[50][50];
 char* lg_selectedFile = NULL;
 uint8_t lg_imageNum   = 0;
 uint16_t wdDirIndex   = 0;
+FILE* file            = NULL;
+
+uint8_t* lg_fileData      = NULL;
+uint32_t lg_fileDataIndex = 0;
 
 #define DD_START_MINUTE_ID    20
 #define DD_START_HOUR_ID      21
@@ -558,6 +562,10 @@ void maple_handle_events(void) {
             log_warning("No file has been selected\r\n");
         } else {
             log_message("Copying file %s\r\n", lg_selectedFile);
+
+            bpk_create_sp(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                          BPK_Req_Copy_File, BPK_Code_Execute, lg_selectedFile);
+            maple_send_bpacket(&BpkMapleRequest);
         }
     }
 
@@ -599,6 +607,20 @@ void maple_handle_events(void) {
     }
 }
 
+void maple_write_file(char* fileName, uint8_t* data, uint32_t numBytes) {
+    FILE* file = fopen(fileName, "w");
+    if (file == NULL) {
+        printf("Error opening file %s!\n", fileName);
+        return;
+    }
+
+    for (uint32_t i = 0; i < numBytes; i++) {
+        fputc(data[i], file);
+    }
+
+    fclose(file);
+}
+
 void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
     if (Bpacket->Request.val == BPK_REQ_TAKE_PHOTO) {
@@ -612,6 +634,31 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         }
 
         log_success("Watchdog took a photo!\r\n");
+    }
+
+    if (Bpacket->Request.val == BPK_REQ_COPY_FILE) {
+
+        if (file == NULL) {
+            file = fopen(lg_selectedFile, "wb"); // Write binary
+        }
+
+        for (int i = 0; i < Bpacket->Data.numBytes; i++) {
+            fputc(Bpacket->Data.bytes[i], file);
+        }
+
+        /****** START CODE BLOCK ******/
+        // Description: Debugging
+        printf("255 bytes written\r\n");
+        /****** END CODE BLOCK ******/
+
+        // Check if the end of the file has been sent
+        if (Bpacket->Code.val == BPK_CODE_SUCCESS) {
+            log_success("Finished copying file\r\n");
+            fclose(file);
+            file = NULL;
+        }
+
+        return;
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {

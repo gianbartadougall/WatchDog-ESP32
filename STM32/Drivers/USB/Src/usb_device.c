@@ -55,7 +55,10 @@ extern USBD_DescriptorsTypeDef FS_Desc;
  * -- Insert your external function declaration here --
  */
 /* USER CODE BEGIN 1 */
+void usb_denit(void) {
 
+    USBD_DeInit(&hUsbDeviceFS);
+}
 /* USER CODE END 1 */
 
 /**

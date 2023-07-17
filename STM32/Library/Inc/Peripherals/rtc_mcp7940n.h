@@ -43,12 +43,14 @@ uint8_t rtc_enable_alarm(void);
 
 uint8_t rtc_disable_alarm(void);
 
-uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime);
+uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime, uint8_t alarmNum);
 
-uint8_t rtc_read_alarm_time(dt_time_t* Time);
+uint8_t rtc_read_alarm_time(dt_time_t* Time, uint8_t alarmNum);
 
-uint8_t rtc_read_alarm_date(dt_date_t* Date);
+uint8_t rtc_read_alarm_date(dt_date_t* Date, uint8_t alarmNum);
 
 uint8_t rtc_alarm_clear(void);
+
+uint8_t rtc_read_alarm_settings(uint8_t* alarmSettings);
 
 #endif // RTC_MCP7940N

@@ -160,6 +160,14 @@ void hardware_config_gpio_init(void) {
     HAL_NVIC_SetPriority(RTC_ALARM_IRQn, 10, 0);
     HAL_NVIC_EnableIRQ(RTC_ALARM_IRQn);
 
+    GPIO_SET_MODE_INPUT(USER_BUTTON_PORT, USER_BUTTON_PIN);
+    SYSCFG->EXTICR[0] &= ~(0x07 << (4 * (USER_BUTTON_PIN % 4)));
+    EXTI->RTSR1 |= (0x01 << USER_BUTTON_PIN);  // Trigger on rising edge
+    EXTI->FTSR1 &= ~(0x01 << USER_BUTTON_PIN); // Trigger on falling edge
+    EXTI->IMR1 |= (0x01 << USER_BUTTON_PIN);   // Enable interrupts
+    HAL_NVIC_SetPriority(USER_BUTTON_IRQn, 10, 0);
+    HAL_NVIC_EnableIRQ(USER_BUTTON_IRQn);
+
     /****** START CODE BLOCK ******/
     // Description: GPIO configuration for the DS18B0 Sensor
     GPIO_SET_MODE_OUTPUT(DS18B20_PORT, DS18B20_PIN);
@@ -204,42 +212,46 @@ void hardware_config_gpio_init(void) {
     UART_ESP32_RX_PORT->AFR[1] |= (0x07 << ((UART_ESP32_RX_PIN % 8) * 4));
     UART_ESP32_TX_PORT->AFR[1] |= (0x07 << ((UART_ESP32_TX_PIN % 8) * 4));
     HAL_NVIC_SetPriority(UART_ESP32_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(UART_ESP32_IRQn);
+
+    // The ESP is left floating when turned off. This makes the interrupt on the UART
+    // pin trigger in an infinte loop. To solve this problem, keeping the interrupt
+    // disabled until the ESP is turned on
+    HAL_NVIC_DisableIRQ(UART_ESP32_IRQn);
     /****** END CODE BLOCK ******/
 
     /****** START CODE BLOCK ******/
     // Description: Setup GPIO pins for logging to console
 
     // Set the RX TX pins to alternate function mode
-    UART_LOG_RX_PORT->MODER &= ~(0x03 << (UART_LOG_RX_PIN * 2));
-    UART_LOG_TX_PORT->MODER &= ~(0x03 << (UART_LOG_TX_PIN * 2));
-    UART_LOG_RX_PORT->MODER |= (0x02 << (UART_LOG_RX_PIN * 2));
-    UART_LOG_TX_PORT->MODER |= (0x02 << (UART_LOG_TX_PIN * 2));
+    // UART_LOG_RX_PORT->MODER &= ~(0x03 << (UART_LOG_RX_PIN * 2));
+    // UART_LOG_TX_PORT->MODER &= ~(0x03 << (UART_LOG_TX_PIN * 2));
+    // UART_LOG_RX_PORT->MODER |= (0x02 << (UART_LOG_RX_PIN * 2));
+    // UART_LOG_TX_PORT->MODER |= (0x02 << (UART_LOG_TX_PIN * 2));
 
-    // Set the RX TX pins to push pull
-    UART_LOG_RX_PORT->OTYPER &= ~(0x01 << UART_LOG_RX_PIN);
-    UART_LOG_TX_PORT->OTYPER &= ~(0x01 << UART_LOG_TX_PIN);
+    // // Set the RX TX pins to push pull
+    // UART_LOG_RX_PORT->OTYPER &= ~(0x01 << UART_LOG_RX_PIN);
+    // UART_LOG_TX_PORT->OTYPER &= ~(0x01 << UART_LOG_TX_PIN);
 
-    // Set the RX TX pin speeds to high
-    UART_LOG_RX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
-    UART_LOG_TX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
-    UART_LOG_RX_PORT->OSPEEDR |= (0x02 << (UART_LOG_RX_PIN * 2));
-    UART_LOG_TX_PORT->OSPEEDR |= (0x02 << (UART_LOG_TX_PIN * 2));
+    // // Set the RX TX pin speeds to high
+    // UART_LOG_RX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
+    // UART_LOG_TX_PORT->OSPEEDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
+    // UART_LOG_RX_PORT->OSPEEDR |= (0x02 << (UART_LOG_RX_PIN * 2));
+    // UART_LOG_TX_PORT->OSPEEDR |= (0x02 << (UART_LOG_TX_PIN * 2));
 
-    // Set the RX TX to have no pull up or pull down resistors
-    UART_LOG_RX_PORT->PUPDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
-    UART_LOG_TX_PORT->PUPDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
+    // // Set the RX TX to have no pull up or pull down resistors
+    // UART_LOG_RX_PORT->PUPDR &= ~(0x03 << (UART_LOG_RX_PIN * 2));
+    // UART_LOG_TX_PORT->PUPDR &= ~(0x03 << (UART_LOG_TX_PIN * 2));
 
-    // // Connect pin to alternate function
-    UART_LOG_TX_PORT->AFR[0] &= ~(0x0F << ((UART_LOG_TX_PIN % 8) * 4));
-    UART_LOG_RX_PORT->AFR[1] &= ~(0x0F << ((UART_LOG_RX_PIN % 8) * 4));
-    UART_LOG_TX_PORT->AFR[0] |= (0x07 << (4 * (UART_LOG_TX_PIN % 8)));
+    // // // Connect pin to alternate function
+    // UART_LOG_TX_PORT->AFR[0] &= ~(0x0F << ((UART_LOG_TX_PIN % 8) * 4));
+    // UART_LOG_RX_PORT->AFR[1] &= ~(0x0F << ((UART_LOG_RX_PIN % 8) * 4));
+    // UART_LOG_TX_PORT->AFR[0] |= (0x07 << (4 * (UART_LOG_TX_PIN % 8)));
 
-    // Not sure why this isn't AF7 with PA2 but testing it, the STM32 only works with PA15 on AF3
-    // which is a valid connection to UASAT_2_RX but so is PA3 on AF7 so not sure what the go is
-    UART_LOG_RX_PORT->AFR[1] |= (0x03 << (4 * (UART_LOG_RX_PIN % 8)));
-    HAL_NVIC_SetPriority(UART_LOG_IRQn, 11, 0);
-    HAL_NVIC_EnableIRQ(UART_LOG_IRQn);
+    // // Not sure why this isn't AF7 with PA2 but testing it, the STM32 only works with PA15 on AF3
+    // // which is a valid connection to UASAT_2_RX but so is PA3 on AF7 so not sure what the go is
+    // UART_LOG_RX_PORT->AFR[1] |= (0x03 << (4 * (UART_LOG_RX_PIN % 8)));
+    // HAL_NVIC_SetPriority(UART_LOG_IRQn, 11, 0);
+    // HAL_NVIC_EnableIRQ(UART_LOG_IRQn);
 
     /****** END CODE BLOCK ******/
 
@@ -326,10 +338,10 @@ void hardware_config_uart_init(void) {
     UART_ESP32->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE);
 
     // Set baud rate
-    UART_LOG_CLK_ENABLE();
-    UART_LOG->BRR = SystemCoreClock / UART_LOG_BUAD_RATE;
-    UART_LOG->CR1 &= ~(USART_CR1_EOBIE); // Reset USART
-    UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_PEIE);
+    // UART_LOG_CLK_ENABLE();
+    // UART_LOG->BRR = SystemCoreClock / UART_LOG_BUAD_RATE;
+    // UART_LOG->CR1 &= ~(USART_CR1_EOBIE); // Reset USART
+    // UART_LOG->CR1 |= (USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_PEIE);
 }
 
 void hardware_config_uart_sleep(void) {
@@ -419,6 +431,57 @@ void hardware_config_i2c_init(void) {
     }
 
     HAL_I2C_MspInit(&hi2c1);
+}
+
+void hardware_clock_config(void) {
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    /** Configure the main internal regulator output voltage
+     */
+    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK) {
+        error_handler();
+    }
+
+    /** Configure LSE Drive Capability
+     */
+    HAL_PWR_EnableBkUpAccess();
+    __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
+    /** Initializes the RCC Oscillators according to the specified parameters
+     * in the RCC_OscInitTypeDef structure.
+     */
+    RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.LSEState            = RCC_LSE_ON;
+    RCC_OscInitStruct.MSIState            = RCC_MSI_ON;
+    RCC_OscInitStruct.MSICalibrationValue = 0;
+    RCC_OscInitStruct.MSIClockRange       = RCC_MSIRANGE_6;
+    RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_MSI;
+    RCC_OscInitStruct.PLL.PLLM            = 1;
+    RCC_OscInitStruct.PLL.PLLN            = 16; // to Get 32Mhz clock
+    RCC_OscInitStruct.PLL.PLLP            = RCC_PLLP_DIV7;
+    RCC_OscInitStruct.PLL.PLLQ            = RCC_PLLQ_DIV2;
+    RCC_OscInitStruct.PLL.PLLR            = RCC_PLLR_DIV2;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        error_handler();
+    }
+
+    /** Initializes the CPU, AHB and APB buses clocks
+     */
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+        error_handler();
+    }
+
+    /** Enable MSI Auto calibration
+     */
+    HAL_RCCEx_EnableMSIPLLMode();
 }
 
 void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c) {

@@ -550,6 +550,17 @@ void maple_handle_events(void) {
 
         // The STM currently supports start dates and end dates as well but for the moment we
         // will just make those dates always valid
+        lg_CaptureTime.Start.Time.second = 0; // Start second is always 0
+        lg_CaptureTime.Start.Date.day    = 1;
+        lg_CaptureTime.Start.Date.month  = 1;
+        lg_CaptureTime.Start.Date.year   = 2023;
+
+        lg_CaptureTime.End.Time.second = 0; // End time is always 0
+        lg_CaptureTime.End.Date.day    = 1;
+        lg_CaptureTime.End.Date.month  = 1;
+        lg_CaptureTime.End.Date.year   = 2030;
+
+        // Copy the capture time dates and camera settings into an array
         uint8_t settingsData[20];
         wd_utils_settings_to_array(settingsData, &lg_CaptureTime, &lg_CameraSettings);
 
@@ -599,7 +610,6 @@ void maple_handle_events(void) {
             log_message("Deleting file %s\r\n", lg_selectedFile);
 
             /* Send request to STM32 */
-            bpk_t BpkWdSettings;
             bpk_create_sp(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
                           BPK_Req_Delete_File, BPK_Code_Execute, lg_selectedFile);
             maple_send_bpacket(&BpkMapleRequest);
@@ -802,28 +812,28 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
             /* Just commented this stuff out for the moment to reduce print statements in debug
              * window. */
 
-            // log_warning("Watchdog datetime incorrect. Watchdog Datetime: %i:%i:%i %i/%i/%i. "
-            //             "Computer datetime: %i:%i:%i %i/%i/%i\r\n",
-            //             WatchdogDt.Time.second, WatchdogDt.Time.minute, WatchdogDt.Time.hour,
-            //             WatchdogDt.Date.day, WatchdogDt.Date.month, WatchdogDt.Date.year,
-            //             ComputerDt.Time.second, ComputerDt.Time.minute, ComputerDt.Time.hour,
-            //             ComputerDt.Date.day, ComputerDt.Date.month, ComputerDt.Date.year);
+            log_warning("Watchdog datetime incorrect. Watchdog Datetime: %i:%i:%i %i/%i/%i. "
+                        "Computer datetime: %i:%i:%i %i/%i/%i\r\n",
+                        WatchdogDt.Time.second, WatchdogDt.Time.minute, WatchdogDt.Time.hour,
+                        WatchdogDt.Date.day, WatchdogDt.Date.month, WatchdogDt.Date.year,
+                        ComputerDt.Time.second, ComputerDt.Time.minute, ComputerDt.Time.hour,
+                        ComputerDt.Date.day, ComputerDt.Date.month, ComputerDt.Date.year);
 
-            // uint8_t datetimeData[7] = {
-            //     ComputerDt.Time.second,      ComputerDt.Time.minute, ComputerDt.Time.hour,
-            //     ComputerDt.Date.day,         ComputerDt.Date.month,  ComputerDt.Date.year >> 8,
-            //     ComputerDt.Date.year & 0xFF,
-            // };
+            uint8_t datetimeData[7] = {
+                ComputerDt.Time.second,      ComputerDt.Time.minute, ComputerDt.Time.hour,
+                ComputerDt.Date.day,         ComputerDt.Date.month,  ComputerDt.Date.year >> 8,
+                ComputerDt.Date.year & 0xFF,
+            };
 
-            // bpk_t BpkDatetime;
-            // bpk_create(&BpkDatetime, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-            //            BPK_Req_Set_Datetime, BPK_Code_Execute, 7, datetimeData);
-            // maple_send_bpacket(&BpkDatetime);
+            bpk_t BpkDatetime;
+            bpk_create(&BpkDatetime, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
+                       BPK_Req_Set_Datetime, BPK_Code_Execute, 7, datetimeData);
+            maple_send_bpacket(&BpkDatetime);
 
-            // // Set timeout for this request
-            // if (et_poll_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
-            //     et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
-            // }
+            // Set timeout for this request
+            if (et_poll_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME) == 0) {
+                et_set_timeout(&lg_MapleTimeouts, ET_TIMEOUT_SET_DATETIME, 600);
+            }
         }
     }
 
@@ -994,6 +1004,7 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
         uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 
         // The minutes go up in 5's so multiply the index by 5
+        // TODO: Multipoly by 5 again. I took it away for testing so i could test with 1 minute
         lg_CaptureTime.intervalMinute = index * 5;
     }
 

@@ -30,7 +30,10 @@
  *
  */
 void EXTI0_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 8\r\n");
+    /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI1_IRQn);
 
@@ -48,7 +51,10 @@ void EXTI0_IRQHandler(void) {
  *
  */
 void EXTI1_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 7\r\n");
+    /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI1_IRQn);
 
@@ -76,6 +82,8 @@ void EXTI2_IRQHandler(void) {
         EXTI->PR1 = EXTI_PR1_PIF2;
 
         /* Call required functions */
+
+        // GPIO_TOGGLE(LED_GREEN_PORT, LED_GREEN_PIN);
     }
 }
 
@@ -84,7 +92,10 @@ void EXTI2_IRQHandler(void) {
  *
  */
 void EXTI3_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 5\r\n");
+    /****** END CODE BLOCK ******/
     // // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI3_IRQn);
 
@@ -103,7 +114,10 @@ void EXTI3_IRQHandler(void) {
  *
  */
 void EXTI4_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 4\r\n");
+    /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI4_IRQn);
 
@@ -127,7 +141,7 @@ void EXTI9_5_IRQHandler(void) {
 
     // Confirm pending interrupt exists on EXTI line 5
     if ((EXTI->PR1 & EXTI_PR1_PIF5) == (EXTI_PR1_PIF5)) {
-        log_usb_message("Triggered\r\n");
+        // log_usb_message("Triggered\r\n");
 
         // Clear the pending interrupt
         EXTI->PR1 = EXTI_PR1_PIF5;
@@ -194,7 +208,10 @@ void EXTI9_5_IRQHandler(void) {
  *
  */
 void EXTI15_10_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 9\r\n");
+    /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
 
@@ -260,7 +277,10 @@ void EXTI15_10_IRQHandler(void) {
 }
 
 void COMP_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 10\r\n");
+    /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(COMP_IRQn);
 

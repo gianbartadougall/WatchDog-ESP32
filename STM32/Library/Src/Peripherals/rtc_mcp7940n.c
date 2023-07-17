@@ -79,17 +79,17 @@ uint8_t rtc_init(void) {
     // The time format bit is ini the Hour register. Read the hour register then set the format
     // bit to 24hr mode so none of the hour values are changed
     uint8_t hoursAddr = RTC_ADDR_HOURS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &hoursAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &hoursAddr, 1, 3000) != HAL_OK) {
         return EXIT_CODE_5;
     }
 
     uint8_t hoursRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &hoursRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &hoursRead, 1, 3000) != HAL_OK) {
         return EXIT_CODE_6;
     }
 
     uint8_t hoursWrite[2] = {hoursAddr, hoursRead & 0x3F};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, hoursWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, hoursWrite, 2, 3000) != HAL_OK) {
         return EXIT_CODE_7;
     }
 
@@ -106,34 +106,50 @@ uint8_t rtc_set_alarm_settings(void) {
     // Only intend to use one alarm so this is why its hardcoded to alarm 0. The settings for
     // alarm 0 are in the week days register
     uint8_t alarmAddress = RTC_ADDR_ALARM_0_WEEK_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &alarmAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &alarmAddress, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     static uint8_t alarmRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &alarmRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &alarmRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     // Also clearing the alarm interrupt flag here and setting the alarm interrupt output to logic high.
     // Only planning on using the alarm in mode where it checks everything so thats why its hardcoded as such
-    uint8_t alarmWrite[2] = {alarmAddress, ALARM_SETTINGS & (alarmRead & 0x07)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, alarmWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    uint8_t alarmWrite[2] = {alarmAddress, ALARM_SETTINGS | (alarmRead & 0x07)};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, alarmWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
 
     return TRUE;
 }
 
+uint8_t rtc_read_alarm_settings(uint8_t* alarmSettings) {
+
+    // Only intend to use one alarm so this is why its hardcoded to alarm 0. The settings for
+    // alarm 0 are in the week days register
+    uint8_t alarmAddress = RTC_ADDR_ALARM_0_WEEK_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &alarmAddress, 1, 3000) != HAL_OK) {
+        return FALSE;
+    }
+
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, alarmSettings, 1, 3000) != HAL_OK) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+uint8_t rtc_clear_alarm(void) {
+    return rtc_set_alarm_settings();
+}
+
 uint8_t rtc_set_alarm(dt_datetime_t* Datetime) {
 
-    /* For some reason the alarm will get triggered when changing the time it again.
-        To prevent this disabling the alarm first then renabling it afterwards */
-    rtc_disable_alarm();
-
-    // Alarm settings are not intended to change so these will remain hardcoded
-
-    /* Write the time first */
+    // Clear the interrupt. Because the settings are hardcoded for this, I can just reset
+    // the settings because I also clear the interrupt in this function when I set the settings
+    rtc_clear_alarm();
 
     // Create the buffer to write to the alarm
     uint8_t buffer[7] = {
@@ -141,16 +157,14 @@ uint8_t rtc_set_alarm(dt_datetime_t* Datetime) {
         RTC_SECONDS_TO_REGISTER(Datetime->Time.second),
         RTC_MINUTES_TO_REGISTER(Datetime->Time.minute),
         RTC_HOURS_TO_REGISTER(Datetime->Time.hour),
-        ALARM_SETTINGS & dt_calculate_day_of_week(&Datetime->Date),
+        ALARM_SETTINGS | dt_calculate_day_of_week(&Datetime->Date),
         RTC_DAYS_TO_REGISTER(Datetime->Date.day),
         RTC_MONTHS_TO_REGISTER(Datetime->Date.month),
     };
 
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 7, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 7, 3000) != HAL_OK) {
         return FALSE;
     }
-
-    rtc_enable_alarm();
 
     return TRUE;
 }
@@ -159,17 +173,17 @@ uint8_t rtc_enable_alarm(void) {
 
     // Read the control register so none of the other values are changed
     uint8_t controlAddr = RTC_ADDR_CONTROL;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     static uint8_t controlRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t controlWrite[2] = {controlAddr, controlRead | (0x01 << 4)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -180,17 +194,17 @@ uint8_t rtc_disable_alarm(void) {
 
     // Read the control register so none of the other values are changed
     uint8_t controlAddr = RTC_ADDR_CONTROL;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &controlAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     static uint8_t controlRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &controlRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t controlWrite[2] = {controlAddr, controlRead & ~(0x01 << 4)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, controlWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -201,45 +215,45 @@ uint8_t rtc_alarm_clear(void) {
 
     // Read the control register so none of the other values are changed
     uint8_t weekDaysAddr = RTC_ADDR_ALARM_0_WEEK_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t weekDaysRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t weekDaysWrite[2] = {weekDaysAddr, weekDaysRead & ~(0x01 << 3)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, weekDaysWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, weekDaysWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
 
     return TRUE;
 }
 
-uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime) {
+uint8_t rtc_read_alarm_datetime(dt_datetime_t* Datetime, uint8_t alarmNum) {
 
-    if (rtc_read_alarm_time(&Datetime->Time) != TRUE) {
+    if (rtc_read_alarm_time(&Datetime->Time, alarmNum) != TRUE) {
         return FALSE;
     }
 
-    if (rtc_read_alarm_date(&Datetime->Date) != TRUE) {
+    if (rtc_read_alarm_date(&Datetime->Date, alarmNum) != TRUE) {
         return FALSE;
     }
 
     return TRUE;
 }
 
-uint8_t rtc_read_alarm_time(dt_time_t* Time) {
+uint8_t rtc_read_alarm_time(dt_time_t* Time, uint8_t alarmNum) {
 
-    uint8_t startAddress = RTC_ADDR_ALARM_0_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+    uint8_t startAddress = alarmNum == 0 ? RTC_ADDR_ALARM_0_SECONDS : RTC_ADDR_ALARM_1_SECONDS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t buffer[3] = {0};
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -250,26 +264,26 @@ uint8_t rtc_read_alarm_time(dt_time_t* Time) {
     return TRUE;
 }
 
-uint8_t rtc_read_alarm_date(dt_date_t* Date) {
+uint8_t rtc_read_alarm_date(dt_date_t* Date, uint8_t alarmNum) {
 
-    uint8_t startAddress = RTC_ADDR_ALARM_0_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+    uint8_t startAddress = alarmNum == 0 ? RTC_ADDR_ALARM_0_DAYS : RTC_ADDR_ALARM_1_DAYS;
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t buffer[2] = {0};
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, 3000) != HAL_OK) {
         return FALSE;
     }
 
     /* The alarm does not check the year. Set the year to be the current year on the RTC */
     uint8_t yearsAddr = RTC_ADDR_YEARS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &yearsAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &yearsAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t yearsRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &yearsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &yearsRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -283,9 +297,9 @@ uint8_t rtc_read_alarm_date(dt_date_t* Date) {
 uint8_t rtc_write_datetime(dt_datetime_t* Datetime) {
 
     /* Disable the oscillator (datasheet reccommends this to avoid rollover issues ) */
-    if (rtc_disable_ext_oscillator() != TRUE) {
-        return FALSE;
-    }
+    // if (rtc_disable_ext_oscillator() != TRUE) {
+    //     return FALSE;
+    // }
 
     if (rtc_write_time(&Datetime->Time) != TRUE) {
         return FALSE;
@@ -295,10 +309,11 @@ uint8_t rtc_write_datetime(dt_datetime_t* Datetime) {
         return FALSE;
     }
 
-    // Reenable oscillator
-    if (rtc_enable_ext_oscillator() != TRUE) {
-        return FALSE;
-    }
+    // Reenable oscillator. Try fix this but some reason enable and disable makes writing the time not correct.
+    // Maybe I am writing over values or something
+    // if (rtc_enable_ext_oscillator() != TRUE) {
+    //     return FALSE;
+    // }
 
     return TRUE;
 }
@@ -307,12 +322,12 @@ uint8_t rtc_write_time(dt_time_t* Time) {
 
     /* Read the start oscillator bit so that value is not altered */
     uint8_t secondsAddr = RTC_ADDR_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondsAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondsAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t secondsRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -325,7 +340,7 @@ uint8_t rtc_write_time(dt_time_t* Time) {
         0x3F & RTC_HOURS_TO_REGISTER(Time->hour),
     };
 
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 4, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 4, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -336,12 +351,12 @@ uint8_t rtc_write_date(dt_date_t* Date) {
 
     /* Read the OSCRUN, PWRFAIL and VBATEN bits so those values are not altered */
     uint8_t weekDayAddr = RTC_ADDR_WEEK_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDayAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDayAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t weekDaysRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -355,7 +370,7 @@ uint8_t rtc_write_date(dt_date_t* Date) {
         RTC_YEARS_TO_REGISTER(Date->year),
     };
 
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 5, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, buffer, 5, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -378,12 +393,12 @@ uint8_t rtc_read_datetime(dt_datetime_t* Datetime) {
 uint8_t rtc_read_time(dt_time_t* Time) {
 
     uint8_t startAddress = RTC_ADDR_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t buffer[3] = {0};
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -397,12 +412,12 @@ uint8_t rtc_read_time(dt_time_t* Time) {
 uint8_t rtc_read_date(dt_date_t* Date) {
 
     uint8_t startAddress = RTC_ADDR_DAYS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &startAddress, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t buffer[3] = {0};
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, buffer, 3, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -417,17 +432,17 @@ uint8_t rtc_enable_ext_oscillator(void) {
 
     // Enable the oscillator
     uint8_t secondAddr = RTC_ADDR_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t secondsRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t secondsWrite[2] = {secondAddr, secondsRead | (0x01 << 7)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
 
@@ -437,11 +452,11 @@ uint8_t rtc_enable_ext_oscillator(void) {
     // Wait for the oscillator to start
     while ((weekDaysRead & (0x01 << 5)) == 0) {
 
-        if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+        if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &weekDaysAddr, 1, 3000) != HAL_OK) {
             return FALSE;
         }
 
-        if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+        if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &weekDaysRead, 1, 3000) != HAL_OK) {
             return FALSE;
         }
     }
@@ -452,17 +467,19 @@ uint8_t rtc_enable_ext_oscillator(void) {
 uint8_t rtc_disable_ext_oscillator(void) {
 
     uint8_t secondAddr = RTC_ADDR_SECONDS;
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_READ, &secondAddr, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t secondsRead;
-    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Receive(&hi2c1, RTC_I2C_ADDRESS, &secondsRead, 1, 3000) != HAL_OK) {
         return FALSE;
     }
 
     uint8_t secondsWrite[2] = {secondAddr, secondsRead & ~(0x01 << 7)};
-    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, secondsWrite, 2, 3000) != HAL_OK) {
         return FALSE;
     }
+
+    return TRUE;
 }

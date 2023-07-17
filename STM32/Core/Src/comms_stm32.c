@@ -173,20 +173,20 @@ uint8_t uart_read_bpacket(uint8_t bufferId, bpk_t* Bpacket) {
                     continue;
                 }
 
-                sprintf(errMsg, "Dec. Exp %i. Fnd %i (%c)", expectedByte, byte, byte);
-                bpk_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
-                              BPK_Code_Error, errMsg);
-                bpk_to_buffer(&ErrorPacket, &ErrorBuffer);
-                uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
+                // sprintf(errMsg, "Dec. Exp %i. Fnd %i (%c)", expectedByte, byte, byte);
+                // bpk_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+                //               BPK_Code_Error, errMsg);
+                // bpk_to_buffer(&ErrorPacket, &ErrorBuffer);
+                // uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
         }
 
         // Decoding failed, print error.
-        sprintf(errMsg, "Expected %i. Found %i (%c)", expectedByte, byte, byte);
-        bpk_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Error,
-                      errMsg);
+        // sprintf(errMsg, "Expected %i. Found %i (%c)", expectedByte, byte, byte);
+        // bpk_create_sp(&ErrorPacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Error,
+        //               errMsg);
 
-        bpk_to_buffer(&ErrorPacket, &ErrorBuffer);
-        uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
+        // bpk_to_buffer(&ErrorPacket, &ErrorBuffer);
+        // uart_transmit_data(USART2, ErrorBuffer.buffer, ErrorBuffer.numBytes);
 
         // Reset the expected byte back to the start and bpacket buffer index
         cbuffer_reset_read_index(&ByteBuffer[bufferId]);

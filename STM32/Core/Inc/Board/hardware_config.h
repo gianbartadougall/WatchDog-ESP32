@@ -55,8 +55,14 @@
 
 /******** Macros for Power BJT **********/
 #define ESP32_POWER_PORT GPIOA
-#define ESP32_POWER_PIN  5
+#define ESP32_POWER_PIN  6
 /**************************************/
+
+/******** Macros for User Button **********/
+#define USER_BUTTON_PORT GPIOA
+#define USER_BUTTON_PIN  2
+#define USER_BUTTON_IRQn EXTI2_IRQn
+/******************************************/
 
 /********** Marcos for hardware related to the DS18B20 Temperature Sensor ***********/
 #define DS18B20_TIMER              TIM15
@@ -147,7 +153,7 @@ extern I2C_HandleTypeDef hi2c1;
  * @brief Initialise the system library.
  */
 void hardware_config_init(void);
-
+void hardware_clock_config(void);
 void hardware_config_uart_wakeup(void);
 void hardware_config_uart_sleep(void);
 

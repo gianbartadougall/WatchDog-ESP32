@@ -20,6 +20,11 @@
 
 void USART1_IRQHandler(void) {
 
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 0\r\n");
+    /****** END CODE BLOCK ******/
+
     if ((USART1->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART1->RDR;
@@ -41,7 +46,10 @@ void USART1_IRQHandler(void) {
 }
 
 void USART2_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 1\r\n");
+    /****** END CODE BLOCK ******/
     if ((USART2->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART2->RDR;
@@ -78,7 +86,10 @@ void USART2_IRQHandler(void) {
 }
 
 void RTC_Alarm_IRQHandler(void) {
-
+    /****** START CODE BLOCK ******/
+    // Description: Debuging. Can delete
+    log_usb_message("Interrupt 2\r\n");
+    /****** END CODE BLOCK ******/
     // Check if alarm A was triggered
     if ((STM32_RTC->ISR &= RTC_ISR_ALRAF) != 0) {
         log_usb_message("Triggered!\r\n");
@@ -102,19 +113,3 @@ void RTC_Alarm_IRQHandler(void) {
         return;
     }
 }
-
-/* USB CODE THAT I DO NOT FULLY UNDERSTAND */
-
-// extern PCD_HandleTypeDef hpcd_USB_FS;
-// /**
-//  * @brief This function handles USB event interrupt through EXTI line 17.
-//  */
-// void USB_IRQHandler(void) {
-//     /* USER CODE BEGIN USB_IRQn 0 */
-
-//     /* USER CODE END USB_IRQn 0 */
-//     HAL_PCD_IRQHandler(&hpcd_USB_FS);
-//     /* USER CODE BEGIN USB_IRQn 1 */
-
-//     /* USER CODE END USB_IRQn 1 */
-// }

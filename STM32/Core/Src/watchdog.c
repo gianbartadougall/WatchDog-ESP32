@@ -68,106 +68,7 @@ void wd_handle_esp_response(bpk_t* Bpacket);
 void wd_handle_maple_request(bpk_t* Bpacket);
 void wd_write_bpacket_maple(bpk_t* Bpacket);
 void wd_write_bpacket_esp(bpk_t* Bpacket);
-
-void i2c_test(void) {
-
-    if (dt_datetime_init(&gbl_CaptureTime.Start, 0, 0, 6, 5, 7, 2023) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    if (dt_datetime_init(&gbl_CaptureTime.End, 0, 0, 6, 31, 12, 2023) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    gbl_CaptureTime.intervalSecond = 30;
-    gbl_CaptureTime.intervalMinute = 0;
-    gbl_CaptureTime.intervalHour   = 0;
-    gbl_CaptureTime.intervalDay    = 0;
-
-    if (rtc_init() != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    if (rtc_write_datetime(&gbl_CaptureTime.Start) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    dt_datetime_t Alarm;
-    if (dt_datetime_init(&Alarm, 10, 0, 6, 5, 7, 2023) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    dt_datetime_t bTime;
-    if (rtc_read_datetime(&bTime) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    if (rtc_enable_alarm() != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    if (rtc_set_alarm(&Alarm) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    dt_datetime_t aTime;
-    if (rtc_read_alarm_datetime(&aTime) != TRUE) {
-        wd_error_handler(__FILE__, __LINE__);
-    }
-
-    log_usb_success("Alarm set to %i:%i:%i %i/%i/%i\tTime set to %i:%i:%i %i/%i/%i \r\n", aTime.Time.hour,
-                    aTime.Time.minute, aTime.Time.second, aTime.Date.day, aTime.Date.month, aTime.Date.year,
-                    bTime.Time.hour, bTime.Time.minute, bTime.Time.second, bTime.Date.day, bTime.Date.month,
-                    bTime.Date.year);
-
-    dt_datetime_t Datetime;
-    uint8_t lastSecond = 0;
-
-    while (1) {
-
-        // if (rtc_read_datetime(&Datetime) != TRUE) {
-        //     wd_error_handler(__FILE__, __LINE__);
-        // }
-
-        // if (Datetime.Time.second != lastSecond) {
-        //     lastSecond = Datetime.Time.second;
-        //     log_usb_success("%i:%i:%i %i/%i/%i\r\n", Datetime.Time.hour, Datetime.Time.minute, Datetime.Time.second,
-        //                     Datetime.Date.day, Datetime.Date.month, Datetime.Date.year);
-        // }
-
-        if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE) == TRUE) {
-            event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
-
-            if (rtc_read_datetime(&Datetime) != TRUE) {
-                wd_error_handler(__FILE__, __LINE__);
-            }
-
-            log_usb_success("Photo Captured! @ %i:%i:%i %i/%i/%i \r\n", Datetime.Time.hour, Datetime.Time.minute,
-                            Datetime.Time.second, Datetime.Date.day, Datetime.Date.month, Datetime.Date.year);
-        }
-
-        if (event_group_poll_bit(&gbl_EventsStm, EVENT_STM_RTC_UPDATE_ALARM, EGT_ACTIVE) == TRUE) {
-            event_group_clear_bit(&gbl_EventsStm, EVENT_STM_RTC_UPDATE_ALARM, EGT_ACTIVE);
-
-            // Read the the current alarm time
-            dt_datetime_t AlarmTime;
-            if (rtc_read_alarm_datetime(&AlarmTime) != TRUE) {
-                wd_error_handler(__FILE__, __LINE__);
-            }
-
-            dt_datetime_add_time(&AlarmTime, gbl_CaptureTime.intervalSecond, gbl_CaptureTime.intervalMinute,
-                                 gbl_CaptureTime.intervalHour, gbl_CaptureTime.intervalDay);
-
-            if (dt1_greater_than_dt2(&AlarmTime, &gbl_CaptureTime.Start) == TRUE) {
-                rtc_disable_alarm();
-            } else {
-                rtc_set_alarm(&AlarmTime);
-            }
-        }
-
-        HAL_Delay(10);
-    }
-}
+uint8_t wd_calculate_next_alarm_time(dt_datetime_t* AlarmDatetime);
 
 void wd_handle_timeouts(void) {
 
@@ -216,25 +117,197 @@ void wd_error_handler1(char* fileName, uint32_t lineNumber, uint8_t code) {
 }
 
 void wd_esp_turn_on(void) {
-    GPIO_SET_LOW(ESP32_POWER_PORT, ESP32_POWER_PIN);
+    // GPIO_SET_LOW(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
     // Set the event bit to signify the ESP now has power
     event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE);
 
+    // TODO: Enable the interrupt on the UART line for the ESP32
+
     /* Start timeout for ping */
+
+    /****** START CODE BLOCK ******/
+    // Description: Debugging
+    log_usb_message("ESP now on\r\n");
+    /****** END CODE BLOCK ******/
 }
 
 void wd_esp_turn_off(void) {
-    GPIO_SET_HIGH(ESP32_POWER_PORT, ESP32_POWER_PIN);
+
+    // Disable the initerrupt on the UART line for the ESP32
+
+    // GPIO_SET_HIGH(ESP32_POWER_PORT, ESP32_POWER_PIN);
 
     // Clear the esp ready and on flags
     event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE);
     event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE);
+
+    /****** START CODE BLOCK ******/
+    // Description: Debuggin. can delete whenever
+    log_usb_message("ESP now off\r\n");
+    /****** END CODE BLOCK ******/
+}
+
+void alarm_test() {
+    /****** START CODE BLOCK ******/
+    // Description: Testing. Can delete when finished with it
+    dt_datetime_t AlarmDatetime;
+    // rtc_set_alarm(&AlarmDatetime);
+    // rtc_enable_alarm();
+    dt_datetime_t RtcDatetime = {
+        .Time.second = 0,
+        .Time.minute = 0,
+        .Time.hour   = 0,
+        .Date.day    = 14,
+        .Date.month  = 7,
+        .Date.year   = 2023,
+    };
+    rtc_write_datetime(&RtcDatetime);
+
+    dt_datetime_init(&gbl_CaptureTime.Start, 0, 0, 9, 1, 1, 2023);
+    dt_datetime_init(&gbl_CaptureTime.End, 0, 30, 15, 1, 1, 2030);
+    gbl_CaptureTime.intervalSecond = 1;
+    gbl_CaptureTime.intervalMinute = 0;
+    gbl_CaptureTime.intervalHour   = 0;
+    gbl_CaptureTime.intervalDay    = 1;
+
+    AlarmDatetime.Date.day   = gbl_CaptureTime.Start.Date.day;
+    AlarmDatetime.Date.month = gbl_CaptureTime.Start.Date.month;
+    AlarmDatetime.Date.year  = gbl_CaptureTime.Start.Date.year;
+    HAL_Delay(2000);
+    int i = 0;
+    while (i < 40) {
+        wd_calculate_next_alarm_time(&AlarmDatetime);
+
+        log_usb_message("New alarm: %i:%i:%i %i/%i/%i\r\n", AlarmDatetime.Time.second, AlarmDatetime.Time.minute,
+                        AlarmDatetime.Time.hour, AlarmDatetime.Date.day, AlarmDatetime.Date.month,
+                        AlarmDatetime.Date.year);
+
+        rtc_write_datetime(&AlarmDatetime);
+        i++;
+    }
+
+    while (1) {}
+    /****** END CODE BLOCK ******/
+}
+
+void main_sleep_test(void) {
+
+    hardware_clock_config();
+    hardware_config_init();
+
+    // Disable ESP interrupt
+    HAL_NVIC_DisableIRQ(UART_ESP32_IRQn);
+
+    HAL_Delay(3000);
+    uint8_t code = rtc_init();
+    if (code != TRUE) {
+        wd_error_handler1(__FILE__, __LINE__, code);
+    }
+
+    // Read the watchdog settings from flash
+    wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
+
+    /* Confirm the settings are valid */
+    uint8_t errorFound = FALSE;
+
+    /* TODO: Check the rest of the values */
+
+    if (lg_CameraSettings.frameSize > WD_CR_UXGA_1600x1200) {
+        lg_CameraSettings.frameSize = WD_CR_UXGA_1600x1200;
+        errorFound                  = TRUE;
+    }
+
+    if (lg_CameraSettings.jpegCompression > 63) {
+        lg_CameraSettings.jpegCompression = 8;
+        errorFound                        = TRUE;
+    }
+
+    if (errorFound) {
+        wd_write_settings(&gbl_CaptureTime, &lg_CameraSettings);
+    }
+
+    /* Confirm the start, end and interval times are valid */
+    if (dt_time_is_valid(&gbl_CaptureTime.Start.Time) != TRUE) {
+        sprintf(errorMsg, "Error %s on line %i. Time: %i:%i:%i\r\n", __FILE__, __LINE__,
+                gbl_CaptureTime.Start.Time.second, gbl_CaptureTime.Start.Time.minute, gbl_CaptureTime.Start.Time.hour);
+        // wd_error_handler_2(errorMsg);
+    }
+
+    if (dt_time_is_valid(&gbl_CaptureTime.End.Time) != TRUE) {
+        sprintf(errorMsg, "Error %s on line %i. Time: %i:%i:%i\r\n", __FILE__, __LINE__,
+                gbl_CaptureTime.End.Time.second, gbl_CaptureTime.End.Time.minute, gbl_CaptureTime.End.Time.hour);
+        // wd_error_handler_2(errorMsg);
+    }
+
+    dt_datetime_t AlarmTime1;
+    wd_calculate_next_alarm_time(&AlarmTime1);
+    if (rtc_set_alarm(&AlarmTime1) != TRUE) {
+        wd_error_handler(__FILE__, __LINE__);
+    }
+    if (rtc_enable_alarm() != TRUE) {
+        wd_error_handler(__FILE__, __LINE__);
+    }
+
+    dt_datetime_t Rtc;
+    if (rtc_read_datetime(&Rtc) != TRUE) {
+        wd_error_handler(__FILE__, __LINE__);
+    }
+    log_usb_message("RTC Time: %i:%i:%i %i/%i/%i\r\n", Rtc.Time.second, Rtc.Time.minute, Rtc.Time.hour, Rtc.Date.day,
+                    Rtc.Date.month, Rtc.Date.year);
+    log_usb_message("Alarm time set to: %i:%i:%i %i/%i/%i\r\n", AlarmTime1.Time.second, AlarmTime1.Time.minute,
+                    AlarmTime1.Time.hour, AlarmTime1.Date.day, AlarmTime1.Date.month, AlarmTime1.Date.year);
+
+    while (1) {
+
+        // Led on
+        GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
+
+        /* Disable USB */
+        usb_denit();
+
+        // Disable HAL tick
+        HAL_SuspendTick();
+        HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+        // Device now in sleep mode. Wakes up by interrupt from RTC
+        HAL_Init();
+        hardware_clock_config();
+        hardware_config_init();
+
+        // HAL_ResumeTick();
+        uint8_t i = 0;
+        while (i < 5) {
+            GPIO_TOGGLE(LED_GREEN_PORT, LED_GREEN_PIN);
+            HAL_Delay(1000);
+            i++;
+        }
+
+        while (1) {
+            log_usb_message("Hello!\r\n");
+            HAL_Delay(1000);
+        }
+        // dt_datetime_t Rtc;
+        // if (rtc_read_datetime(&Rtc) != TRUE) {
+        //     GPIO_SET_HIGH(LED_RED_PORT, LED_RED_PIN);
+        //     log_usb_message("Error reading RTC\r\n");
+        //     HAL_Delay(1000);
+        // }
+        // while (1) {
+
+        //     log_usb_message("RTC Time: %i:%i:%i %i/%i/%i\r\n", Rtc.Time.second, Rtc.Time.minute, Rtc.Time.hour,
+        //                     Rtc.Date.day, Rtc.Date.month, Rtc.Date.year);
+        //     HAL_Delay(1000);
+        // }
+    }
 }
 
 void wd_start(void) {
 
+    // main_sleep_test();
+
     // Initialise all the hardware
+    hardware_clock_config();
     hardware_config_init();
 
     /* Initialise software */
@@ -254,16 +327,9 @@ void wd_start(void) {
     // Read the watchdog settings from flash
     wd_read_settings(&gbl_CaptureTime, &lg_CameraSettings);
 
-    // Initialise event groups
-    event_group_clear(&gbl_EventsStm);
-    event_group_clear(&gbl_EventsEsp);
-
-    // TODO: Confirm the start, end and interval times just read are valid
-
-    // TODO: Calcaulte when the next alarm should be and set the RTC alarm for that
-
     /* Confirm the settings are valid */
     uint8_t errorFound = FALSE;
+
     /* TODO: Check the rest of the values */
 
     if (lg_CameraSettings.frameSize > WD_CR_UXGA_1600x1200) {
@@ -280,6 +346,58 @@ void wd_start(void) {
         wd_write_settings(&gbl_CaptureTime, &lg_CameraSettings);
     }
 
+    /* Confirm the start, end and interval times are valid */
+    if (dt_time_is_valid(&gbl_CaptureTime.Start.Time) != TRUE) {
+        sprintf(errorMsg, "Error %s on line %i. Time: %i:%i:%i\r\n", __FILE__, __LINE__,
+                gbl_CaptureTime.Start.Time.second, gbl_CaptureTime.Start.Time.minute, gbl_CaptureTime.Start.Time.hour);
+        // wd_error_handler_2(errorMsg);
+    }
+
+    if (dt_time_is_valid(&gbl_CaptureTime.End.Time) != TRUE) {
+        sprintf(errorMsg, "Error %s on line %i. Time: %i:%i:%i\r\n", __FILE__, __LINE__,
+                gbl_CaptureTime.End.Time.second, gbl_CaptureTime.End.Time.minute, gbl_CaptureTime.End.Time.hour);
+        // wd_error_handler_2(errorMsg);
+    }
+
+    GPIO_SET_HIGH(ESP32_POWER_PORT, ESP32_POWER_PIN);
+    HAL_Delay(4000);
+
+    /****** START CODE BLOCK ******/
+    // Description: Debugging. Can delete whenever
+    log_usb_message("Start time: %i:%i:%i %i/%i/%i\r\n", gbl_CaptureTime.Start.Time.second,
+                    gbl_CaptureTime.Start.Time.minute, gbl_CaptureTime.Start.Time.hour, gbl_CaptureTime.Start.Date.day,
+                    gbl_CaptureTime.Start.Date.month, gbl_CaptureTime.Start.Date.year);
+    log_usb_message("End time: %i:%i:%i %i/%i/%i\r\n", gbl_CaptureTime.End.Time.second, gbl_CaptureTime.End.Time.minute,
+                    gbl_CaptureTime.End.Time.hour, gbl_CaptureTime.End.Date.day, gbl_CaptureTime.End.Date.month,
+                    gbl_CaptureTime.End.Date.year);
+    log_usb_message("Interval: sec: %i min: %i hour: %i day: %i\r\n", gbl_CaptureTime.intervalSecond,
+                    gbl_CaptureTime.intervalMinute, gbl_CaptureTime.intervalHour, gbl_CaptureTime.intervalDay);
+
+    dt_datetime_t Rtc;
+    if (rtc_read_datetime(&Rtc) != TRUE) {
+        wd_error_handler(__FILE__, __LINE__);
+    }
+    log_usb_message("RTC Time: %i:%i:%i %i/%i/%i\r\n", Rtc.Time.second, Rtc.Time.minute, Rtc.Time.hour, Rtc.Date.day,
+                    Rtc.Date.month, Rtc.Date.year);
+
+    /****** END CODE BLOCK ******/
+
+    /* Calculate when the next alarm should be and set the RTC alarm for that */
+    dt_datetime_t AlarmTime1;
+    wd_calculate_next_alarm_time(&AlarmTime1);
+    rtc_set_alarm(&AlarmTime1);
+    rtc_enable_alarm();
+    log_usb_message("Alarm time set to: %i:%i:%i %i/%i/%i\r\n", AlarmTime1.Time.second, AlarmTime1.Time.minute,
+                    AlarmTime1.Time.hour, AlarmTime1.Date.day, AlarmTime1.Date.month, AlarmTime1.Date.year);
+    uint8_t a;
+    if (rtc_read_alarm_settings(&a) == TRUE) {
+        log_usb_message("Alarm settings: %x\r\n", a);
+    }
+
+    // Initialise event groups
+    event_group_clear(&gbl_EventsStm);
+    event_group_clear(&gbl_EventsEsp);
+
     // Set flag 'take photo' flag. In main loop below, STM32 will request ESP to
     // take a photo if this flag has been set. Getting ESP32 to take a photo on
     // startup to ensure the system is working correctly
@@ -291,7 +409,11 @@ void wd_start(void) {
     // and the system init flag has been set then it knows that the photo was a test
     // photo as this flag is only set once on startup. The STM32 can then blink an
     // led to let the user know that the system has been initialised
-    event_group_set_bit(&gbl_EventsStm, EVENT_STM_SYSTEM_INITIALISING, EGT_ACTIVE);
+
+    /****** START CODE BLOCK ******/
+    // Description: This will need to be recommented back in but just checking if this is what is causing the bug
+    // event_group_set_bit(&gbl_EventsStm, EVENT_STM_SYSTEM_INITIALISING, EGT_ACTIVE);
+    /****** END CODE BLOCK ******/
 
     // Enter main loop
     bpk_t BpkEspResponse, MapleBpacket;
@@ -301,30 +423,86 @@ void wd_start(void) {
 
         /* Turn the ESP on or off depending on if there are esp tasks that need to occur */
 
-        // Check if there are any esp flags that are set that are not ESP_ON or ESP_READY
+        // The conditions the ESP should turn on are
+        uint8_t espTurnOn = FALSE;
         if ((event_group_get_bits(&gbl_EventsEsp, EGT_ACTIVE) &
              ~((0x01 << EVENT_ESP_ON) | (0x01 << EVENT_ESP_READY))) != 0) {
+            espTurnOn = TRUE;
+        }
+
+        /* Have commented this out for testing. Comment it back in when done testing */
+        // if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN)) {
+        //     espTurnOn = TRUE;
+        // }
+
+        // Check if there are any esp flags that are set that are not ESP_ON or ESP_READY
+        if (espTurnOn) {
 
             // There is an esp event that needs to occur. Ensure the ESP has been turned on
             if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) != TRUE) {
                 wd_esp_turn_on();
+
+                /****** START CODE BLOCK ******/
+                // Description: Debugging. Remove when done. ESP is currently turned off so to simulate, pretend I
+                // got a ping back
+                event_group_set_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE);
+                log_usb_message("ESP Ready\r\n");
+                /****** END CODE BLOCK ******/
             }
         } else {
 
-            // Only turn the ESP off is the USB is not connected
-            if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN) == FALSE) {
-                // There are no pending esp events. Turn the ESP off if it is not already off
-                if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == TRUE) {
-                    wd_esp_turn_off();
-                }
+            // For testing purposes I have removed the condition that the ESP will always be on when
+            // USB C is connected
+            // // There are no pending esp events. Turn the ESP off if it is not already off
+            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == TRUE) {
+                wd_esp_turn_off();
             }
+
+            // Only turn the ESP off is the USB is not connected
+            // if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN) == FALSE) {
+            //     // There are no pending esp events. Turn the ESP off if it is not already off
+            //     if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == TRUE) {
+            //         wd_esp_turn_off();
+            //     }
+            // }
         }
 
         /* Put the STM32 to sleep if required */
         if (event_group_poll_bit(&gbl_EventsStm, EVENT_STM_SLEEP, EGT_ACTIVE) == TRUE) {
             event_group_clear_bit(&gbl_EventsStm, EVENT_STM_SLEEP, EGT_ACTIVE);
 
-            // TODO: Put the STM32 to sleep
+            /****** START CODE BLOCK ******/
+            // Description: Debugging
+            log_usb_message("Putting STM32 to sleep\r\n");
+
+            // This won't be needed here for the full thing and is just here for testing
+            // usb_denit();
+            /****** END CODE BLOCK ******/
+
+            /****** START CODE BLOCK ******/
+            // Description: Test code
+
+            // Disable HAL tick
+            HAL_SuspendTick();
+            HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+            // Device now in sleep mode. Wakes up by interrupt from RTC
+            HAL_Init();
+            hardware_clock_config();
+            hardware_config_init();
+
+            /****** START CODE BLOCK ******/
+            // Description: Just for debugging. Can remove when not required
+            // Delay for a bit to give time to plug USBC back in to see the message
+            uint8_t i = 0;
+            while (i < 30) {
+                GPIO_TOGGLE(LED_GREEN_PORT, LED_GREEN_PIN);
+                HAL_Delay(1000);
+                i++;
+            }
+            log_usb_message("STM woken back up\r\n");
+
+            /****** END CODE BLOCK ******/
         }
 
         /* Request ESP32 to take a photo if the 'take photo' flag has been set */
@@ -337,10 +515,26 @@ void wd_start(void) {
             if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_READY, EGT_ACTIVE) == TRUE) {
                 event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_ACTIVE);
 
-                uint8_t errorCode[1];
-                if (wd_request_photo_capture(errorCode) != TRUE) {
-                    wd_error_handler_2("Error %s on line %i. Code %i\r\n", __FILE__, __LINE__, errorCode[0]);
+                dt_datetime_t Rtc1;
+                if (rtc_read_datetime(&Rtc1) != TRUE) {
+                    wd_error_handler(__FILE__, __LINE__);
                 }
+
+                log_usb_message("Taking a photo at %i:%i:%i %i/%i/%i\r\n", Rtc1.Time.second, Rtc1.Time.minute,
+                                Rtc1.Time.hour, Rtc1.Date.day, Rtc1.Date.month, Rtc1.Date.year);
+
+                /****** START CODE BLOCK ******/
+                // Description: Simulating the ESP turning on and taking a photo. When you turn the ESP on for real you
+                // can delete this code
+                event_group_clear_bit(&gbl_EventsEsp, EVENT_ESP_TAKE_PHOTO, EGT_EVENT_RUNNING);
+                /****** END CODE BLOCK ******/
+
+                // log_usb_message("Taking a photo!\r\n");
+                // Commenting out the actual photo request but comment it back in when you want to take photos
+                // uint8_t errorCode[1];
+                // if (wd_request_photo_capture(errorCode) != TRUE) {
+                //     wd_error_handler_2("Error %s on line %i. Code %i\r\n", __FILE__, __LINE__, errorCode[0]);
+                // }
             }
         }
 
@@ -351,16 +545,17 @@ void wd_start(void) {
 
             /* Calculate the next alarm time */
             dt_datetime_t AlarmTime;
-            if (rtc_read_alarm_datetime(&AlarmTime) != TRUE) {
+            if (rtc_read_alarm_datetime(&AlarmTime, 0) != TRUE) {
                 wd_error_handler(__FILE__, __LINE__);
             }
 
-            dt_datetime_add_time(&AlarmTime, gbl_CaptureTime.intervalSecond, gbl_CaptureTime.intervalMinute,
-                                 gbl_CaptureTime.intervalHour, gbl_CaptureTime.intervalDay);
+            // TODO: Calculate the next alarm time more efficiently
+            wd_calculate_next_alarm_time(&AlarmTime);
 
             // Check if the system still needs to take photos
-            if (dt1_greater_than_dt2(&AlarmTime, &gbl_CaptureTime.Start) == TRUE) {
+            if (dt1_greater_than_dt2(&AlarmTime, &gbl_CaptureTime.End) == TRUE) {
                 rtc_disable_alarm();
+                log_usb_message("Alarm disabled\r\n");
             } else {
                 rtc_set_alarm(&AlarmTime);
             }
@@ -379,27 +574,33 @@ void wd_start(void) {
         // case the interrupt would never fire. Polling ensures that no matter how the system
         // is powered, it will always know if the USBC is connected or not
         if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN)) {
-            GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
+
+            // Uncommented for testing. Comment back in when ready
+            // GPIO_SET_HIGH(LED_GREEN_PORT, LED_GREEN_PIN);
 
             /* When the USB is connected, the ESP32 should turn on and be ready for any commands
                 request by the computer */
-            if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == FALSE) {
+            /****** START CODE BLOCK ******/
+            // Description: I have moved this functionality to the power section so can delete whenever
 
-                // Turn the ESP on. This will also set the EVENT_ESP_ON flag
-                wd_esp_turn_on();
+            // if (event_group_poll_bit(&gbl_EventsEsp, EVENT_ESP_ON, EGT_ACTIVE) == FALSE) {
 
-                /****** START CODE BLOCK ******/
-                // Description: For the moment, the ESP is always on because the PCB for the ESP
-                // doesn't work. Given this, we will send a ping request instead of turning the
-                // esp on (as it is always on). The response from the ping request will be the
-                // same as if the ESP has just turned on and the EVENT_ESP_ON and EVENT_ESP_READY
-                // flags should be set
-                bpk_t PingRequest;
-                bpk_create(&PingRequest, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Request_Ping,
-                           BPK_Code_Execute, 0, NULL);
-                wd_write_bpacket_esp(&PingRequest);
-                /****** END CODE BLOCK ******/
-            }
+            //     // Turn the ESP on. This will also set the EVENT_ESP_ON flag
+            //     wd_esp_turn_on();
+
+            //     /****** START CODE BLOCK ******/
+            //     // Description: For the moment, the ESP is always on because the PCB for the ESP
+            //     // doesn't work. Given this, we will send a ping request instead of turning the
+            //     // esp on (as it is always on). The response from the ping request will be the
+            //     // same as if the ESP has just turned on and the EVENT_ESP_ON and EVENT_ESP_READY
+            //     // flags should be set
+            //     bpk_t PingRequest;
+            //     bpk_create(&PingRequest, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Stm32, BPK_Request_Ping,
+            //                BPK_Code_Execute, 0, NULL);
+            //     wd_write_bpacket_esp(&PingRequest);
+            //     /****** END CODE BLOCK ******/
+            // }
+            /****** END CODE BLOCK ******/
 
             // USBC is connected, check for any incoming bpackets and process them if any come
             if (usb_read_packet(&MapleBpacket) == TRUE) {
@@ -424,14 +625,21 @@ void wd_start(void) {
                 bpk_create(&BpkDatetime, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Req_Get_Datetime,
                            BPK_Code_Success, 7, datetimeData);
 
-                wd_write_bpacket_maple(&BpkDatetime);
+                // TODO: Uncomment this so the time gets updated in Maple
+                // wd_write_bpacket_maple(&BpkDatetime);
             }
 
         } else {
-            GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
+            // Uncommented for testing
+            // GPIO_SET_LOW(LED_GREEN_PORT, LED_GREEN_PIN);
         }
 
-        // TODO: Check whether the STM32 needs to go to sleep
+        /* Request STM to go to sleep if there is no current requests for the STM or the ESP */
+        if ((event_group_get_bits(&gbl_EventsStm, EGT_ACTIVE) == 0) &&
+            (event_group_get_bits(&gbl_EventsEsp, EGT_ACTIVE) == 0)) {
+            log_usb_message("ESP should go to sleep\r\n");
+            event_group_set_bit(&gbl_EventsStm, EVENT_STM_SLEEP, EGT_ACTIVE);
+        }
     }
 }
 
@@ -644,13 +852,14 @@ void wd_handle_esp_response(bpk_t* Bpacket) {
 
         /****** START CODE BLOCK ******/
         // Description: Debugging purposes. Can delete when not required
-        bpk_t debugMessage;
-        bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message, BPK_Code_Success,
-                      "ESP is ready");
-        wd_write_bpacket_maple(&debugMessage);
+        // bpk_t debugMessage;
+        // bpk_create_sp(&debugMessage, BPK_Addr_Receive_Maple, BPK_Addr_Send_Stm32, BPK_Request_Message,
+        // BPK_Code_Success,
+        //               "ESP is ready");
+        // wd_write_bpacket_maple(&debugMessage);
         /****** END CODE BLOCK ******/
 
-        log_usb_success("Received ESP ping!\r\n");
+        log_usb_success("ESP now ready\r\n");
     }
 
     if (Bpacket->Request.val == BPK_REQ_DELETE_FILE) {
@@ -915,29 +1124,29 @@ void wd_read_settings(capture_time_t* CaptureTime, camera_settings_t* CameraSett
 
     // If there are no settings currently set, startAddress will not have incremented
     if (startAddress == (uint32_t*)WD_FLASH_SETTINGS_START_ADDRESS) {
-
+        log_usb_message("Setting default\r\n");
         /* Set the default settings such that system will take a photo twice a day */
         CaptureTime->Start.Date.day    = 1;
         CaptureTime->Start.Date.month  = 1;
         CaptureTime->Start.Date.year   = 2023;
         CaptureTime->Start.Time.second = 0;
         CaptureTime->Start.Time.minute = 0;
-        CaptureTime->Start.Time.hour   = 0;
+        CaptureTime->Start.Time.hour   = 5; // Start time set to 5am
 
         CaptureTime->End.Date.day    = 1;
         CaptureTime->End.Date.month  = 1;
         CaptureTime->End.Date.year   = 2030;
         CaptureTime->End.Time.second = 0;
         CaptureTime->End.Time.minute = 0;
-        CaptureTime->End.Time.hour   = 0;
+        CaptureTime->End.Time.hour   = 18; // End time set to 6pm
 
         CaptureTime->intervalSecond = 0;
-        CaptureTime->intervalMinute = 0;
-        CaptureTime->intervalHour   = 2;
+        CaptureTime->intervalMinute = 1;
+        CaptureTime->intervalHour   = 0;
         CaptureTime->intervalDay    = 0;
 
         CameraSettings->frameSize       = WD_CR_UXGA_1600x1200;
-        CameraSettings->jpegCompression = 0;
+        CameraSettings->jpegCompression = 8;
 
         /* These are now the default settings. Write them to the flash */
         if (wd_write_settings(CaptureTime, CameraSettings) != TRUE) {
@@ -984,4 +1193,63 @@ void wd_read_settings(capture_time_t* CaptureTime, camera_settings_t* CameraSett
 
     CameraSettings->frameSize       = (uint8_t)((flashRead[3] >> 24) & 0xFF);
     CameraSettings->jpegCompression = (uint8_t)((flashRead[3] >> 16) & 0xFF);
+}
+
+uint8_t wd_calculate_next_alarm_time(dt_datetime_t* AlarmDatetime) {
+
+    // Read the rtc time
+    dt_datetime_t Rtc;
+    if (rtc_read_datetime(&Rtc) != TRUE) {
+        return FALSE;
+    }
+
+    // Set the date of the alarm to be the current date on the real time clock
+    AlarmDatetime->Date.day   = Rtc.Date.day;
+    AlarmDatetime->Date.month = Rtc.Date.month;
+    AlarmDatetime->Date.year  = Rtc.Date.year;
+
+    // Set the time of the alarm to be the start time
+    if (dt_time_init(&AlarmDatetime->Time, gbl_CaptureTime.Start.Time.second, gbl_CaptureTime.Start.Time.minute,
+                     gbl_CaptureTime.Start.Time.hour) != TRUE) {
+        return FALSE;
+    }
+
+    /****** START CODE BLOCK ******/
+    // Description: Debugging. Can delete whenever
+    // log_usb_message("RTC Time: %i:%i:%i %i/%i/%i\r\n", Rtc.Time.second, Rtc.Time.minute, Rtc.Time.hour, Rtc.Date.day,
+    //                 Rtc.Date.month, Rtc.Date.year);
+    // // log_usb_message("RTC Time: %i:%i:%i\r\n", RtcTime.second, RtcTime.minute, RtcTime.hour);
+    /****** END CODE BLOCK ******/
+
+    /* Need to check whether the alarm time should actually be later than the start time */
+    while (1) {
+
+        // RTC time less than current alarm time so the alarm time is set correctly
+        if (dt1_less_than_dt2(&Rtc, AlarmDatetime) == TRUE) {
+            // log_usb_message("Breaking\r\n");
+            break;
+        }
+
+        // Rtc time >= current alarm time. Need to advance the current alarm time by the
+        // given time interval
+        dt_datetime_add_time(AlarmDatetime, gbl_CaptureTime.intervalSecond, gbl_CaptureTime.intervalMinute,
+                             gbl_CaptureTime.intervalHour, gbl_CaptureTime.intervalDay);
+
+        // If the current alarm time is now > the end time then need to set the alarm time
+        // to the start time and exit
+        if (dt_t1_greater_than_t2(&AlarmDatetime->Time, &gbl_CaptureTime.End.Time) == TRUE) {
+
+            // Increment the alarm time day
+            dt_datetime_add_time(AlarmDatetime, 0, 0, 0, 1);
+
+            if (dt_time_init(&AlarmDatetime->Time, gbl_CaptureTime.Start.Time.second, gbl_CaptureTime.Start.Time.minute,
+                             gbl_CaptureTime.Start.Time.hour) != TRUE) {
+                return FALSE;
+            }
+
+            break;
+        }
+    }
+
+    return TRUE;
 }

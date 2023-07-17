@@ -98,6 +98,27 @@ uint8_t dt_date_is_valid(dt_date_t* Date) {
     return dt_date_valid(Date->day, Date->month, Date->year);
 }
 
+uint8_t dt_t1_greater_than_t2(dt_time_t* T1, dt_time_t* T2) {
+
+    if (T1->hour > T2->hour) {
+        return TRUE;
+    }
+
+    if ((T1->hour == T2->hour) && (T1->minute > T2->minute)) {
+        return TRUE;
+    }
+
+    if ((T1->hour == T2->hour) && (T1->minute == T2->minute) && (T1->second > T2->second)) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+uint8_t dt_t1_less_than_t2(dt_time_t* T1, dt_time_t* T2) {
+    return dt_t1_greater_than_t2(T2, T1);
+}
+
 uint8_t dt_date_valid(uint8_t day, uint8_t month, uint16_t year) {
 
     if ((day == 0) || (month == 0) || (year == 0) || (month > 12)) {
@@ -162,30 +183,39 @@ void dt_datetime_add_time(dt_datetime_t* Datetime, uint16_t seconds, uint16_t mi
     dt_datetime_add_days(Datetime, days);
 }
 
+uint8_t dt1_less_than_dt2(dt_datetime_t* Dt1, dt_datetime_t* Dt2) {
+    return dt1_greater_than_dt2(Dt2, Dt1);
+}
+
 uint8_t dt1_greater_than_dt2(dt_datetime_t* Dt1, dt_datetime_t* Dt2) {
 
-    if (Dt2->Date.year > Dt1->Date.year) {
-        return FALSE;
+    if (Dt1->Date.year > Dt2->Date.year) {
+        return TRUE;
     }
 
-    if (Dt2->Date.month > Dt1->Date.month) {
-        return FALSE;
+    if ((Dt1->Date.year == Dt2->Date.year) && (Dt1->Date.month > Dt2->Date.month)) {
+        return TRUE;
     }
 
-    if (Dt2->Date.day > Dt1->Date.day) {
-        return FALSE;
+    if ((Dt1->Date.year == Dt2->Date.year) && (Dt1->Date.month == Dt2->Date.month) && (Dt1->Date.day > Dt2->Date.day)) {
+        return TRUE;
     }
 
-    if (Dt2->Time.hour > Dt1->Time.hour) {
-        return FALSE;
+    if ((Dt1->Date.year == Dt2->Date.year) && (Dt1->Date.month == Dt2->Date.month) &&
+        (Dt1->Date.day == Dt2->Date.day) && (Dt1->Time.hour > Dt2->Time.hour)) {
+        return TRUE;
     }
 
-    if (Dt2->Time.minute > Dt1->Time.minute) {
-        return FALSE;
+    if ((Dt1->Date.year == Dt2->Date.year) && (Dt1->Date.month == Dt2->Date.month) &&
+        (Dt1->Date.day == Dt2->Date.day) && (Dt1->Time.hour == Dt2->Time.hour) &&
+        (Dt1->Time.minute > Dt2->Time.minute)) {
+        return TRUE;
     }
 
-    if (Dt2->Time.second >= Dt1->Time.second) {
-        return FALSE;
+    if ((Dt1->Date.year == Dt2->Date.year) && (Dt1->Date.month == Dt2->Date.month) &&
+        (Dt1->Date.day == Dt2->Date.day) && (Dt1->Time.hour == Dt2->Time.hour) &&
+        (Dt1->Time.minute == Dt2->Time.minute) && (Dt1->Time.second > Dt2->Time.second)) {
+        return TRUE;
     }
 
     return FALSE;

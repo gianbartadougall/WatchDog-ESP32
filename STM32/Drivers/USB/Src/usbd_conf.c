@@ -25,6 +25,9 @@
 #include "usbd_core.h"
 #include "usbd_cdc.h"
 
+/* Personal Includes */
+#include "hardware_config.h"
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -803,6 +806,6 @@ void USBD_static_free(void* p) {}
  * @retval None
  */
 static void SystemClockConfig_Resume(void) {
-    SystemClock_Config();
+    hardware_clock_config();
 }
 /* USER CODE END 5 */

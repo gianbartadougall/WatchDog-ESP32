@@ -12,6 +12,9 @@
 /* Personal Includes */
 #include <string.h>
 
+/* ESP32 Includes */
+#include <driver/uart.h>
+
 /* Personal Includes */
 #include "esp32_uart.h"
 #include "hardware_config.h"

@@ -32,8 +32,6 @@
 #include "watchdog_utils.h"
 
 /* Private Macros */
-#define COB_LED HC_COB_LED
-#define RED_LED HC_RED_LED
 
 void esp_handle_request(bpk_t* Bpacket) {
 
@@ -60,6 +58,7 @@ void esp_handle_request(bpk_t* Bpacket) {
             esp32_uart_send_bpacket(&BpkEspResponse);
             return;
         }
+
         if (camera_capture_and_save_image1(&Datetime, temperature, msg) != TRUE) {
             bpk_create_sp(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request, BPK_Code_Error, msg);
         } else {
@@ -124,14 +123,14 @@ void esp_handle_request(bpk_t* Bpacket) {
     }
 
     if (Bpacket->Request.val == BPK_REQ_LED_RED_ON) {
-        led_on(RED_LED);
+        led_on(HC_RED_LED);
         bpk_create(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request, BPK_Code_Success, 0, NULL);
         esp32_uart_send_bpacket(&BpkEspResponse);
         return;
     }
 
     if (Bpacket->Request.val == BPK_REQ_LED_RED_OFF) {
-        led_off(RED_LED);
+        led_off(HC_RED_LED);
         bpk_create(&BpkEspResponse, Bpacket->Receiver, Bpacket->Sender, Bpacket->Request, BPK_Code_Success, 0, NULL);
         esp32_uart_send_bpacket(&BpkEspResponse);
         return;
@@ -151,18 +150,18 @@ void esp_handle_request(bpk_t* Bpacket) {
 void watchdog_system_start(void) {
 
     // Turn all the LEDs off
-    led_off(COB_LED);
-    led_off(RED_LED);
+    led_off(HC_COB_LED);
+    led_off(HC_RED_LED);
 
     /* Send a ping out over UART to let Watchdog know the ESP is ready for requests */
-    bpk_t Bpacket;
-    bpk_create(&Bpacket, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Esp32, BPK_Request_Ping, BPK_Code_Success, 0, NULL);
-    esp32_uart_send_bpacket(&Bpacket);
+    bpk_t BpkPing, Bpacket;
+    bpk_create(&BpkPing, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Esp32, BPK_Request_Ping, BPK_Code_Success, 0, NULL);
+    esp32_uart_send_bpacket(&BpkPing);
 
     bpk_reset(&Bpacket);
     int i = 0;
     while (1) {
-        i++;
+
         // Delay for second
         vTaskDelay(200 / portTICK_PERIOD_MS);
 
@@ -170,73 +169,68 @@ void watchdog_system_start(void) {
             esp_handle_request(&Bpacket);
         }
 
-        if (i == 25) {
+        /* ###### START DEBUGGING BLOCK ###### */
+        // Description: Can delete whenever
+        if (i == 1) {
+            led_on(HC_RED_LED);
             i = 0;
-            led_on(COB_LED);
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            led_off(COB_LED);
+        } else if (i == 0) {
+            led_off(HC_RED_LED);
+            i = 1;
         }
+        /* ####### END DEBUGGING BLOCK ####### */
     }
 }
 
-uint8_t software_config(bpk_t* Bpacket) {
+uint8_t software_config(char* msg) {
 
-    // bpk_t b1;
-
-    if (sd_card_init(Bpacket) != TRUE) {
+    /* Open the SD card to see if there */
+    // Mount the SD card
+    if (sd_card_open() != TRUE) {
+        sprintf(msg, "SD Card failed to open");
         return FALSE;
     }
 
-    // bpk_create(Bpacket, BPK_Addr_Receive_Esp32, BPK_Addr_Send_Maple, BPK_Req_Get_Camera_Settings, BPK_Code_Execute,
-    // 0,
-    //            NULL);
-
-    if (sd_card_format_sd_card(Bpacket) != TRUE) {
-        esp32_uart_send_bpacket(Bpacket);
+    if (sd_card_check_directory_exists(WATCHDOG_FOLDER_PATH_START_AT_ROOT) != TRUE) {
+        sprintf(msg, "%s could not be created", WATCHDOG_FOLDER_PATH_START_AT_ROOT);
         return FALSE;
     }
 
-    // Get the camera resolution saved on the SD card
-    // wd_camera_settings_t cameraSettings;
-    // if (sd_card_get_camera_settings(&cameraSettings) == TRUE) {
-    //     char o[40];
-    //     sprintf(o, "Setting camera resolution to: %i\r\n", cameraSettings.frameSize);
-    //     bpk_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success, o);
-    //     esp32_uart_send_bpacket(&b1);
-    //     camera_set_resolution(cameraSettings.frameSize);
-    // }
+    if (sd_card_check_directory_exists(DATA_FOLDER_PATH_START_AT_ROOT) != TRUE) {
+        sprintf(msg, "%s could not be created", DATA_FILE_PATH_START_AT_ROOT);
+        return FALSE;
+    }
 
-    // Initialise the camera
+    // Update the image count
+    if (sd_card_update_image_count(msg) != TRUE) {
+        return FALSE;
+    }
+
+    // Unmount the SD card
+    sd_card_close();
+
+    // Initialise the camera to confirm its working properly
     if (camera_init() != TRUE) {
-        sd_card_log(LOG_FILE_NAME, "Camera failed to initialise\n\0");
+        sprintf(msg, "Camera failed to initialise");
         return FALSE;
     }
 
-    // bpk_create_sp(&b1, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message, BPK_Code_Success,
-    //               "All software initialised");
-    // esp32_uart_send_bpacket(&b1);
+    if (camera_deinit() != TRUE) {
+        sprintf(msg, "Camera failed to deinit");
+        return FALSE;
+    }
 
     return TRUE;
 }
 
 void app_main(void) {
 
-    bpk_t status;
+    char msg[100];
 
     /* Initialise all the hardware used */
-    if (hardware_config(&status) == TRUE) {
+    if ((hardware_config() == TRUE) && (software_config(msg) == TRUE)) {
         watchdog_system_start();
     }
-
-    /* Initialise all the hardware used */
-    // if (hardware_config(&status) == TRUE && software_config(&status) == TRUE) {
-    //     watchdog_system_start();
-    // }
-
-    // if (sd_card_open() == TRUE) {
-    //     sd_card_log(LOG_FILE_NAME, "Exited Watchdog System. Waiting for shutdown");
-    //     sd_card_close();
-    // }
 
     uint8_t i = 0;
     while (1) {
@@ -244,12 +238,14 @@ void app_main(void) {
         // esp32_uart_send_data("\r\n");
         vTaskDelay(500 / portTICK_PERIOD_MS);
         if (i == 1) {
-            led_on(RED_LED);
+            led_on(HC_RED_LED);
             i = 0;
         } else {
-            led_off(RED_LED);
+            led_off(HC_RED_LED);
             i = 1;
         }
+
+        esp32_uart_send_string(msg);
     }
 }
 

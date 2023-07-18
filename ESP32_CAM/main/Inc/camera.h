@@ -30,6 +30,8 @@
 
 uint8_t camera_init(void);
 
+uint8_t camera_deinit(void);
+
 void camera_capture_and_save_image(bpk_t* Bpacket);
 
 uint8_t camera_set_settings(camera_settings_t* CameraSettings, char* msg);

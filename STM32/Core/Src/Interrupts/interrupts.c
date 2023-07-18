@@ -20,17 +20,10 @@
 
 void USART1_IRQHandler(void) {
 
-    /****** START CODE BLOCK ******/
-    // Description: Debuging. Can delete
-    log_usb_message("Interrupt 0\r\n");
-    /****** END CODE BLOCK ******/
-
     if ((USART1->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART1->RDR;
-        // uint8_t c = USART1->RDR;
-        // log_send_data(&c, 1);
-        // log_usb_message("got char\r\n");
+
         // Copy bit into buffer. Reading RDR automatically clears flag
         uart_append_to_buffer(BUFFER_1_ID, (uint8_t)c);
     }
@@ -46,10 +39,7 @@ void USART1_IRQHandler(void) {
 }
 
 void USART2_IRQHandler(void) {
-    /****** START CODE BLOCK ******/
-    // Description: Debuging. Can delete
-    log_usb_message("Interrupt 1\r\n");
-    /****** END CODE BLOCK ******/
+
     if ((USART2->ISR & USART_ISR_RXNE) != 0) {
 
         char c = USART2->RDR;
@@ -86,10 +76,7 @@ void USART2_IRQHandler(void) {
 }
 
 void RTC_Alarm_IRQHandler(void) {
-    /****** START CODE BLOCK ******/
-    // Description: Debuging. Can delete
-    log_usb_message("Interrupt 2\r\n");
-    /****** END CODE BLOCK ******/
+
     // Check if alarm A was triggered
     if ((STM32_RTC->ISR &= RTC_ISR_ALRAF) != 0) {
         log_usb_message("Triggered!\r\n");

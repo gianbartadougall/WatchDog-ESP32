@@ -56,6 +56,7 @@ char* hours[50]        = {"00", "01", "02", "03", "04", "05", "06", "07", "08", 
                    "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"};
 char* resolutions[50]  = {"Very Low", "Low", "Medium", "High", "Very High"};
 char* compressions[50] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+char* flashOptions[50] = {"Disabled", "Enabled"};
 
 #define PACKET_BUFFER_SIZE 50
 
@@ -105,10 +106,14 @@ HWND lbl_intervalTimeMinutes;
 HWND db_intervalTimeHours;
 HWND lbl_intervalTimeHours;
 
-HWND lbl_camResolution;
-HWND db_camResolution;
+HWND lbl_camFrameSize;
+HWND db_camFrameSize;
+HWND lbl_flashEnabled;
+HWND db_flashEnabled;
 HWND lbl_camQuality;
 HWND db_camQuality;
+
+HWND lbl_nextAlarm;
 
 HWND btn_SaveSettings;
 
@@ -164,6 +169,7 @@ uint32_t lg_fileDataIndex = 0;
 #define BTN_COPY_FILE_ID      32
 #define BTN_DELETE_FILE_ID    33
 #define DD_FILE_SELECTOR      34
+#define DD_CAMERA_FLASH       35
 
 enum maple_event_e {
     EVENT_WRITE_WATCHDOG_SETTINGS = EGB_0,
@@ -561,12 +567,13 @@ void maple_handle_events(void) {
         lg_CaptureTime.End.Date.year   = 2030;
 
         // Copy the capture time dates and camera settings into an array
-        uint8_t settingsData[20];
+        uint8_t settingsData[WD_NUM_SETTINGS_BYTES];
         wd_utils_settings_to_array(settingsData, &lg_CaptureTime, &lg_CameraSettings);
 
         /* Update settings on watchdog */
         bpk_create(&BpkMapleRequest, BPK_Addr_Receive_Stm32, BPK_Addr_Send_Maple,
-                   BPK_Req_Set_Watchdog_Settings, BPK_Code_Execute, 20, settingsData);
+                   BPK_Req_Set_Watchdog_Settings, BPK_Code_Execute, WD_NUM_SETTINGS_BYTES,
+                   settingsData);
         maple_send_bpacket(&BpkMapleRequest);
 
         // Start timeout for response
@@ -722,11 +729,14 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         log_success("%s deleted\r\n", lg_selectedFile);
 
-        // Read directory again from watchdog to update the file list. Although this
-        // is slower than just deleting the item from the list here, this will ensure
-        // the user knows exactly what is on the SD card incase the are any bugs or
-        // something
-        event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
+        // Set the selected file to NULL
+        lg_selectedFile =
+
+            // Read directory again from watchdog to update the file list. Although this
+            // is slower than just deleting the item from the list here, this will ensure
+            // the user knows exactly what is on the SD card incase the are any bugs or
+            // something
+            event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
@@ -882,6 +892,7 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         lg_CameraSettings.frameSize       = Bpacket->Data.bytes[18];
         lg_CameraSettings.jpegCompression = Bpacket->Data.bytes[19];
+        lg_CameraSettings.flashEnabled    = Bpacket->Data.bytes[20];
 
         /* Update the dropboxes */
         SendMessage(db_startTimeMinutes, CB_SETCURSEL, lg_CaptureTime.Start.Time.minute / 5, 0);
@@ -893,8 +904,9 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         SendMessage(db_intervalTimeMinutes, CB_SETCURSEL, lg_CaptureTime.intervalMinute / 5, 0);
         SendMessage(db_intervalTimeHours, CB_SETCURSEL, lg_CaptureTime.intervalHour, 0);
 
-        SendMessage(db_camResolution, CB_SETCURSEL, lg_CameraSettings.frameSize, 0);
+        SendMessage(db_camFrameSize, CB_SETCURSEL, lg_CameraSettings.frameSize, 0);
         SendMessage(db_camQuality, CB_SETCURSEL, lg_CameraSettings.jpegCompression, 0);
+        SendMessage(db_flashEnabled, CB_SETCURSEL, lg_CameraSettings.flashEnabled, 0);
     }
 
     if (Bpacket->Request.val == BPK_REQ_SET_WATCHDOG_SETTINGS) {
@@ -933,7 +945,17 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         es_add_task(&lg_MapleScheduler, EVENT_GET_TEMPERATURE, 5000);
     }
 
-    // TODO: Implement rest
+    if (Bpacket->Request.val == BPK_REQ_GET_RTC_ALARM) {
+
+        // Extract the alarm time from the bpacket
+        char alarmTime[50];
+        sprintf(alarmTime, "Next Alarm: %i:%i:%i %i/%i/%i", Bpacket->Data.bytes[0],
+                Bpacket->Data.bytes[1], Bpacket->Data.bytes[2], Bpacket->Data.bytes[3],
+                Bpacket->Data.bytes[4], (Bpacket->Data.bytes[5] << 8) | Bpacket->Data.bytes[6]);
+
+        // Update the label text
+        SetWindowText(lbl_nextAlarm, alarmTime);
+    }
 }
 
 LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -1018,6 +1040,14 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
         uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 
         lg_CameraSettings.jpegCompression = index;
+    }
+
+    if (wmId == DD_CAMERA_FLASH && wmEvent == CBN_SELCHANGE) {
+        uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+
+        // Can set the value to be the index as disabled is set as index 0
+        // and enabled is set as index 1
+        lg_CameraSettings.flashEnabled = index;
     }
 
     if (wmId == DD_FILE_SELECTOR && wmEvent == CBN_SELCHANGE) {
@@ -1116,15 +1146,17 @@ int main(int argc, char** argv) {
 void maple_populate_gui(HWND hwnd) {
 
     /* Create peripheral for connection status */
-    lbl_watchdogConnection = gui_utils_create_label("Not connected", 500, 10, 200, 30, hwnd, NULL);
+    lbl_watchdogConnection = gui_utils_create_label("Not connected", 800, 10, 200, 30, hwnd, NULL);
+
+    lbl_nextAlarm = gui_utils_create_label("Next Alarm: ", 450, 10, 320, 30, hwnd, NULL);
 
     /* Create peripheral for temperature value */
     lbl_watchdogTemperature =
-        gui_utils_create_label("Temperature: -", 500, 40, 200, 30, hwnd, NULL);
+        gui_utils_create_label("Temperature: -", 800, 40, 200, 30, hwnd, NULL);
 
     /* Create peripheral for the take photo button */
     btn_takePhoto =
-        gui_utils_create_button("Take Photo", 500, 80, 200, 30, hwnd, (HMENU)BTN_TAKE_PHOTO_ID);
+        gui_utils_create_button("Take Photo", 800, 80, 200, 30, hwnd, (HMENU)BTN_TAKE_PHOTO_ID);
 
     /* Create peripherals for the current datetime on the watchdog */
     lbl_TitleWatchdogDateTime =
@@ -1174,32 +1206,38 @@ void maple_populate_gui(HWND hwnd) {
 
     /* Create peripherals for image quality */
     const int cTy1 = 230;
-    lbl_camResolution =
+    lbl_camFrameSize =
         gui_utils_create_label("Frame Size: ", xVals[0], cTy1, lblTw2, lblTh, hwnd, NULL);
-    db_camResolution = gui_utils_create_dropbox("Title", xVals[1], cTy1, 120, ddHeight, hwnd,
-                                                (HMENU)DD_CAMERA_RESOLUTION, 5, resolutions);
-    const int cTy2   = 270;
+    db_camFrameSize = gui_utils_create_dropbox("Title", xVals[1], cTy1, 120, ddHeight, hwnd,
+                                               (HMENU)DD_CAMERA_RESOLUTION, 5, resolutions);
+    const int cTy2  = 270;
     lbl_camQuality =
         gui_utils_create_label("Compression: ", xVals[0], cTy2, lblTw2, lblTh, hwnd, NULL);
     db_camQuality = gui_utils_create_dropbox("Title", xVals[1], cTy2, 120, ddHeight, hwnd,
                                              (HMENU)DD_CAMERA_COMPRESSION, 10, compressions);
 
+    const int cTy3 = 310;
+    lbl_flashEnabled =
+        gui_utils_create_label("Camera Flash: ", xVals[0], cTy3, lblTw2, lblTh, hwnd, NULL);
+    db_flashEnabled = gui_utils_create_dropbox("Title", xVals[1], cTy3, 120, ddHeight, hwnd,
+                                               (HMENU)DD_CAMERA_FLASH, 2, flashOptions);
+
     /* Button for saving settings */
-    const int bTy    = 310;
+    const int bTy    = 350;
     btn_SaveSettings = gui_utils_create_button("Save Settings", xVals[0], bTy, 180, 30, hwnd,
                                                (HMENU)BTN_SAVE_SETTINGS_ID);
 
     /* Peripherals for interacing with the SD card */
-    const int fTy = 350;
+    const int fTy = 390;
     db_images     = gui_utils_create_dropbox("Title", xVals[0], fTy, 300, ddHeight, hwnd,
                                          (HMENU)DD_FILE_SELECTOR, 0, NULL);
 
-    const int lTy1 = 390;
+    const int lTy1 = 430;
     btn_listDir    = gui_utils_create_button("List Image Data", xVals[0], lTy1, 180, 30, hwnd,
                                           (HMENU)BTN_LIST_DIR_ID);
     btn_deleteFile = gui_utils_create_button("Delete Selected Image", xVals[3], lTy1, 180, 30, hwnd,
                                              (HMENU)BTN_DELETE_FILE_ID);
-    const int lTy2 = 430;
+    const int lTy2 = 470;
     btn_copyFile   = gui_utils_create_button("Copy Selected Image", xVals[0], lTy2, 180, 30, hwnd,
                                            (HMENU)BTN_COPY_FILE_ID);
 }

@@ -16,6 +16,8 @@
 #include "utils.h"
 #include "datetime.h"
 #include "watchdog_utils.h"
+#include "led.h"
+#include "hardware_config.h"
 
 /* Private Macros */
 #define BOARD_ESP32CAM_AITHINKER
@@ -92,7 +94,8 @@ static camera_config_t camera_config = {
     .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
 };
 
-int cameraInitalised = 0;
+int cameraInitalised    = 0;
+uint8_t lg_flashEnabled = FALSE;
 
 /* Function Prototypes */
 uint8_t camera_capture_image(camera_fb_t** image);
@@ -157,6 +160,8 @@ uint8_t camera_set_settings(camera_settings_t* CameraSettings, char* msg) {
         return FALSE;
     }
 
+    lg_flashEnabled = CameraSettings->flashEnabled;
+
     camera_config.jpeg_quality = CameraSettings->jpegCompression;
 
     return TRUE;
@@ -186,21 +191,26 @@ void camera_stream_image(bpk_t* Bpacket) {
 
 uint8_t camera_capture_and_save_image1(dt_datetime_t* Datetime, float temperature, char* msg) {
 
-    bpk_t Bpacket;
     // Confirm camera has been initialised
     if (camera_init() != TRUE) {
         sprintf(msg, "Error %s on line %i. Camera could not init", __FILE__, __LINE__);
         return FALSE;
     }
 
+    if (lg_flashEnabled == TRUE) {
+        led_on(HC_COB_LED);
+    }
+
     camera_fb_t* pic = esp_camera_fb_get();
+
+    led_off(HC_COB_LED);
 
     // Return error if picture could not be taken
     uint8_t success = FALSE;
     if (pic == NULL) {
         sprintf(msg, "Error %s on line %i. Failed to take a photo", __FILE__, __LINE__);
     } else if (sd_card_save_image(pic->buf, pic->len, Datetime, temperature, msg) != TRUE) {
-        sprintf(msg, "Error %s on line %i. Image could not be saved", __FILE__, __LINE__);
+        return FALSE;
     } else {
         sprintf(msg, "Image was %zu bytes", pic->len);
         success = TRUE;
@@ -213,45 +223,45 @@ uint8_t camera_capture_and_save_image1(dt_datetime_t* Datetime, float temperatur
     return success;
 }
 
-void camera_capture_and_save_image(bpk_t* Bpacket) {
+// void camera_capture_and_save_image(bpk_t* Bpacket) {
 
-    // Confirm camera has been initialised
-    if (cameraInitalised != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "Camera was unitailised\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return;
-    }
+//     // Confirm camera has been initialised
+//     if (cameraInitalised != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "Camera was unitailised\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return;
+//     }
 
-    // Confirm the SD card can be mounted
-    if (sd_card_open() != TRUE) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card could not open\0");
-        esp32_uart_send_bpacket(Bpacket);
-        return;
-    }
+//     // Confirm the SD card can be mounted
+//     if (sd_card_open() != TRUE) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "SD card could not open\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         return;
+//     }
 
-    // Take a photo
-    sd_card_log(LOG_FILE_NAME, "Taking image");
-    camera_fb_t* pic = esp_camera_fb_get();
+//     // Take a photo
+//     sd_card_log(LOG_FILE_NAME, "Taking image");
+//     camera_fb_t* pic = esp_camera_fb_get();
 
-    // Return error if picture could not be taken
-    if (pic == NULL) {
-        bpk_create_string_response(Bpacket, BPK_Code_Error, "Failed to take a photo\0");
-        esp32_uart_send_bpacket(Bpacket);
-        sd_card_log(LOG_FILE_NAME, "Camera failed to take image");
-    } else if (sd_card_save_image1(pic->buf, pic->len, Bpacket) != TRUE) {
-        sd_card_log(LOG_FILE_NAME, "Image could not be saved");
-    } else {
-        char msg[100];
-        sprintf(msg, "Image was %zu bytes", pic->len);
-        sd_card_log(LOG_FILE_NAME, msg);
-        bpk_create_string_response(Bpacket, BPK_Code_Success, msg);
-        esp32_uart_send_bpacket(Bpacket);
-    }
+//     // Return error if picture could not be taken
+//     if (pic == NULL) {
+//         bpk_create_string_response(Bpacket, BPK_Code_Error, "Failed to take a photo\0");
+//         esp32_uart_send_bpacket(Bpacket);
+//         sd_card_log(LOG_FILE_NAME, "Camera failed to take image");
+//     } else if (sd_card_save_image1(pic->buf, pic->len, Bpacket) != TRUE) {
+//         sd_card_log(LOG_FILE_NAME, "Image could not be saved");
+//     } else {
+//         char msg[100];
+//         sprintf(msg, "Image was %zu bytes", pic->len);
+//         sd_card_log(LOG_FILE_NAME, msg);
+//         bpk_create_string_response(Bpacket, BPK_Code_Success, msg);
+//         esp32_uart_send_bpacket(Bpacket);
+//     }
 
-    esp_camera_fb_return(pic);
+//     esp_camera_fb_return(pic);
 
-    sd_card_close();
-}
+//     sd_card_close();
+// }
 
 uint8_t camera_capture_image(camera_fb_t** image) {
     bpk_t Bpacket;

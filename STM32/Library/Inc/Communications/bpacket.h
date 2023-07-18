@@ -82,7 +82,7 @@ enum bpk_request_e {
     BPK_REQ_STREAM_IMAGE,
     BPK_REQ_ESP32_ON,
     BPK_REQ_ESP32_OFF,
-
+    BPK_REQ_GET_RTC_ALARM,
     /* User defined Maple Requeusts */
 };
 
@@ -234,6 +234,7 @@ extern const bpk_request_t BPK_Req_Get_Temperature;
 extern const bpk_request_t BPK_Req_Stream_Images;
 extern const bpk_request_t BPK_Req_Esp32_On;
 extern const bpk_request_t BPK_Req_Esp32_Off;
+extern const bpk_request_t BPK_Req_Get_Rtc_Alarm;
 
 extern const bpk_error_code_t BPK_Err_Invalid_Sender;
 extern const bpk_error_code_t BPK_Err_Invalid_Receiver;

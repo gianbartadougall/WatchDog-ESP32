@@ -3,7 +3,8 @@
 #include "datetime.h"
 #include "float.h"
 
-void wd_utils_settings_to_array(uint8_t array[20], capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
+void wd_utils_settings_to_array(uint8_t array[WD_NUM_SETTINGS_BYTES], capture_time_t* CaptureTime,
+                                camera_settings_t* CameraSettings) {
 
     array[0] = CaptureTime->Start.Time.second;
     array[1] = CaptureTime->Start.Time.minute;
@@ -28,6 +29,7 @@ void wd_utils_settings_to_array(uint8_t array[20], capture_time_t* CaptureTime, 
 
     array[18] = CameraSettings->frameSize;
     array[19] = CameraSettings->jpegCompression;
+    array[20] = CameraSettings->flashEnabled;
 }
 
 void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_settings_t* CameraSettings) {
@@ -51,6 +53,7 @@ void wd_utils_bpk_to_settings(bpk_t* Bpk, capture_time_t* CaptureTime, camera_se
 
     CameraSettings->frameSize       = Bpk->Data.bytes[18];
     CameraSettings->jpegCompression = Bpk->Data.bytes[19];
+    CameraSettings->flashEnabled    = Bpk->Data.bytes[20];
 }
 
 void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(float)], dt_datetime_t* Datetime,
@@ -68,11 +71,12 @@ void wd_utils_photo_data_to_array(uint8_t data[sizeof(dt_datetime_t) + sizeof(fl
     /* Store camera settings */
     data[7] = CameraSettings->frameSize;
     data[8] = CameraSettings->jpegCompression;
+    data[9] = CameraSettings->flashEnabled;
 
     /* Store the temperature */
     uint8_t* ptr = (uint8_t*)&temperature;
     for (uint8_t i = 0; i < sizeof(float); i++) {
-        data[9 + i] = ptr[i];
+        data[10 + i] = ptr[i];
     }
 }
 
@@ -90,10 +94,11 @@ void wd_utils_array_to_photo_data(uint8_t data[BPACKET_MAX_NUM_DATA_BYTES], dt_d
     /* Get the camera settings */
     CameraSettings->frameSize       = data[7];
     CameraSettings->jpegCompression = data[8];
+    CameraSettings->flashEnabled    = data[9];
 
     /* Get the temperature */
     uint8_t* ptr = (uint8_t*)temperature;
     for (uint8_t i = 0; i < sizeof(float); i++) {
-        ptr[i] = data[i + 9];
+        ptr[i] = data[i + 10];
     }
 }

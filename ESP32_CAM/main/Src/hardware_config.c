@@ -14,7 +14,7 @@
 void hardware_config_leds(void);
 void hardware_config_uart_comms(void);
 
-uint8_t hardware_config(bpk_t* Bpacket) {
+uint8_t hardware_config() {
 
     /* Configure all the required hardware */
     // Configure the SD card and ensure it can be used. This is done before
@@ -25,16 +25,6 @@ uint8_t hardware_config(bpk_t* Bpacket) {
 
     // sd_card_log(LOG_FILE_NAME, "Configuring LEDs\0");
     hardware_config_leds();
-
-    // Mount the SD card
-    if (sd_card_open() != TRUE) {
-        bp_create_string_packet(Bpacket, BPK_Addr_Receive_Maple, BPK_Addr_Send_Esp32, BPK_Request_Message,
-                                BPK_Code_Error, "SD Card failed to init\0");
-        return FALSE;
-    }
-
-    // Unmount the SD card
-    sd_card_close();
 
     return TRUE;
 }

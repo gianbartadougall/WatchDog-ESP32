@@ -1,14 +1,11 @@
 #ifndef HARDWARE_CONFIG_H
 #define HARDWARE_CONFIG_H
 
-/* Public Includes */
-#include <stdint.h>
+/* C Library Includes */
 
 /* ESP32 Includes */
-#include <driver/uart.h>
 
-/* Private Includes */
-#include "bpacket.h"
+/* Personal Includes */
 
 /* Public Marcos for UART */
 #define HC_UART_COMMS_TX_PIN     GPIO_NUM_1
@@ -30,6 +27,6 @@
  * @return uint8_t TRUE if everything was configured
  * successfully else FALSE
  */
-uint8_t hardware_config(bpk_t* Bpacket);
+uint8_t hardware_config();
 
 #endif // HARDWARE_CONFIG_H

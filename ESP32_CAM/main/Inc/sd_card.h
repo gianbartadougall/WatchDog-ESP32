@@ -37,23 +37,7 @@
 #define SD_CARD_ERROR_IO_ERROR           (LOG_ERR_OFFSET + 3)
 #define SD_CARD_NOT_MOUNTED              (LOG_ERR_OFFSET + 4)
 
-/**
- * @brief Creates the given folderpath on the SD card. The folder
- * path can end in a folder or a file. If the path already exits
- * nothing will happen. If any folders do not exist, they will
- * be created along the way.
- *
- * @param folderPath The path to the folder/file to be created.
- * Examples of valid paths are
- *      - folder1/data
- *      - project/data/temperatureData/temps.txt
- * @param bpacket If the folders/file could be created the
- * request of the response packet will be SUCCESS else it will
- * be ERROR and the instruction/data parts of the response packet
- * may contain information about why it failed
- * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
- */
-uint8_t sd_card_create_path(char* folderPath, bpk_t* Bpacket);
+uint8_t sd_card_create_path(char* folderPath, char* msg);
 
 uint8_t sd_card_delete_file(char* fileName, char* msg);
 
@@ -87,34 +71,19 @@ uint8_t sd_card_list_dir(char* msg);
 uint8_t sd_card_write_to_file(char* filePath, char* string, bpk_t* Bpacket);
 
 /**
- * @brief Saves an image to the SD card
+ * @brief Saves an image onto the SD card
  *
- * @param imageData The image data
- * @param imageLength The size of the image in bytes
- * @param bpacket If the folders/file could be created the
- * request of the response packet will be SUCCESS else it will
- * be ERROR and the instruction/data parts of the response packet
- * may contain information about why it failed
- * @return uint8_t uint8_t WD_SUCCESS if there were no problems else WD_ERROR
+ * @param imageData Pointer to the pixel data to write
+ * @param imageLength The number of bytes the pixel data contains
+ * @param Datetime The datetime that the image was taken
+ * @param temperature The temperature the image was taken at
+ * @param returnMsg Pointer to a string for error message if an error occurs
+ * @return uint8_t TRUE if sucessful else FALSE
  */
-uint8_t sd_card_save_image1(uint8_t* imageData, int imageLength, bpk_t* Bpacket);
-
 uint8_t sd_card_save_image(uint8_t* imageData, int imageLength, dt_datetime_t* Datetime, float temperature,
                            char* returnMsg);
 
-/**
- * @brief Finds all the images saved on the SD card in the image data folder and
- * returns the number of images that were found
- *
- * @param numImages A pointer to an int where the number of images found can be
- * stored
- * @param response If the folders/file could be created the
- * request of the response packet will be SUCCESS else it will
- * be ERROR and the instruction/data parts of the response packet
- * may contain information about why it failed
- * @return uint8_t WD_SUCCESS if there were no problems else WD_ERROR
- */
-uint8_t sd_card_search_num_images(uint16_t* numImages, bpk_t* Bpacket);
+uint8_t sd_card_update_image_count(char* msg);
 
 /**
  * @brief Searches the SD card for all the images on the card and updates the
@@ -146,10 +115,6 @@ uint8_t sd_card_open(void);
  */
 void sd_card_close(void);
 
-// uint8_t sd_card_write_settings(bpk_t* Bpacket);
-
-// uint8_t sd_card_read_settings(bpk_t* Bpacket);
-
 /**
  * @brief Mounts the SD card and writes a message to a given log file. If the
  * given log file doesn't exit it will create that file
@@ -173,8 +138,6 @@ uint8_t sd_card_log(char* fileName, char* message);
  */
 uint8_t sd_card_write(char* filePath, char* fileName, char* message);
 
-/* Functions that don't work yet */
-uint8_t sd_card_get_maximum_storage_capacity(uint16_t* maxStorageCapacityMb);
-/* Functions that don't work yet */
+uint8_t sd_card_check_directory_exists(char* directory);
 
 #endif // SD_CARD_H

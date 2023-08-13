@@ -477,15 +477,12 @@ DWORD WINAPI maple_start(void* args) {
         /* Maple functionality */
         if (lg_WatchdogConnected != TRUE) {
 
-            sprintf(statusText, "Not connected");
+            sprintf(statusText, "Not connected\t\t\t"); // Extra space to make all of the
+                                                        // 'CONNECTED' label is updated
             SetWindowText(lbl_watchdogConnection, statusText);
 
             if (maple_connect_to_device(BPK_Addr_Receive_Stm32, WATCHDOG_PING_CODE_STM32) != TRUE) {
-
-                // TODO: Delay 500ms
-
-                // TODO: Display error on GUI
-
+                log_message("Attempting to connect\r\n");
                 continue;
             }
 
@@ -730,13 +727,13 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
         log_success("%s deleted\r\n", lg_selectedFile);
 
         // Set the selected file to NULL
-        lg_selectedFile =
+        lg_selectedFile = NULL;
 
-            // Read directory again from watchdog to update the file list. Although this
-            // is slower than just deleting the item from the list here, this will ensure
-            // the user knows exactly what is on the SD card incase the are any bugs or
-            // something
-            event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
+        // Read directory again from watchdog to update the file list. Although this
+        // is slower than just deleting the item from the list here, this will ensure
+        // the user knows exactly what is on the SD card incase the are any bugs or
+        // something
+        event_group_set_bit(&lg_EventsMaple, EVENT_LIST_DIR, EGT_ACTIVE);
     }
 
     if (Bpacket->Request.val == BPK_REQ_LIST_DIR) {
@@ -800,8 +797,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         /* Update the label on the GUI with the datetime of the watchdog */
         char datetimeText[30];
-        sprintf(datetimeText, "%i:%i:%i %i/%i/%i", WatchdogDt.Time.second, WatchdogDt.Time.minute,
-                WatchdogDt.Time.hour, WatchdogDt.Date.day, WatchdogDt.Date.month,
+        sprintf(datetimeText, "%i:%i:%i %i/%i/%i", WatchdogDt.Time.hour, WatchdogDt.Time.minute,
+                WatchdogDt.Time.second, WatchdogDt.Date.day, WatchdogDt.Date.month,
                 WatchdogDt.Date.year);
         SetWindowText(lbl_WatchdogDateTime, datetimeText);
 
@@ -949,8 +946,8 @@ void maple_handle_watchdog_response(bpk_t* Bpacket) {
 
         // Extract the alarm time from the bpacket
         char alarmTime[50];
-        sprintf(alarmTime, "Next Alarm: %i:%i:%i %i/%i/%i", Bpacket->Data.bytes[0],
-                Bpacket->Data.bytes[1], Bpacket->Data.bytes[2], Bpacket->Data.bytes[3],
+        sprintf(alarmTime, "Next Alarm: %i:%i:%i %i/%i/%i", Bpacket->Data.bytes[2],
+                Bpacket->Data.bytes[1], Bpacket->Data.bytes[0], Bpacket->Data.bytes[3],
                 Bpacket->Data.bytes[4], (Bpacket->Data.bytes[5] << 8) | Bpacket->Data.bytes[6]);
 
         // Update the label text
@@ -1026,7 +1023,6 @@ LRESULT CALLBACK eventHandler(HWND GuiHandle, UINT msg, WPARAM wParam, LPARAM lP
         uint8_t index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 
         // The minutes go up in 5's so multiply the index by 5
-        // TODO: Multipoly by 5 again. I took it away for testing so i could test with 1 minute
         lg_CaptureTime.intervalMinute = index * 5;
     }
 

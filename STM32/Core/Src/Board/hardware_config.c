@@ -176,6 +176,32 @@ void hardware_config_gpio_init(void) {
     GPIO_SET_PULL_AS_NONE(DS18B20_PORT, DS18B20_PIN);
     /****** END CODE BLOCK ******/
 
+    /* ###### START DEBUGGING BLOCK ###### */
+    // Description:
+    GPIO_SET_MODE_OUTPUT(PA0_PORT, PA0_PIN);
+    GPIO_SET_MODE_OUTPUT(PA1_PORT, PA1_PIN);
+
+    // GPIO_SET_MODE_INPUT(PA0_PORT, PA0_PIN);
+    // GPIO_SET_TYPE_PUSH_PULL(PA0_PORT, PA0_PIN);
+    // GPIO_SET_PULL_AS_PULL_DOWN(PA0_PORT, PA0_PIN);
+    // SYSCFG->EXTICR[0] &= ~(0x07 << (4 * (PA0_PIN % 4)));
+    // EXTI->RTSR1 |= (0x01 << PA0_PIN);  // Trigger on rising edge
+    // EXTI->FTSR1 &= ~(0x01 << PA0_PIN); // Don't trigger on falling edge
+    // EXTI->IMR1 |= (0x01 << PA0_PIN);   // Enable interrupts
+    // HAL_NVIC_SetPriority(PA0_IRQn, 10, 0);
+    // HAL_NVIC_EnableIRQ(PA0_IRQn);
+
+    // GPIO_SET_MODE_INPUT(PA1_PORT, PA1_PIN);
+    // GPIO_SET_TYPE_PUSH_PULL(PA1_PORT, PA1_PIN);
+    // GPIO_SET_PULL_AS_PULL_DOWN(PA1_PORT, PA1_PIN);
+    // SYSCFG->EXTICR[0] &= ~(0x07 << (4 * (PA1_PIN % 4)));
+    // EXTI->RTSR1 |= (0x01 << PA1_PIN);  // Trigger on rising edge
+    // EXTI->FTSR1 &= ~(0x01 << PA1_PIN); // Don't trigger on falling edge
+    // EXTI->IMR1 |= (0x01 << PA1_PIN);   // Enable interrupts
+    // HAL_NVIC_SetPriority(PA1_IRQn, 10, 0);
+    // HAL_NVIC_EnableIRQ(PA1_IRQn);
+    /* ####### END DEBUGGING BLOCK ####### */
+
     /****** START CODE BLOCK ******/
     // Description: Setup GPIO pins for communicating with ESP32 Cam
     // GPIO_SET_MODE_ALTERNATE_FUNCTION(UART_ESP32_RX_PORT, UART_ESP32_RX_PIN, AF15);

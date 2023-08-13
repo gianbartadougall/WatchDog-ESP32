@@ -73,12 +73,10 @@ void ds18b20_deinit(void) {
 uint8_t ds18b20_read_temperature(ds18b20_t* Ds18b20) {
 
     if (ds18b20_convert_temperature() != TRUE) {
-        log_error("Failed to convert temperature\r\n");
         return FALSE;
     }
 
     if (ds18b20_read_scratch_pad(Ds18b20) != TRUE) {
-        log_error("Failed to read scratch pad\r\n");
         return FALSE;
     }
 

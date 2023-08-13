@@ -63,6 +63,11 @@ void usb_rx_handler(uint8_t* buffer, uint32_t numBytes) {
     for (uint32_t i = 0; i < numBytes; i++) {
         cbuffer_append_element(&UsbBuffer, (void*)&buffer[i]);
     }
+
+    /* ###### START DEBUGGING BLOCK ###### */
+    // Description:
+    // GPIO_TOGGLE(PA0_PORT, PA0_PIN);
+    /* ####### END DEBUGGING BLOCK ####### */
 }
 
 uint8_t usb_read_packet(bpk_t* Bpacket) {
@@ -77,7 +82,7 @@ uint8_t usb_read_packet(bpk_t* Bpacket) {
         // Read the current index of the byte buffer and store the result into
         // expected byte
         cbuffer_read_current_element(&ByteOrder, (void*)(&expectedByte));
-
+        GPIO_TOGGLE(PA0_PORT, PA0_PIN);
         switch (expectedByte) {
 
             /* Expecting bpacket 'data' bytes */
@@ -130,9 +135,6 @@ uint8_t usb_read_packet(bpk_t* Bpacket) {
                 }
         }
 
-        /* Decoding Failed */
-        log_usb_message("Ex: %i Got %i\r\n", expectedByte, byte);
-        GPIO_SET_HIGH(LED_RED_PORT, LED_RED_PIN);
         // Reset the expected byte back to the start and bpacket buffer index
         cbuffer_reset_read_index(&ByteOrder);
         bpkIndex = 0;

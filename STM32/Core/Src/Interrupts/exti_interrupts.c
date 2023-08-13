@@ -32,10 +32,10 @@
 void EXTI0_IRQHandler(void) {
     /****** START CODE BLOCK ******/
     // Description: Debuging. Can delete
-    log_usb_message("Interrupt 8\r\n");
+    // log_usb_message("Interrupt 0\r\n");
     /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
-    NVIC_ClearPendingIRQ(EXTI1_IRQn);
+    NVIC_ClearPendingIRQ(EXTI0_IRQn);
 
     if ((EXTI->PR1 & EXTI_PR1_PIF0) == EXTI_PR1_PIF0) {
 
@@ -53,7 +53,7 @@ void EXTI0_IRQHandler(void) {
 void EXTI1_IRQHandler(void) {
     /****** START CODE BLOCK ******/
     // Description: Debuging. Can delete
-    log_usb_message("Interrupt 7\r\n");
+    // log_usb_message("Interrupt 1\r\n");
     /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI1_IRQn);
@@ -72,7 +72,7 @@ void EXTI1_IRQHandler(void) {
  *
  */
 void EXTI2_IRQHandler(void) {
-
+    // log_usb_message("Interrupt 2\r\n");
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI2_IRQn);
 
@@ -82,8 +82,6 @@ void EXTI2_IRQHandler(void) {
         EXTI->PR1 = EXTI_PR1_PIF2;
 
         /* Call required functions */
-
-        // GPIO_TOGGLE(LED_GREEN_PORT, LED_GREEN_PIN);
     }
 }
 
@@ -135,7 +133,6 @@ void EXTI4_IRQHandler(void) {
  *
  */
 void EXTI9_5_IRQHandler(void) {
-
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
 
@@ -179,17 +176,9 @@ void EXTI9_5_IRQHandler(void) {
     if ((EXTI->PR1 & EXTI_PR1_PIF8) == EXTI_PR1_PIF8) {
 
         // Clear the interrupt flag
-        EXTI->PR1 |= EXTI_PR1_PIF8;
+        EXTI->PR1 = EXTI_PR1_PIF8;
 
         /* Call required functions */
-
-        // This interrupt fires whenever the USBC cord
-        // has been connected or disconnected
-        if (GPIO_PIN_IS_HIGH(USBC_CONN_PORT, USBC_CONN_PIN)) {
-            event_group_set_bit(&gbl_EventsStm, EVENT_STM_USBC_CONNECTED, EGT_ACTIVE);
-        } else {
-            event_group_clear_bit(&gbl_EventsStm, EVENT_STM_USBC_CONNECTED, EGT_ACTIVE);
-        }
     }
 
     // // Confirm pending interrupt exists on EXTI line 9
@@ -210,7 +199,7 @@ void EXTI9_5_IRQHandler(void) {
 void EXTI15_10_IRQHandler(void) {
     /****** START CODE BLOCK ******/
     // Description: Debuging. Can delete
-    log_usb_message("Interrupt 9\r\n");
+    log_usb_message("Interrupt 15 to 10\r\n");
     /****** END CODE BLOCK ******/
     // Clear the pending interrupt call
     NVIC_ClearPendingIRQ(EXTI15_10_IRQn);

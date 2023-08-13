@@ -98,6 +98,15 @@ uint8_t rtc_init(void) {
         return EXIT_CODE_3;
     }
 
+    /* ###### START DEBUGGING BLOCK ###### */
+    // Description: Set the control register
+
+    uint8_t alarmWrite[2] = {RTC_ADDR_CONTROL, 0x00};
+    if (HAL_I2C_Master_Transmit(&hi2c1, RTC_I2C_WRITE, alarmWrite, 2, 3000) != HAL_OK) {
+        return FALSE;
+    }
+    /* ####### END DEBUGGING BLOCK ####### */
+
     return TRUE;
 }
 
@@ -295,6 +304,10 @@ uint8_t rtc_read_alarm_date(dt_date_t* Date, uint8_t alarmNum) {
 }
 
 uint8_t rtc_write_datetime(dt_datetime_t* Datetime) {
+
+    // TODO: Disabled the oscillator
+
+    // TODO: Wait for the OSCRUN bit to clear
 
     /* Disable the oscillator (datasheet reccommends this to avoid rollover issues ) */
     // if (rtc_disable_ext_oscillator() != TRUE) {

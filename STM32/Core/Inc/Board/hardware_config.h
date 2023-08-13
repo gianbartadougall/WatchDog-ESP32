@@ -53,6 +53,18 @@
 #define RTC_ALARM_IRQn EXTI9_5_IRQn
 /**********************************************/
 
+/******** Macros for Real Time Clock **********/
+#define PA0_PORT GPIOA
+#define PA0_PIN  1 // Accidently wrote silk screen wrong on PCB. PA0 on PCB actually is PA1
+#define PA0_IRQn EXTI1_IRQn
+/**********************************************/
+
+/******** Macros for Real Time Clock **********/
+#define PA1_PORT GPIOA
+#define PA1_PIN  0 // Accidently wrote silk screen wrong on PCB. PA1 on PCB actually is PA0
+#define PA1_IRQn EXTI0_IRQn
+/**********************************************/
+
 /******** Macros for Power BJT **********/
 #define ESP32_POWER_PORT GPIOA
 #define ESP32_POWER_PIN  6
